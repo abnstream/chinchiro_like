@@ -1,0 +1,1483 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>チンチロライク</title>
+<style>
+    body {
+        font-family: 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif;
+        background-color: #1a1a1a;
+        color: white;
+        text-align: center;
+        margin: 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        padding: 20px 0;
+        box-sizing: border-box;
+    }
+    #game-container {
+        width: 95%;
+        max-width: 550px;
+        background-color: #2d2d2d;
+        padding: 20px;
+        border-radius: 15px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+    /* ステータス表示 */
+    .status-bar {
+        width: 100%;
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 15px;
+        padding: 10px;
+        background: #444;
+        border-radius: 8px;
+        font-size: 14px;
+        box-sizing: border-box;
+    }
+    .target-score {
+        color: #ff4757;
+        font-weight: bold;
+        font-size: 24px;
+        margin-bottom: 10px;
+        text-shadow: 0 0 10px rgba(255, 71, 87, 0.4);
+    }
+    /* くもん式用表示 */
+    #kumon-status {
+        width: 100%;
+        background-color: #333;
+        color: #2ed573;
+        padding: 5px;
+        border-radius: 5px;
+        margin-bottom: 15px;
+        font-weight: bold;
+        display: none; 
+    }
+
+    /* サイコロ */
+    #dice-area {
+        display: flex;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 15px;
+        margin: 20px 0;
+        min-height: 80px;
+    }
+    .dice {
+        font-size: 50px;
+        width: 65px;
+        height: 65px;
+        background: white;
+        color: #333;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 4px 0 #999;
+        position: relative;
+        transition: transform 0.2s, background-color 0.2s, opacity 0.3s;
+        cursor: pointer;
+        user-select: none;
+    }
+    .dice:active { transform: scale(0.95); }
+    
+    .dice.red { color: #ff4757; }
+    .dice.changed { background-color: #ffd700; transform: scale(1.1); }
+    
+    .dice.locked {
+        background-color: #b2bec3;
+        border: 3px solid #3742fa;
+        transform: translateY(2px);
+        box-shadow: 0 2px 0 #666;
+    }
+    .dice.locked::after {
+        content: 'LOCK';
+        position: absolute;
+        top: -10px;
+        right: -5px;
+        font-size: 10px;
+        background: #3742fa;
+        color: white;
+        padding: 1px 4px;
+        border-radius: 4px;
+        font-weight: bold;
+    }
+
+    .dice.fixed-six {
+        border: 3px solid #ffd700;
+        background: #fffbe6;
+    }
+    .dice.fixed-six::after {
+        content: '★';
+        position: absolute;
+        top: -10px;
+        left: -5px;
+        font-size: 12px;
+        color: #ffd700;
+        text-shadow: 0 0 2px black;
+    }
+
+    .dice.unused {
+        opacity: 0.3;
+        transform: scale(0.9);
+        box-shadow: none;
+    }
+    
+    #message { font-size: 16px; height: 24px; color: #bbb; margin-bottom: 5px; }
+    #result-yaku {
+        font-size: 32px;
+        font-weight: bold;
+        color: #ffd700;
+        min-height: 45px;
+        height: auto;
+        margin-bottom: 30px;
+        text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+        line-height: 1.2;
+        word-wrap: break-word;
+    }
+
+    /* ボタン */
+    button {
+        background-color: #ff4757;
+        color: white;
+        border: none;
+        padding: 15px 0;
+        width: 100%;
+        font-size: 18px;
+        border-radius: 50px;
+        cursor: pointer;
+        transition: transform 0.1s, background-color 0.3s;
+        margin-bottom: 20px;
+    }
+    button:active { transform: scale(0.95); }
+    button:disabled { background-color: #555; cursor: not-allowed; }
+    
+    .btn-clear {
+        background-color: #ffd700 !important;
+        color: #333 !important;
+        font-weight: bold;
+        box-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
+    }
+    .btn-kumon {
+        background-color: #2ed573 !important;
+        box-shadow: 0 0 15px rgba(46, 213, 115, 0.5);
+    }
+
+    #reroll-btn {
+        background-color: #3742fa;
+        font-size: 14px;
+        padding: 10px;
+        margin-top: 15px;
+        width: 60%;
+    }
+    #reroll-btn:disabled { background-color: #555; }
+
+    /* 全体倍率表示エリア */
+    .global-mult-box {
+        width: 100%;
+        background: linear-gradient(90deg, #333, #444, #333);
+        border: 1px solid #ffd700;
+        color: #ffd700;
+        border-radius: 8px;
+        padding: 10px;
+        margin-bottom: 5px;
+        font-size: 18px;
+        font-weight: bold;
+        box-sizing: border-box;
+        text-shadow: 0 0 5px rgba(255, 215, 0, 0.3);
+    }
+
+    /* 点数表 */
+    .score-table {
+        width: 100%;
+        background: #333;
+        border-radius: 8px;
+        padding: 10px;
+        font-size: 12px;
+        text-align: left;
+        box-sizing: border-box;
+        border: 1px solid #555;
+    }
+    .score-table h3 { margin: 0 0 5px 0; font-size: 14px; color: #ddd; text-align: center; }
+    .score-row { display: flex; justify-content: space-between; border-bottom: 1px solid #444; padding: 3px 0; }
+    .score-row:last-child { border-bottom: none; }
+    .score-row.hidden-yaku { border-top: 2px solid #a55eea; } /* 隠し役を目立たせる */
+    .score-name { color: #ffd700; }
+    .score-val { color: #fff; font-weight: bold; transition: color 0.3s; }
+    .score-val.updated { color: #2ed573; }
+    .bad { color: #a4b0be; }
+
+    /* モーダル */
+    .modal-overlay {
+        position: absolute;
+        top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.95);
+        display: none;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        border-radius: 15px;
+        z-index: 10;
+        padding: 20px;
+        box-sizing: border-box;
+    }
+    .card-container { display: flex; flex-direction: column; gap: 10px; width: 90%; }
+    .powerup-card {
+        background: #333; border: 2px solid #555; padding: 10px;
+        border-radius: 10px; cursor: pointer; text-align: left;
+        border-left: 5px solid #777;
+    }
+    .powerup-card:hover { border-color: #ffd700; background: #444; }
+    
+    .card-type-rare { border-left-color: #ffd700; }
+    .card-type-risk { border-left-color: #ff4757; }
+    .card-type-safe { border-left-color: #2ed573; }
+    .card-type-special { border-left-color: #a55eea; }
+    .card-type-tech { border-left-color: #3742fa; }
+    .card-type-prestige { border-left: 5px solid #fff; border-right: 5px solid #a55eea; background: linear-gradient(90deg, #333, #444); }
+    .card-type-ascendancy { border-left: 5px solid #fff; border-right: 5px solid #fff; background: #222; }
+
+    .card-title { color: #fff; font-weight: bold; margin-bottom: 3px; font-size: 16px; }
+    .card-desc { font-size: 12px; color: #ccc; }
+    
+    /* 新規ルールモーダルのスタイル */
+    #rules-modal {
+        justify-content: flex-start;
+        padding-top: 50px;
+        z-index: 30; /* 最前面に */
+    }
+    .rules-content {
+        background-color: #2d2d2d;
+        width: 90%;
+        max-width: 500px;
+        height: 80vh; 
+        border-radius: 10px;
+        padding: 20px;
+        overflow-y: auto; 
+        text-align: left;
+    }
+    .rules-content h3 { color: #ffd700; border-bottom: 1px solid #444; padding-bottom: 5px; margin-top: 15px; }
+    .rules-content ul { padding-left: 20px; font-size: 14px; }
+    .rules-content li { margin-bottom: 5px; }
+    #close-rules-btn {
+        margin-top: 20px;
+        width: 50%;
+        padding: 10px;
+        background-color: #555;
+    }
+
+</style>
+</head>
+<body>
+
+<div id="game-container">
+    <div class="status-bar">
+        <div>STAGE: <span id="stage-num">1</span></div>
+        <div style="font-size:12px; max-width: 60%; text-align:right;">所持バフ:<br><span id="buff-list" style="color:#aaa;">なし</span></div>
+    </div>
+    
+    <div>目標: <span id="target-score" class="target-score">100</span> pt</div>
+    <div id="kumon-status">積立済み: <span id="kumon-score">0</span> pt</div>
+
+    <div id="dice-area"></div>
+
+    <div id="message">サイコロを振ってください</div>
+    <div id="result-yaku"></div>
+
+    <button id="roll-btn" onclick="rollDice()">振る (残り3回)</button>
+
+    <div class="global-mult-box">
+        全体倍率: <span id="global-mult-display">x1.0</span> <span style="font-size:12px; color:#aaa;">(最終スコアに乗算)</span>
+    </div>
+
+    <div class="score-table">
+        <h3>▼ 役の基礎点 (役倍率のみ反映) ▼</h3>
+        
+        <div class="score-row hidden-yaku" id="row-long-straight" style="display:none;">
+            <span class="score-name" id="lbl-long-straight">ロングストレート (1-5 / 2-6)</span>
+            <span class="score-val" id="sv-long-straight">15000</span>
+        </div>
+        <div class="score-row hidden-yaku" id="row-five-of-a-kind" style="display:none;">
+            <span class="score-name" id="lbl-five-of-a-kind">ファイブオブアカインド (5ゾロ)</span>
+            <span class="score-val" id="sv-five-of-a-kind">50000</span>
+        </div>
+
+        <div class="score-row"><span class="score-name">ピンゾロ (1-1-1)</span><span class="score-val" id="sv-pinzorou">5000</span></div>
+        <div class="score-row"><span class="score-name">アラシ (ゾロ目)</span><span class="score-val" id="sv-arashi">3000</span></div>
+        <div class="score-row"><span class="score-name" id="lbl-sigoro">シゴロ (4-5-6)</span><span class="score-val" id="sv-sigoro">2000</span></div>
+        <div class="score-row"><span class="score-name">通常の目 (例:1-6-6)</span><span class="score-val" id="sv-normal">出目 × 100</span></div>
+        <div class="score-row"><span class="score-name bad" id="lbl-hifumi">ヒフミ (1-2-3)</span><span class="score-val bad" id="sv-hifumi">即死</span></div>
+        <div class="score-row"><span class="score-name bad">役なし</span><span class="score-val bad">0 (失敗)</span></div>
+    </div>
+
+    <div id="common-modal" class="modal-overlay">
+        <h2 id="modal-title" style="color:#ffd700;">ASCENDANCY</h2>
+        <p id="modal-desc" style="color:#ddd; margin-top:0;">開始時の能力を選択してください</p>
+        
+        <button id="open-rules-btn" style="width:90%; padding: 10px; margin-bottom: 15px; background-color: #555;">ルールを確認</button>
+        
+        <div class="card-container" id="card-container"></div>
+        <button id="reroll-btn" style="display:none;" onclick="rerollPowerups()">リロール (残り3回)</button>
+    </div>
+
+    <div id="ending-modal" class="modal-overlay" style="z-index: 20; display:none;">
+        <h2 style="color:#ffd700; font-size:40px; margin-bottom:10px;">CONGRATULATIONS!!</h2>
+        <p style="color:white; margin:0 0 30px 0; line-height:1.5;">ステージ20 完全制覇！<br>伝説のギャンブラーとして名を刻みました。</p>
+        <div style="display:flex; gap:15px; width:90%; justify-content:center;">
+            <button onclick="goEndless()" style="width:48%; background:#a55eea; font-size:14px;">永遠に続ける</button>
+            <button onclick="resetGame()" style="width:48%; background:#555; font-size:14px;">タイトルへ</button>
+        </div>
+    </div>
+
+    <div id="overlay" class="modal-overlay" style="background:rgba(0,0,0,0.9);">
+        <h2 id="overlay-title">GAME OVER</h2>
+        <p id="overlay-msg">...</p>
+        <button id="restart-btn" onclick="resetGame()" style="width:80%; margin-top:20px; background:#2ed573;">最初から遊ぶ</button>
+    </div>
+</div>
+
+<div id="rules-modal" class="modal-overlay">
+    <div class="rules-content">
+        <h2 style="color:#ffd700; text-align:center; margin-top:0;">チンチロライク - ゲームルール</h2>
+        
+        <h3>1. 基本ルール</h3>
+        <ul>
+            <li>サイコロを振って役を作り、目標点数クリアを目指します。</li>
+            <li>振れる回数は最大3回です（能力などで増減します）。</li>
+            <li>スコアが目標点に達するとステージクリア、達しないまま振れる回数がなくなるとゲームオーバーです。</li>
+        </ul>
+
+        <h3>2. 役と基礎点 (役倍率のみ反映)</h3>
+        <ul style="list-style: none; padding-left: 0;">
+            <li style="color:#2ed573; font-weight:bold;">ピンゾロ (1-1-1)：5000点</li>
+            <li style="color:#2ed573; font-weight:bold;">アラシ (ゾロ目)：3000点</li>
+            <li style="color:#2ed573; font-weight:bold;">シゴロ (4-5-6)：2000点</li>
+            <li>通常の目 (ペア+数字)：ペアにならなかった出目 × 100点</li>
+            <li style="color:#ff4757; font-weight:bold;">ヒフミ (1-2-3)：**ペナルティ (残り回数-1)**</li>
+            <li style="color:#ff4757;">役なし：0点 (失敗)</li>
+        </ul>
+        <p style="font-size: 12px; color:#aaa; margin-top: 5px;">※最終スコアは (基礎点 × 役倍率) × 全体倍率 で計算されます。</p>
+        <p style="font-size: 12px; color:#aaa; margin-top: 5px;">※隠された役が存在するかも……？。</p>
+
+        <h3>3. 能力 (バフ) の獲得</h3>
+        <ul>
+            <li>**ASCENDANCY**: ゲーム開始時に選択。ゲーム全体に大きく影響する能力。</li>
+            <li>**PRESTIGE**: 5ステージごとに選択。強力な上級能力。</li>
+            <li>**通常パワーアップ**: 通常ステージクリア時に選択。役の倍率やゲームロジックを強化。</li>
+            <li>**リロール**: 能力選択時に、リロール回数を消費して選択肢を再生成できます。</li>
+        </ul>        
+    </div>
+    <button id="close-rules-btn" style="width:90%; max-width: 500px; padding: 15px; margin-top: 30px; background-color: #3742fa;">ゲームに戻る</button>
+</div>
+<script>
+    let state = {
+        stage: 1,
+        targetScore: 100, 
+        rollCount: 0,
+        maxRolls: 3,
+        diceCount: 3, 
+        rerollsRemaining: 3, 
+        dice: [], 
+        lockedIndices: [],
+        kumonScore: 0, 
+        isEndless: false, 
+        selectionContext: null,
+        buffs: {
+            diceLimit: null, 
+            scoreMult: 1.0,
+            zoroBonus: 0.0,
+            normalEyeBonus: 0.0,
+            sigoroBonus: 0.0,
+            extraRoll: 0,
+            maxLocks: 0,
+            hasLimitDice: false, 
+            hifumiReversal: false, 
+            haiteiBonus: 0.0,
+            iaiBonus: 0.0,
+            fixedSix: false,
+            straightMaster: false,
+            isKumon: false,
+            carryOver: false 
+        },
+        hiddenYaku: { // ★ 隠し役の公開状態
+            fiveOfAKind: false,
+            longStraight: false
+        }
+    };
+
+    const YAKU_SCORES = {
+        pinzorou: 5000,
+        arashi: 3000,
+        sigoro: 2000,
+        hifumi: 0,
+        nashi: 0,
+        hifumi_rev: 3000,
+        // ★ 隠し役の基礎点
+        fiveOfAKind: 50000, 
+        longStraight: 15000 
+    };
+
+    const els = {
+        diceArea: document.getElementById('dice-area'),
+        msg: document.getElementById('message'),
+        yaku: document.getElementById('result-yaku'),
+        btn: document.getElementById('roll-btn'),
+        stage: document.getElementById('stage-num'),
+        target: document.getElementById('target-score'),
+        buffs: document.getElementById('buff-list'),
+        modal: document.getElementById('common-modal'),
+        modalTitle: document.getElementById('modal-title'),
+        modalDesc: document.getElementById('modal-desc'),
+        cards: document.getElementById('card-container'),
+        rerollBtn: document.getElementById('reroll-btn'),
+        overlay: document.getElementById('overlay'),
+        ovTitle: document.getElementById('overlay-title'),
+        ovMsg: document.getElementById('overlay-msg'),
+        globalMult: document.getElementById('global-mult-display'),
+        kumonStatus: document.getElementById('kumon-status'),
+        kumonScore: document.getElementById('kumon-score'),
+        endingModal: document.getElementById('ending-modal'),
+        // ★ 新しく追加されたルールモーダル関連の要素
+        rulesModal: document.getElementById('rules-modal'),
+        openRulesBtn: document.getElementById('open-rules-btn'),
+        closeRulesBtn: document.getElementById('close-rules-btn')
+    };
+
+    // --- アセンダンシーデータ (省略せずにそのまま残します) ---
+    const ASCENDANCY_POOL = [
+        {
+            title: '一二三の極意',
+            desc: '出目が1～3しかでなくなる。全体倍率+300%。ヒフミに注意！',
+            apply: (s) => {
+                s.buffs.diceLimit = 'low';
+                s.buffs.scoreMult += 3.0; 
+                s.buffs.hasLimitDice = true;
+            }
+        },
+        {
+            title: '四五六の堅守',
+            desc: '出目が4～6しかでなくなる。全体倍率-50%。ノーカン！ノーカン！',
+            apply: (s) => {
+                s.buffs.diceLimit = 'high';
+                s.buffs.scoreMult -= 0.5;
+                s.buffs.hasLimitDice = true;
+            }
+        },
+        {
+            title: 'ピンフ・タンヤオ',
+            desc: '出目が2～5しかでなくなる。2-3-4、3-4-5の出目もシゴロと同じ役になる。ヒフミもなければシゴロもピンゾロもない',
+            apply: (s) => {
+                s.buffs.diceLimit = 'tanyao';
+                s.buffs.hasLimitDice = true;
+                s.buffs.straightMaster = true;
+            }
+        },
+        {
+            title: 'くもん式',
+            desc: 'スコアが足りない場合、スコアをそのまま加算して振りなおす。どんなもんだい',
+            apply: (s) => {
+                s.buffs.isKumon = true;
+                els.kumonStatus.style.display = 'block';
+            }
+        },
+        {
+            title: 'ファイブオブアカインド',
+            desc: 'サイコロを５つ振り、もっとも点数が高くなる組み合わせで得点を計算する。ただし他に役がない場合はヒフミが優先される',
+            apply: (s) => {
+                s.diceCount = 5; 
+            }
+        },
+        {
+            title: '天運',
+            desc: '全体倍率+100%、リロール+5、振れる回数+2。それでいい。神とサイコロは無口でいい',
+            apply: (s) => {
+                s.buffs.scoreMult += 1.0;
+                s.rerollsRemaining += 5;
+                s.buffs.extraRoll += 2;
+            }
+        },
+        {
+            title: '着の身着のまま',
+            desc: 'ボーナスなし。夏も冬も',
+            apply: (s) => {
+                // なにもしない
+            }
+        }
+    ];
+
+    // --- プレステージ(強力)データ ---
+    const PRESTIGE_POOL = [
+        { 
+            id: 'dice_lock', 
+            title: '精密動作', 
+            desc: '【技術】振った後のサイコロをタップして出目を1つ固定できる(最大2個)', 
+            type: 'prestige',
+            weight: 100,
+            unique: false,
+            apply: (s) => { s.buffs.maxLocks++; }
+        },
+        { 
+            id: 'straight_master', 
+            title: 'ストレートマスター', 
+            desc: '【技術】「2-3-4」「3-4-5」が役になる(得点はシゴロと同じ)', 
+            type: 'prestige',
+            weight: 100,
+            unique: true,
+            apply: (s) => { s.buffs.straightMaster = true; }
+        },
+        {
+            id: 'multi_dice',
+            title: '増殖する賽',
+            desc: '【特殊】一度に振るサイコロの数+1。もっとも点数が高くなる組み合わせで得点を計算する。ただし他に役が無い場合はヒフミが優先される',
+            type: 'prestige',
+            weight: 100, 
+            unique: false, 
+            apply: (s) => { s.diceCount++; }
+        },
+        {
+            id: 'hifumi_rev',
+            title: '起死回生',
+            desc: '【特殊】「ヒフミ(1-2-3)」のペナルティ(振れる回数の減少)を無効化する',
+            type: 'prestige',
+            weight: 100, 
+            unique: true,
+            apply: (s) => { s.buffs.hifumiReversal = true; }
+        },
+        { 
+            id: 'power', 
+            title: '筋トレ', 
+            desc: '【全体倍率】全てのスコア倍率が+150% (累積可)', 
+            type: 'prestige',
+            weight: 100,
+            apply: (s) => { s.buffs.scoreMult += 1.5; } 
+        },
+        {
+            id: 'carry_over',
+            title: 'キャリーオーバー',
+            desc: '【成長】クリア時、余った回数×5%ずつ全体倍率が永続アップ',
+            type: 'prestige',
+            weight: 100,
+            unique: true,
+            apply: (s) => { s.buffs.carryOver = true; }
+        }
+    ];
+
+    // --- 通常パワーアップデータ ---
+    const POWERUP_POOL = [
+        { 
+            id: 'sigoro_boost', 
+            title: '順子(シュンツ)強化', 
+            desc: '【役倍率】シゴロの得点が+200% (累積可)', 
+            type: 'safe',
+            weight: 100,
+            apply: (s) => { s.buffs.sigoroBonus += 2.0; } 
+        },
+        {
+            id: 'iai',
+            title: '居合い斬り',
+            desc: '【全体倍率】1投目で役確定時、全体倍率+100% (累積可)',
+            type: 'risk',
+            weight: 100,
+            unique: false,
+            apply: (s) => { s.buffs.iaiBonus += 1.0; }
+        },
+        {
+            id: 'haitei',
+            title: '海底撈月',
+            desc: '【全体倍率】ラスト1回で役確定時、全体倍率+200% (累積可)',
+            type: 'risk',
+            weight: 100,
+            unique: false,
+            apply: (s) => { s.buffs.haiteiBonus += 2.0; }
+        },
+        { 
+            id: 'zoro_master', 
+            title: 'ゾロ目の達人', 
+            desc: '【役倍率】ピンゾロとアラシの得点が+300% (累積可)', 
+            type: 'rare',
+            weight: 100,
+            apply: (s) => { s.buffs.zoroBonus += 3.0; } 
+        },
+        { 
+            id: 'normal_boost', 
+            title: '基礎練習', 
+            desc: '【役倍率】通常の目(ペア+数字)の得点が+300%。', 
+            type: 'safe',
+            weight: 100,
+            apply: (s) => { 
+                s.buffs.normalEyeBonus += 3.0; 
+            } 
+        },
+        { 
+            id: 'deep_breath', 
+            title: '深呼吸', 
+            desc: '【回復】リロール回数+3', 
+            type: 'safe',
+            weight: 80,
+            unique: false,
+            apply: (s) => { s.rerollsRemaining += 3; }
+        },
+        { 
+            id: 'retry', 
+            title: '保険加入', 
+            desc: '【安定】サイコロを振れる回数が1回増える', 
+            type: 'safe',
+            weight: 100,
+            apply: (s) => { s.buffs.extraRoll += 1; }
+        },
+        {
+            id: 'shukusho',
+            title: '縮小',
+            desc: '【全体倍率】サイコロを振れる回数が1回減るが、全体倍率+100%',
+            type: 'risk',
+            weight: 100,
+            apply: (s) => { s.buffs.extraRoll -= 1; s.buffs.scoreMult += 1.0; }
+        }
+    ];
+
+    window.onload = function() {
+        state.dice = new Array(state.diceCount).fill(0); // 3-dice by default
+        drawDice(state.dice);
+        updateScoreTable();
+        updateBuffText();
+        setupRuleButtons(); 
+        showAscendancySelection();
+    };
+
+    // ★ ルールボタンのイベントリスナー設定
+    function setupRuleButtons() {
+        if (els.openRulesBtn && els.rulesModal) {
+            els.openRulesBtn.onclick = function() {
+                els.rulesModal.style.display = 'flex';
+                els.modal.style.display = 'none'; 
+            };
+        }
+        
+        if (els.closeRulesBtn && els.rulesModal) {
+            els.closeRulesBtn.onclick = function() {
+                els.rulesModal.style.display = 'none';
+                els.modal.style.display = 'flex'; 
+            };
+        }
+    }
+
+    function showAscendancySelection() {
+        
+        els.modal.style.display = 'flex';
+        els.modalTitle.textContent = "ASCENDANCY";
+        els.modalDesc.textContent = "開始時の能力を選択してください";
+        els.rerollBtn.style.display = 'none';
+        els.cards.innerHTML = '';
+        els.openRulesBtn.style.display = 'block'; 
+
+        ASCENDANCY_POOL.forEach(asc => {
+            const div = document.createElement('div');
+            div.className = `powerup-card card-type-ascendancy`;
+            div.innerHTML = `<div class="card-title">${asc.title}</div><div class="card-desc">${asc.desc}</div>`;
+            div.onclick = () => selectAscendancy(asc);
+            els.cards.appendChild(div);
+        });
+    }
+
+    function selectAscendancy(asc) {
+        asc.apply(state);
+        els.modal.style.display = 'none';
+        
+        els.btn.textContent = `振る (残り${3 + state.buffs.extraRoll}回)`;
+        
+        state.dice = new Array(state.diceCount).fill(0);
+        drawDice(state.dice);
+        
+        updateBuffText();
+        updateScoreTable();
+    }
+
+    function toggleLock(index) {
+        if (state.rollCount === 0 && state.dice[0] === 0) return;
+        if (state.rollCount >= state.maxRolls + state.buffs.extraRoll) return;
+
+        if (state.lockedIndices.includes(index)) {
+            state.lockedIndices = state.lockedIndices.filter(i => i !== index);
+        } else {
+            if (state.lockedIndices.length < state.buffs.maxLocks) {
+                state.lockedIndices.push(index);
+            } else {
+                if(state.buffs.maxLocks === 0) {
+                     alert("「精密動作」スキルを持っていないためロックできません");
+                }
+            }
+        }
+        drawDice(state.dice);
+    }
+
+    function rollDice() {
+        if (state.rollCount >= state.maxRolls + state.buffs.extraRoll) return;
+
+        state.rollCount++;
+        const remaining = (state.maxRolls + state.buffs.extraRoll) - state.rollCount;
+        
+        els.btn.disabled = true;
+        els.btn.textContent = `Rolling... (残り${remaining}回)`; 
+        els.btn.classList.remove('btn-kumon'); 
+        els.msg.textContent = "Rolling...";
+        els.yaku.textContent = "";
+        els.yaku.style.color = "#ffd700";
+
+        let count = 0;
+        const interval = setInterval(() => {
+            updateDiceValues(false); 
+            drawDice(state.dice);
+            count++;
+            if (count > 10) {
+                clearInterval(interval);
+                finalizeRoll();
+            }
+        }, 80);
+    }
+
+    function finalizeRoll() {
+        updateDiceValues(true); 
+
+        let detailedResult;
+        let usedDiceIndices = [];
+        let isFiveDiceYaku = false;
+
+        // ★ 1. 5個ダイス役のチェック (最優先)
+        const fiveDiceYaku = checkFiveDiceYaku(state.dice);
+
+        if (fiveDiceYaku) {
+            detailedResult = fiveDiceYaku;
+            usedDiceIndices = fiveDiceYaku.usedIndices;
+            isFiveDiceYaku = true;
+
+            // 隠し役の公開処理
+            if (detailedResult.name.includes("ファイブオブアカインド") && !state.hiddenYaku.fiveOfAKind) {
+                state.hiddenYaku.fiveOfAKind = true;
+                updateScoreTable();
+            }
+            if (detailedResult.name.includes("ロングストレート") && !state.hiddenYaku.longStraight) {
+                state.hiddenYaku.longStraight = true;
+                updateScoreTable();
+            }
+
+        } else {
+            // 5個ダイス役がない場合、3個ダイスの役で最も良いものを探す (既存ロジック)
+            const bestResult = getBestYaku(state.dice);
+            
+            // calculateDetailedScore は 3 dice array を受け取る
+            detailedResult = calculateDetailedScore(bestResult.usedIndices.map(i => state.dice[i]));
+            
+            detailedResult.usedIndices = bestResult.usedIndices; 
+            usedDiceIndices = bestResult.usedIndices;
+            detailedResult.isFiveDiceYaku = false;
+        }
+        
+        drawDice(state.dice, usedDiceIndices);
+        
+        const result = detailedResult; // 参照名を詳細なものに切り替え
+        
+        // --- ヒフミ判定とペナルティ処理 ---
+        if (result.name === "ヒフミ") {
+            if (state.buffs.hifumiReversal) {
+                els.yaku.textContent = "起死回生発動！(ペナルティ無効)";
+                els.yaku.style.color = "#2ed573";
+                result.finalScore = 0; // finalScore を 0 にリセット
+                result.isYaku = false; 
+            } else {
+                // ペナルティ：回数-1
+                // rollDiceで1回増えているが、ペナルティで合計2回消費したことにする
+                state.rollCount++; 
+                els.yaku.textContent = "ヒフミ (1-2-3) ペナルティ！(残り回数-1)";
+                els.yaku.style.color = "#a55eea";
+                result.finalScore = 0; // finalScore を 0 にリセット
+                result.isYaku = false; 
+            }
+        }
+
+        const currentTotal = result.finalScore + state.kumonScore;
+        // ペナルティ後の再計算
+        const finalRemaining = (state.maxRolls + state.buffs.extraRoll) - state.rollCount;
+
+        // --- ここから新しいリザルト表示 ---
+        if (result.isYaku && result.finalScore > 0) {
+            
+            // 表示用のテキストを構築
+            let displayHTML = `
+                <div style="font-size: 18px; color: #fff;">${result.name} : ${result.baseScoreDisplay} pt</div>
+            `;
+            
+            // 倍率内訳
+            let multDetail = `全体倍率: x${state.buffs.scoreMult.toFixed(2)}`;
+            let totalMult = state.buffs.scoreMult;
+
+            if (result.iaiBonusApplied > 0) {
+                 multDetail += `<br>居合: +${(result.iaiBonusApplied).toFixed(2)}倍`;
+                 totalMult += result.iaiBonusApplied;
+            }
+            if (result.haiteiBonusApplied > 0) {
+                 multDetail += `<br>海底: +${(result.haiteiBonusApplied).toFixed(2)}倍`;
+                 totalMult += result.haiteiBonusApplied;
+            }
+            
+            displayHTML += `
+                <div style="font-size: 14px; color: #aaa; margin: 5px 0 10px 0; line-height: 1.5;">${multDetail}</div>
+                <div style="font-size: 24px; color: #ffd700;">${result.score} pt × ${totalMult.toFixed(2)}倍</div>
+                <div style="font-size: 48px; font-weight: bold; color: #2ed573; text-shadow: 0 0 10px rgba(46, 213, 115, 0.7); margin-top: 5px;">${result.finalScore} Pt</div>
+            `;
+            if (state.buffs.isKumon) {
+                displayHTML += `<div style="font-size: 16px; color: #ccc;">累積点: ${state.kumonScore} pt → 合計: ${currentTotal} pt</div>`;
+            }
+            
+            els.yaku.innerHTML = displayHTML;
+            // els.yaku.style.color = "#ffd700"; // 内部HTMLで色を設定するためコメントアウト
+
+            if (currentTotal >= state.targetScore) {
+                els.msg.textContent = "スコア達成！";
+                els.msg.style.color = "#2ed573";
+                endRound({ name: result.name, score: result.finalScore, isWin: true }); // 詳細スコアを渡す
+            } else {
+                if (finalRemaining > 0) {
+                    els.msg.textContent = state.buffs.isKumon 
+                        ? `不足！積み上げて再挑戦 (残り${finalRemaining}回)`
+                        : `スコア不足！振り直してください (残り${finalRemaining}回)`;
+                    els.msg.style.color = "#ff4757";
+                    
+                    els.btn.disabled = false;
+                    if (state.buffs.isKumon) {
+                        els.btn.textContent = `積み上げて振る (残り${finalRemaining}回)`;
+                        els.btn.classList.add('btn-kumon');
+                        els.btn.onclick = () => {
+                            state.kumonScore += result.finalScore; // 最終スコアを加算
+                            els.kumonScore.textContent = state.kumonScore;
+                            rollDice();
+                        };
+                    } else {
+                        els.btn.textContent = `振り直す (残り${finalRemaining}回)`;
+                        els.btn.onclick = rollDice; 
+                    }
+                } else {
+                    els.msg.style.color = "#bbb";
+                    gameOver(currentTotal, `スコア不足 (合計: ${currentTotal} / 目標: ${state.targetScore})`);
+                }
+            }
+        } else if(result.name === "ヒフミ" && !result.isYaku) {
+             // ヒフミでペナルティを無効化した場合は、endRoundに行かず振り直しへ (ヒフミロジックで既に表示更新済み)
+             if (finalRemaining > 0) {
+                 els.msg.textContent = `再挑戦可能 (残り${finalRemaining}回)`;
+                 els.btn.textContent = `振る (残り${finalRemaining}回)`;
+                 els.btn.disabled = false;
+                 els.btn.onclick = rollDice;
+             } else {
+                 endRound({ name: "役なし", score: 0, isWin: false, reason: "最終回で役なし" });
+             }
+        }
+        else {
+            // 役なし (ヒフミ以外)
+            els.yaku.innerHTML = `<div style="font-size: 32px; color: #a4b0be;">役なし</div>`;
+            
+            if (finalRemaining > 0) {
+                if(result.name !== "ヒフミ") els.msg.textContent = `役なし... 再挑戦可能 (残り${finalRemaining}回)`;
+                
+                els.msg.style.color = "#bbb";
+                els.btn.textContent = `振る (残り${finalRemaining}回)`;
+                els.btn.disabled = false;
+                els.btn.onclick = rollDice;
+            } else {
+                endRound({ name: "役なし", score: 0, isWin: false, reason: "最終回で役なし" });
+            }
+        }
+    }
+
+    /**
+     * サイコロ5個を振った場合の特殊な役を判定します。
+     * @param {number[]} diceArr - 5つのサイコロの値
+     * @returns {object|null} - 成立した場合は詳細なスコア結果、不成立の場合はnull
+     */
+    function checkFiveDiceYaku(diceArr) {
+        if (diceArr.length !== 5) return null;
+        const d = [...diceArr].sort((a, b) => a - b);
+        
+        let result = { isYaku: false, name: "", baseScore: 0, type: "", isHiddenYaku: false };
+
+        // 1. ファイブオブアカインド (5ゾロ)
+        if (d[0] === d[4]) {
+            result.name = `ファイブオブアカインド (${d[0]}ゾロ)`;
+            result.baseScore = YAKU_SCORES.fiveOfAKind;
+            result.type = "zoro";
+            result.isYaku = true;
+            result.isHiddenYaku = true;
+        } 
+        // 2. ロングストレート (1-2-3-4-5 または 2-3-4-5-6)
+        else if ((d[0] === 1 && d[1] === 2 && d[2] === 3 && d[3] === 4 && d[4] === 5) ||
+                 (d[0] === 2 && d[1] === 3 && d[2] === 4 && d[3] === 5 && d[4] === 6)) {
+            result.name = (d[0] === 1) ? "ロングストレート (1-5)" : "ロングストレート (2-6)";
+            result.baseScore = YAKU_SCORES.longStraight;
+            result.type = "straight";
+            result.isYaku = true;
+            result.isHiddenYaku = true;
+        }
+        
+        if (result.isYaku) {
+            // 役倍率の適用
+            let yakuMult = 1.0;
+            if (result.type === "zoro") {
+                yakuMult += state.buffs.zoroBonus;
+            } else if (result.type === "straight") {
+                yakuMult += state.buffs.sigoroBonus;
+            }
+            const scoreAfterYakuMult = Math.floor(result.baseScore * yakuMult);
+
+            // 全体倍率の適用
+            let iaiBonusApplied = 0;
+            let haiteiBonusApplied = 0;
+            
+            // 居合い斬りの判定
+            if (state.rollCount === 1 && state.buffs.iaiBonus > 0) {
+                iaiBonusApplied = state.buffs.iaiBonus;
+            }
+
+            const currentRemaining = (state.maxRolls + state.buffs.extraRoll) - state.rollCount;
+            // 海底撈月の判定
+            if (currentRemaining === 0 && state.buffs.haiteiBonus > 0) {
+                haiteiBonusApplied = state.buffs.haiteiBonus;
+            }
+
+            let totalGlobalMult = state.buffs.scoreMult + iaiBonusApplied + haiteiBonusApplied;
+            let finalScore = Math.floor(scoreAfterYakuMult * totalGlobalMult);
+
+            return {
+                isYaku: true,
+                name: result.name,
+                baseScoreDisplay: Math.floor(result.baseScore * yakuMult),
+                score: scoreAfterYakuMult,
+                finalScore: finalScore,
+                iaiBonusApplied,
+                haiteiBonusApplied,
+                usedIndices: [0, 1, 2, 3, 4], // 5つ全てを使用
+                isFiveDiceYaku: true,
+                type: result.type
+            };
+        }
+        return null;
+    }
+
+
+    function updateDiceValues(isFinal) {
+        while(state.dice.length < state.diceCount) state.dice.push(0);
+        for(let i=0; i<state.diceCount; i++) {
+            if (state.lockedIndices.includes(i)) continue;
+            let val = getRandDice();
+            if (i === 0 && state.buffs.fixedSix) val = 6;
+            state.dice[i] = val;
+        }
+    }
+
+    function getRandDice() {
+        if (state.buffs.diceLimit === 'low') return Math.floor(Math.random() * 3) + 1;
+        if (state.buffs.diceLimit === 'high') return Math.floor(Math.random() * 3) + 4;
+        if (state.buffs.diceLimit === 'tanyao') return Math.floor(Math.random() * 4) + 2; // 2-5
+        return Math.floor(Math.random() * 6) + 1;
+    }
+
+    function drawDice(diceArr, usedIndices = null) {
+        const faces = ['?', '⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
+        els.diceArea.innerHTML = ''; 
+
+        diceArr.forEach((val, i) => {
+            const div = document.createElement('div');
+            div.className = 'dice';
+            div.textContent = faces[val];
+            
+            if (val === 1) div.classList.add('red');
+            if (i === 0 && state.buffs.fixedSix) div.classList.add('fixed-six');
+            if (state.lockedIndices.includes(i)) div.classList.add('locked');
+
+            if (usedIndices !== null) {
+                if (!usedIndices.includes(i)) {
+                    div.classList.add('unused');
+                } else {
+                    div.style.backgroundColor = "#fff"; 
+                    div.style.borderColor = "#ffd700";
+                    div.style.zIndex = 2; 
+                }
+            }
+            div.onclick = () => toggleLock(i);
+            els.diceArea.appendChild(div);
+        });
+    }
+
+    function getBestYaku(diceArr) {
+        // 5 diceを振っているが、5 dice yakuが成立しなかった場合に、ベストな3 dice yakuを選ぶ
+        if (diceArr.length === 3) {
+            const res = calculateScore([diceArr[0], diceArr[1], diceArr[2]]);
+            return { result: res, usedIndices: [0, 1, 2] };
+        }
+        let bestScore = -1;
+        let bestResult = null;
+        let bestIndices = [];
+
+        const n = diceArr.length;
+        // 5C3 = 10通り
+        for (let i = 0; i < n - 2; i++) {
+            for (let j = i + 1; j < n - 1; j++) {
+                for (let k = j + 1; k < n; k++) {
+                    const subset = [diceArr[i], diceArr[j], diceArr[k]];
+                    // calculateScoreはラッパーなので、役倍率適用後のスコアを返す 
+                    const res = calculateScore(subset);
+                    
+                    if (res.score > bestScore) {
+                        bestScore = res.score;
+                        bestResult = res;
+                        bestIndices = [i, j, k];
+                    } 
+                    // ファイブオブアカインド選択時のヒフミ優先ロジック
+                    else if (res.name === "ヒフミ" && bestResult && bestResult.name === "役なし") {
+                        bestScore = res.score; // スコアは0だが、役なしより優先
+                        bestResult = res;
+                        bestIndices = [i, j, k];
+                    }
+                }
+            }
+        }
+        return { result: bestResult, usedIndices: bestIndices };
+    }
+
+    /**
+     * サイコロの目から役を判定し、詳細なスコアを計算して返します。
+     * 3個のサイコロを前提としています。
+     * @param {number[]} dice - 3つのサイコロの値
+     * @returns {object} - 詳細な計算結果オブジェクト
+     */
+    function calculateDetailedScore(dice) {
+        const d = [...dice].sort((a, b) => a - b);
+        let name = "";
+        let baseScore = 0;
+        let isYaku = true;
+        let type = "normal"; 
+
+        if (d[0] === 1 && d[1] === 1 && d[2] === 1) {
+            name = "ピンゾロ";
+            baseScore = YAKU_SCORES.pinzorou;
+            type = "zoro";
+        }
+        else if (d[0] === d[1] && d[1] === d[2]) {
+            name = `${d[0]}ゾロ(アラシ)`;
+            baseScore = YAKU_SCORES.arashi;
+            type = "zoro";
+        }
+        else if (d[0] === 4 && d[1] === 5 && d[2] === 6) {
+            name = "シゴロ";
+            baseScore = YAKU_SCORES.sigoro;
+            type = "straight";
+        }
+        else if (state.buffs.straightMaster && d[0] === 2 && d[1] === 3 && d[2] === 4) {
+            name = "ストレート(2-3-4)";
+            baseScore = YAKU_SCORES.sigoro; 
+            type = "straight";
+        }
+        else if (state.buffs.straightMaster && d[0] === 3 && d[1] === 4 && d[2] === 5) {
+            name = "ストレート(3-4-5)";
+            baseScore = YAKU_SCORES.sigoro;
+            type = "straight";
+        }
+        else if (d[0] === 1 && d[1] === 2 && d[2] === 3) {
+            name = "ヒフミ";
+            baseScore = YAKU_SCORES.hifumi;
+        }
+        else if (d[0] === d[1]) {
+            name = `${d[2]}の目`;
+            baseScore = d[2] * 100;
+        }
+        else if (d[1] === d[2]) {
+            name = `${d[0]}の目`;
+            baseScore = d[0] * 100;
+        }
+        else {
+            isYaku = false;
+            name = "役なし";
+        }
+        
+        // --- 役倍率の適用 ---
+        let yakuMult = 1.0;
+        if (type === "zoro") {
+            yakuMult += state.buffs.zoroBonus;
+        } else if (name.includes("の目")) { 
+            yakuMult += state.buffs.normalEyeBonus;
+        } else if (type === "straight") {
+            yakuMult += state.buffs.sigoroBonus;
+        }
+        
+        const scoreAfterYakuMult = Math.floor(baseScore * yakuMult);
+
+        // --- 全体倍率ボーナスの適用判定 ---
+        let iaiBonusApplied = 0;
+        let haiteiBonusApplied = 0;
+        
+        // 居合い斬りの判定
+        if (state.rollCount === 1 && state.buffs.iaiBonus > 0 && isYaku && baseScore > 0) {
+            iaiBonusApplied = state.buffs.iaiBonus;
+        }
+
+        const currentRemaining = (state.maxRolls + state.buffs.extraRoll) - state.rollCount;
+        // 海底撈月の判定
+        if (currentRemaining === 0 && state.buffs.haiteiBonus > 0 && isYaku && baseScore > 0) {
+            haiteiBonusApplied = state.buffs.haiteiBonus;
+        }
+
+        let totalGlobalMult = state.buffs.scoreMult + iaiBonusApplied + haiteiBonusApplied;
+        
+        let finalScore = 0;
+        if(isYaku && baseScore > 0) {
+             finalScore = Math.floor(scoreAfterYakuMult * totalGlobalMult);
+        }
+
+        return { 
+            isYaku, 
+            name, 
+            baseScoreDisplay: Math.floor(baseScore * yakuMult), 
+            score: scoreAfterYakuMult, // 役倍率適用後のスコア (計算途中)
+            finalScore: finalScore, 
+            iaiBonusApplied,
+            haiteiBonusApplied,
+            usedIndices: [0, 1, 2], // 3 dice indices, will be overwritten by getBestYaku's result
+            isFiveDiceYaku: false,
+            type 
+        };
+    }
+
+    // 既存の calculateScore 関数を calculateDetailedScore に置き換えるため、
+    // getBestYaku 関数から呼ばれるこの関数はラッパーとする
+    function calculateScore(dice) {
+        const result = calculateDetailedScore(dice);
+        return { 
+             isYaku: result.isYaku,
+             name: result.name, 
+             // ★ 修正箇所: getBestYakuで役の優劣を判定するために、全体倍率を適用する前のスコアを返すように変更
+             score: result.score 
+        };
+    }
+
+    function endRound(result) {
+        state.lockedIndices = [];
+        
+        // キャリーオーバー処理
+        if (state.buffs.carryOver) {
+            const currentRemaining = (state.maxRolls + state.buffs.extraRoll) - state.rollCount;
+            if (currentRemaining > 0) {
+                const bonus = currentRemaining * 0.05; 
+                state.buffs.scoreMult += bonus;
+                els.globalMult.textContent = `x${state.buffs.scoreMult.toFixed(2)}`;
+            }
+        }
+
+        if (result.isWin) { // finalizeRollでクリア判定は終わっている
+            // スコアクリア時
+            els.msg.textContent = "ステージクリア！";
+            els.msg.style.color = "#ffd700";
+            
+            if (state.stage === 20 && !state.isEndless) {
+                setTimeout(() => {
+                    els.endingModal.style.display = 'flex';
+                }, 1000);
+            } else {
+                els.btn.textContent = "強化へ進む";
+                els.btn.disabled = false;
+                els.btn.classList.add('btn-clear');
+                els.btn.classList.remove('btn-kumon');
+                els.btn.onclick = () => {
+                    if (state.stage % 5 === 0) {
+                        showPrestige();
+                    } else {
+                        showPowerups();
+                    }
+                };
+            }
+        } else {
+            // ゲームオーバー時 (isWin: false)
+            const reasonText = result.reason || "役なし";
+            setTimeout(() => gameOver(result.score + state.kumonScore, reasonText), 1000);
+        }
+    }
+
+    function goEndless() {
+        state.isEndless = true;
+        els.endingModal.style.display = 'none';
+        if (state.stage % 5 === 0) {
+            showPrestige();
+        } else {
+            showPowerups();
+        }
+    }
+
+    function showPrestige() {
+        state.selectionContext = 'prestige';
+        els.modal.style.display = 'flex';
+        els.modalTitle.textContent = "PRESTIGE!";
+        els.modalDesc.textContent = "上級能力を選択 (この後通常能力も選択)";
+        els.modalTitle.style.color = "#a55eea";
+        els.rerollBtn.style.display = 'block'; 
+        els.openRulesBtn.style.display = 'block'; 
+        renderCards(PRESTIGE_POOL);
+        updateRerollBtn();
+    }
+
+    function showPowerups() {
+        state.selectionContext = 'normal';
+        els.modal.style.display = 'flex';
+        els.modalTitle.textContent = "STAGE CLEAR!";
+        els.modalDesc.textContent = "能力を選択して次へ";
+        els.modalTitle.style.color = "#ffd700";
+        els.rerollBtn.style.display = 'block'; 
+        els.openRulesBtn.style.display = 'block'; 
+        renderCards(POWERUP_POOL);
+        updateRerollBtn();
+    }
+
+    function renderCards(pool) {
+        els.cards.innerHTML = '';
+        
+        let candidates = pool.filter(p => {
+            if (p.unique) {
+                 if (p.id === 'hifumi_rev' && state.buffs.hifumiReversal) return false;
+                 if (p.id === 'straight_master' && state.buffs.straightMaster) return false;
+                 if (p.id === 'carry_over' && state.buffs.carryOver) return false;
+            }
+            if (p.exclusive === 'dice_limit' && state.buffs.hasLimitDice) return false;
+            
+            if (p.id === 'hifumi_rev' && (state.buffs.diceLimit === 'high'|| state.buffs.diceLimit === 'tanyao')) return false;
+            
+            if (p.id === 'straight_master' && (state.buffs.diceLimit === 'low' || state.buffs.diceLimit === 'high')) {
+                return false;
+            }
+            
+            if (p.id === 'sigoro_boost') {
+                // 'high' (4-6)はシゴロが成立するため許可し、それ以外の制限時にフィルタ
+                if (state.buffs.diceLimit === 'low' ) {
+                    // 'low' (1-3)やではシゴロが成立しないため、強化は出ないようにする
+                    // タンヤオでは、ストレートマスターがあると効果があるため、出現するようにする。
+                    return false;
+                }
+            }
+            
+            if (p.id === 'multi_dice' && state.diceCount >= 5) return false;
+            if (p.id === 'dice_lock' && state.buffs.maxLocks >= 2) return false;
+            
+            if (p.id === 'shukusho' && (state.maxRolls + state.buffs.extraRoll) <= 1) return false;
+
+            return true;
+        });
+
+        const selected = [];
+        for (let i = 0; i < 3; i++) {
+            if (candidates.length === 0) break;
+
+            let totalWeight = candidates.reduce((sum, p) => sum + (p.weight || 100), 0);
+            let random = Math.random() * totalWeight;
+            
+            for (let j = 0; j < candidates.length; j++) {
+                const p = candidates[j];
+                const w = p.weight || 100;
+                if (random < w) {
+                    selected.push(p);
+                    candidates.splice(j, 1);
+                    break;
+                }
+                random -= w;
+            }
+        }
+
+        selected.forEach(p => {
+            const div = document.createElement('div');
+            const typeClass = (state.selectionContext === 'prestige') ? 'card-type-prestige' : `card-type-${p.type || 'safe'}`;
+            div.className = `powerup-card ${typeClass}`;
+            div.innerHTML = `<div class="card-title">${p.title}</div><div class="card-desc">${p.desc}</div>`;
+            div.onclick = () => selectCard(p);
+            els.cards.appendChild(div);
+        });
+    }
+
+    function updateRerollBtn() {
+        els.rerollBtn.textContent = `リロール (残り${state.rerollsRemaining}回)`;
+        if (state.rerollsRemaining <= 0) {
+            els.rerollBtn.disabled = true;
+            els.rerollBtn.style.opacity = 0.5;
+        } else {
+            els.rerollBtn.disabled = false;
+            els.rerollBtn.style.opacity = 1.0;
+        }
+    }
+
+    function rerollPowerups() {
+        if (state.rerollsRemaining > 0) {
+            state.rerollsRemaining--;
+            if (state.selectionContext === 'prestige') {
+                renderCards(PRESTIGE_POOL);
+            } else {
+                renderCards(POWERUP_POOL);
+            }
+            updateRerollBtn();
+        }
+    }
+
+    function selectCard(powerup) {
+        powerup.apply(state);
+        if (state.selectionContext === 'prestige') {
+            showPowerups();
+        } else {
+            nextStage();
+        }
+    }
+
+    function nextStage() {
+        state.stage++;
+        
+        let increase = 0;
+        if (state.stage <= 5) {
+            increase = (state.stage + 1) * 100;
+        } else if (state.stage <= 10) {
+            increase = 1000 + (state.stage * 200); 
+        } else if (state.stage <= 20) {
+            increase = 2000 + (state.stage * 500); 
+        } else {
+            increase = Math.floor(state.targetScore * 0.4); // Stage 21~: 1.4倍
+        }
+        state.targetScore += increase;
+        
+        state.rollCount = 0;
+        state.kumonScore = 0; 
+        state.dice = new Array(state.diceCount).fill(0);
+        state.lockedIndices = [];
+        
+        els.modal.style.display = 'none';
+        els.stage.textContent = state.stage;
+        els.target.textContent = state.targetScore;
+        els.kumonScore.textContent = "0";
+        els.msg.textContent = "サイコロを振ってください";
+        els.msg.style.color = "#bbb";
+        els.yaku.textContent = "";
+        els.yaku.style.color = "#ffd700"; 
+        
+        els.btn.textContent = `振る (残り${3 + state.buffs.extraRoll}回)`;
+        els.btn.disabled = false;
+        els.btn.onclick = rollDice;
+        els.btn.classList.remove('btn-clear');
+        
+        drawDice(state.dice);
+        updateBuffText();
+        updateScoreTable();
+    }
+
+    function updateBuffText() {
+        let text = [];
+        text.push(`【${state.diceCount}個振り】`);
+        if (state.buffs.maxLocks > 0) text.push(`ロック:${state.buffs.maxLocks}`);
+        if (state.buffs.fixedSix) text.push("六固定");
+        else if (state.buffs.diceLimit === 'low') text.push("一二三");
+        else if (state.buffs.diceLimit === 'high') text.push("四五六");
+        else if (state.buffs.diceLimit === 'tanyao') text.push("タンヤオ");
+        
+        if (state.buffs.hifumiReversal) text.push("逆転");
+        if (state.buffs.straightMaster) text.push("連番");
+        if (state.buffs.isKumon) text.push("くもん");
+        if (state.buffs.carryOver) text.push("キャリー");
+        
+        if (state.buffs.iaiBonus > 0) text.push(`居合+${Math.round(state.buffs.iaiBonus*100)}%`);
+        if (state.buffs.haiteiBonus > 0) text.push(`海底+${Math.round(state.buffs.haiteiBonus*100)}%`);
+        
+        els.globalMult.textContent = `x${state.buffs.scoreMult.toFixed(2)}`;
+        els.buffs.textContent = text.length > 0 ? text.join(',') : "なし";
+    }
+
+    function updateScoreTable() {
+        const s = state.buffs;
+        
+        const zoroMult = (1.0 + s.zoroBonus); 
+        const sigoroMult = (1.0 + s.sigoroBonus);
+        
+        // ★ 隠し役の表示と更新
+        const elFoaKRow = document.getElementById('row-five-of-a-kind');
+        const elLongSRow = document.getElementById('row-long-straight');
+
+        if (state.hiddenYaku.fiveOfAKind) {
+            elFoaKRow.style.display = 'flex';
+            const foaKScore = Math.floor(YAKU_SCORES.fiveOfAKind * zoroMult);
+            updateVal('sv-five-of-a-kind', foaKScore);
+        } else {
+             elFoaKRow.style.display = 'none';
+        }
+        
+        if (state.hiddenYaku.longStraight) {
+            elLongSRow.style.display = 'flex';
+            const longSScore = Math.floor(YAKU_SCORES.longStraight * sigoroMult);
+            updateVal('sv-long-straight', longSScore);
+        } else {
+            elLongSRow.style.display = 'none';
+        }
+
+        // 既存の役の更新
+        updateVal('sv-pinzorou', Math.floor(YAKU_SCORES.pinzorou * zoroMult));
+        updateVal('sv-arashi', Math.floor(YAKU_SCORES.arashi * zoroMult));
+        updateVal('sv-sigoro', Math.floor(YAKU_SCORES.sigoro * sigoroMult));
+        
+        const normalMult = Math.floor(100 * (1.0 + s.normalEyeBonus));
+        updateVal('sv-normal', `出目 × ${normalMult}`);
+
+        if (s.straightMaster) {
+            document.getElementById('lbl-sigoro').textContent = "ストレート (2-3-4 / 3-4-5 / 4-5-6)";
+        }
+
+        const elHifumiName = document.getElementById('lbl-hifumi');
+        const elHifumiVal = document.getElementById('sv-hifumi');
+        
+        if (s.hifumiReversal) {
+            elHifumiName.textContent = "起死回生 (1-2-3)";
+            elHifumiName.className = "score-name";
+            elHifumiVal.textContent = "ペナルティ無効";
+            elHifumiVal.className = "score-val updated";
+            elHifumiVal.style.fontSize = "10px";
+        } else {
+            elHifumiName.textContent = "ヒフミ (1-2-3)";
+            elHifumiName.className = "score-name bad";
+            elHifumiVal.textContent = "回数-1";
+            elHifumiVal.className = "score-val bad";
+            elHifumiVal.style.fontSize = "";
+        }
+    }
+
+    function updateVal(id, newVal) {
+        const el = document.getElementById(id);
+        if (el.textContent != newVal) {
+            el.textContent = newVal;
+            el.classList.remove('updated');
+            void el.offsetWidth;
+            el.classList.add('updated');
+        }
+    }
+
+    function gameOver(score, reason) {
+        els.overlay.style.display = 'flex';
+        els.ovTitle.textContent = "GAME OVER";
+        if (reason) {
+            els.ovMsg.innerHTML = `${reason}<br><br>ステージ${state.stage}で散る...`;
+            els.ovMsg.style.color = "#ff4757";
+            els.ovMsg.style.fontWeight = "bold";
+        } else {
+            els.ovMsg.textContent = `ステージ${state.stage}で終了 (獲得: ${score} / 目標: ${state.targetScore})`;
+            els.ovMsg.style.color = "white";
+        }
+    }
+
+    function resetGame() {
+        location.reload();
+    }
+
+    // 初期化はwindow.onloadで
+</script>
+</body>
+</html>
