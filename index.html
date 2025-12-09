@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -467,7 +466,7 @@
 
 <div class="game-wrapper">
     <div class="header-area">
-        <h1>🎲 チンチロ・PIT</h1>
+        <h1>🎲 チンチロ・スコアアタック</h1>
         <div class="stage-info">STAGE <span id="ui-stage">1</span></div>
     </div>
 
@@ -600,6 +599,11 @@ const RARITY = {
     LEGENDARY: { id: 'legendary', name: 'レジェンダリー', color: 'var(--rarity-legendary)', price: 16, weight: 0.5 }
 };
 
+// 初期倍率定数 (覚醒などで使用)
+const CONST_BASE_MULTIPLIERS = {
+    'pinzoro': 500, 'arashi': 100, '456': 20, 'meari': 5, 'menashi': 1, 'hifumi': 0
+};
+
 // アイテムデータの生成
 const ITEM_DATA = [];
 
@@ -615,6 +619,23 @@ const GOLD_PROBS = [0.50, 0.45, 0.40, 0.35, 0.30, 0.25];
         desc: `${kanji}の目が出た時、${Math.floor(prob*100)}%の確率で、${kanji}の出目点が${face}点分、永続的に強化される`,
         price: RARITY.COMMON.price,
         effectType: 'gold',
+        targetFace: face,
+        prob: prob
+    });
+});
+
+// 覚醒の〇〇 (Uncommon) - 新規追加
+const AWAKENING_PROBS = [0.20, 0.17, 0.14, 0.11, 0.08, 0.05];
+['壱','弐','参','肆','伍','陸'].forEach((kanji, idx) => {
+    const face = idx + 1;
+    const prob = AWAKENING_PROBS[idx];
+    ITEM_DATA.push({
+        id: `awakening_${face}`,
+        name: `覚醒の${kanji}`,
+        rarity: 'uncommon',
+        desc: `${kanji}の目が出た時、${Math.floor(prob*100)}%の確率で、成立した役の倍率に初期値分を加算し、永続的に強化する`,
+        price: RARITY.UNCOMMON.price,
+        effectType: 'awakening',
         targetFace: face,
         prob: prob
     });
@@ -733,9 +754,9 @@ class Game {
         // 状態変数
         this.diceWeights = [0, 5, 5, 5, 5, 5, 5];
         this.faceValues = [0, 1, 2, 3, 4, 5, 6]; 
-        this.baseMultipliers = {
-            'pinzoro': 500, 'arashi': 100, '456': 20, 'meari': 5, 'menashi': 1, 'hifumi': 0
-        };
+        // プレステージで変動するベース倍率
+        this.baseMultipliers = { ...CONST_BASE_MULTIPLIERS };
+        // ラウンド内の一時的な倍率（覚醒などで加算）
         this.yakuMultipliers = { ...this.baseMultipliers };
 
         this.tickets = 4;
@@ -817,7 +838,8 @@ class Game {
         this.round = 1;
         this.pool = 0;
         this.rollCount = this.initialRollCount;
-        this.targetScore = Math.floor(1000 * Math.pow(3.0, this.stage - 1));
+        // バランス調整: 3.0倍 -> 2.2倍に緩和
+        this.targetScore = Math.floor(1000 * Math.pow(2.2, this.stage - 1));
         
         this.nextRollFixedDice = null;
         this.tempRateBoost = 0;
@@ -829,6 +851,9 @@ class Game {
                 this.freeRerolls += item.value;
             }
         });
+
+        // プレステージで変動したベース倍率を、現在の倍率に反映
+        this.yakuMultipliers = { ...this.baseMultipliers };
 
         this.recalcStats();
         this.rerollCost = 1;
@@ -1216,7 +1241,7 @@ class Game {
         else if (sorted[0]===sorted[1] || sorted[1]===sorted[2] || sorted[0]===sorted[2]) { yakuKey='meari'; yakuName="目あり"; }
 
         let mul = this.yakuMultipliers[yakuKey];
-        // プレステージ効果（役倍率変更）はBaseに統合されたため、ここでは単純取得
+        // yakuMultipliers は既に baseMultipliers（プレステージ反映済み）を元にしているため、ここで乗算は不要
 
         const finalScore = Math.floor(sum * mul * this.globalMultiplier);
 
@@ -1248,6 +1273,22 @@ class Game {
                         this.roundGains.faces[item.targetFace] += item.targetFace;
                         this.addLog(`💪${item.name}`, 'log-buff');
                         changed = true;
+                    }
+                }
+            }
+            if (item.effectType === 'awakening') {
+                const count = dice.filter(d => d === item.targetFace).length;
+                for(let i=0; i<count; i++) {
+                    if (this.checkProb(item.prob)) { 
+                        // 永続強化: 基礎点（Base）と現在点（Yaku）の両方を加算
+                        const inc = CONST_BASE_MULTIPLIERS[yakuKey];
+                        if (inc > 0) {
+                            this.baseMultipliers[yakuKey] += inc;
+                            this.yakuMultipliers[yakuKey] += inc;
+                            this.roundGains.yakus[yakuKey] = (this.roundGains.yakus[yakuKey] || 0) + inc;
+                            this.addLog(`⚡${item.name}`, 'log-buff');
+                            changed = true;
+                        }
                     }
                 }
             }
@@ -1293,7 +1334,12 @@ class Game {
                 this.ui.btnShop.classList.remove('hidden-el');
                 this.ui.btnShop.disabled = false;
                 this.clearLogs(); 
-                this.recalcStats(); // レートリセット反映のため
+                
+                // 次のラウンド用に倍率をリセット（プレステージ倍率に戻す）
+                this.yakuMultipliers = { ...this.baseMultipliers };
+                this.roundGains.yakus = {}; // 表示用ゲインもリセット
+                
+                this.recalcStats(); 
                 this.updateUI();
                 this.updateClearButton(); 
             }, 1500);
@@ -1639,6 +1685,7 @@ class Game {
             this.streakMenashi = 0; 
             this.streakWin = 0;
             this.faceValues = [0,1,2,3,4,5,6];
+            this.baseMultipliers = { ...CONST_BASE_MULTIPLIERS };
             this.yakuMultipliers = { ...this.baseMultipliers };
             this.prestigeState.weights = [0,0,0,0,0,0,0];
             this.prestigeState.extraInv = 0;
