@@ -1,382 +1,1717 @@
+
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8">
-<title>チンチロライク</title>
-<style>
-    body {
-        font-family: 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif;
-        background-color: #1a1a1a;
-        color: white;
-        text-align: center;
-        margin: 0;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        min-height: 100vh;
-        padding: 20px 0;
-        box-sizing: border-box;
-    }
-    #game-container {
-        width: 95%;
-        max-width: 550px;
-        background-color: #2d2d2d;
-        padding: 20px;
-        border-radius: 15px;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-        position: relative;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-    }
-    /* ステータス表示 */
-    .status-bar {
-        width: 100%;
-        display: flex;
-        justify-content: space-between;
-        margin-bottom: 15px;
-        padding: 10px;
-        background: #444;
-        border-radius: 8px;
-        font-size: 14px;
-        box-sizing: border-box;
-    }
-    .target-score {
-        color: #ff4757;
-        font-weight: bold;
-        font-size: 24px;
-        margin-bottom: 10px;
-        text-shadow: 0 0 10px rgba(255, 71, 87, 0.4);
-    }
-    /* くもん式用表示 */
-    #kumon-status {
-        width: 100%;
-        background-color: #333;
-        color: #2ed573;
-        padding: 5px;
-        border-radius: 5px;
-        margin-bottom: 15px;
-        font-weight: bold;
-        display: none; 
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=1280">
+    <title>チンチロ・PIT</title>
+    <style>
+        :root {
+            --bg-color: #1a472a;
+            --panel-bg: rgba(0, 0, 0, 0.6);
+            --text-main: #ffffff;
+            --accent-gold: #f1c40f;
+            --accent-red: #e74c3c;
+            --btn-blue: #3498db;
+            --btn-green: #2ecc71;
+            --dice-bg: #ecf0f1;
+            
+            --rarity-common: #ffffff;
+            --rarity-uncommon: #2ecc71;
+            --rarity-rare: #00d2ff;
+            --rarity-sr: #ffd700;
+            --rarity-legendary: #9b59b6;
 
-    /* サイコロ */
-    #dice-area {
-        display: flex;
-        justify-content: center;
-        flex-wrap: wrap;
-        gap: 15px;
-        margin: 20px 0;
-        min-height: 80px;
-    }
-    .dice {
-        font-size: 50px;
-        width: 65px;
-        height: 65px;
-        background: white;
-        color: #333;
-        border-radius: 10px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        box-shadow: 0 4px 0 #999;
-        position: relative;
-        transition: transform 0.2s, background-color 0.2s, opacity 0.3s;
-        cursor: pointer;
-        user-select: none;
-    }
-    .dice:active { transform: scale(0.95); }
-    
-    .dice.red { color: #ff4757; }
-    .dice.changed { background-color: #ffd700; transform: scale(1.1); }
-    
-    .dice.locked {
-        background-color: #b2bec3;
-        border: 3px solid #3742fa;
-        transform: translateY(2px);
-        box-shadow: 0 2px 0 #666;
-    }
-    .dice.locked::after {
-        content: 'LOCK';
-        position: absolute;
-        top: -10px;
-        right: -5px;
-        font-size: 10px;
-        background: #3742fa;
-        color: white;
-        padding: 1px 4px;
-        border-radius: 4px;
-        font-weight: bold;
-    }
+            --stat-ticket-bg: rgba(241, 196, 15, 0.2);
+            --stat-ticket-border: var(--accent-gold);
+            --stat-luck-bg: rgba(155, 89, 182, 0.2);
+            --stat-luck-border: #9b59b6;
+            --stat-luck-text: #d2b4de;
+            --stat-rate-bg: rgba(231, 76, 60, 0.2);
+            --stat-rate-border: #e74c3c;
+            --stat-rate-text: #ec7063;
+        }
 
-    .dice.fixed-six {
-        border: 3px solid #ffd700;
-        background: #fffbe6;
-    }
-    .dice.fixed-six::after {
-        content: '★';
-        position: absolute;
-        top: -10px;
-        left: -5px;
-        font-size: 12px;
-        color: #ffd700;
-        text-shadow: 0 0 2px black;
-    }
+        body {
+            font-family: 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+            user-select: none;
+        }
 
-    .dice.unused {
-        opacity: 0.3;
-        transform: scale(0.9);
-        box-shadow: none;
-    }
-    
-    #message { font-size: 16px; height: 24px; color: #bbb; margin-bottom: 5px; }
-    #result-yaku {
-        font-size: 32px;
-        font-weight: bold;
-        color: #ffd700;
-        min-height: 45px;
-        height: auto;
-        margin-bottom: 30px;
-        text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
-        line-height: 1.2;
-        word-wrap: break-word;
-    }
+        .game-wrapper {
+            display: grid;
+            grid-template-columns: 360px 1fr 320px;
+            grid-template-rows: auto 1fr;
+            gap: 20px;
+            width: 95%;
+            max-width: 1400px;
+            height: 90vh;
+        }
 
-    /* ボタン */
-    button {
-        background-color: #ff4757;
-        color: white;
-        border: none;
-        padding: 15px 0;
-        width: 100%;
-        font-size: 18px;
-        border-radius: 50px;
-        cursor: pointer;
-        transition: transform 0.1s, background-color 0.3s;
-        margin-bottom: 20px;
-    }
-    button:active { transform: scale(0.95); }
-    button:disabled { background-color: #555; cursor: not-allowed; }
-    
-    .btn-clear {
-        background-color: #ffd700 !important;
-        color: #333 !important;
-        font-weight: bold;
-        box-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
-    }
-    .btn-kumon {
-        background-color: #2ed573 !important;
-        box-shadow: 0 0 15px rgba(46, 213, 115, 0.5);
-    }
+        /* ヘッダーエリア */
+        .header-area {
+            grid-column: 1 / -1;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid var(--accent-gold);
+            padding-bottom: 10px;
+            margin-bottom: 10px;
+        }
+        h1 { margin: 0; color: var(--accent-gold); font-size: 2rem; }
+        .stage-info { font-size: 1.5rem; font-weight: bold; }
 
-    #reroll-btn {
-        background-color: #3742fa;
-        font-size: 14px;
-        padding: 10px;
-        margin-top: 15px;
-        width: 60%;
-    }
-    #reroll-btn:disabled { background-color: #555; }
+        /* 左サイド：ルール表 */
+        .left-panel {
+            background: var(--panel-bg);
+            border-radius: 12px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            overflow-y: auto;
+        }
+        .rule-card h3 {
+            margin-top: 0;
+            border-bottom: 1px solid rgba(255,255,255,0.3);
+            padding-bottom: 5px;
+            color: var(--accent-gold);
+            font-size: 1.1rem;
+        }
+        table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+        th, td { padding: 8px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        th { background: rgba(0,0,0,0.3); }
+        
+        .prob-col { font-family: monospace; color: #fff; font-weight: bold; }
+        .prob-high { color: var(--btn-green); }
+        .prob-low { color: var(--accent-red); }
+        
+        .val-up { color: #2ecc71; font-weight: bold; animation: pulse 1s infinite; }
+        .val-gain { color: #2ecc71; font-weight: bold; animation: pop 0.3s ease-out; }
+        @keyframes pop { 0% { transform: scale(1); } 50% { transform: scale(1.2); } 100% { transform: scale(1); } }
 
-    /* 全体倍率表示エリア */
-    .global-mult-box {
-        width: 100%;
-        background: linear-gradient(90deg, #333, #444, #333);
-        border: 1px solid #ffd700;
-        color: #ffd700;
-        border-radius: 8px;
-        padding: 10px;
-        margin-bottom: 5px;
-        font-size: 18px;
-        font-weight: bold;
-        box-sizing: border-box;
-        text-shadow: 0 0 5px rgba(255, 215, 0, 0.3);
-    }
+        /* 中央：メインパネル */
+        .main-panel {
+            position: relative;
+            background: rgba(0,0,0,0.2);
+            border-radius: 12px;
+            overflow: hidden;
+        }
 
-    /* 点数表 */
-    .score-table {
-        width: 100%;
-        background: #333;
-        border-radius: 8px;
-        padding: 10px;
-        font-size: 12px;
-        text-align: left;
-        box-sizing: border-box;
-        border: 1px solid #555;
-    }
-    .score-table h3 { margin: 0 0 5px 0; font-size: 14px; color: #ddd; text-align: center; }
-    .score-row { display: flex; justify-content: space-between; border-bottom: 1px solid #444; padding: 3px 0; }
-    .score-row:last-child { border-bottom: none; }
-    .score-row.hidden-yaku { border-top: 2px solid #a55eea; } /* 隠し役を目立たせる */
-    .score-name { color: #ffd700; }
-    .score-val { color: #fff; font-weight: bold; transition: color 0.3s; }
-    .score-val.updated { color: #2ed573; }
-    .bad { color: #a4b0be; }
+        /* ゲームビュー */
+        .game-view {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.3s;
+        }
+        .game-view.hidden { display: none; }
 
-    /* モーダル */
-    .modal-overlay {
-        position: absolute;
-        top: 0; left: 0; width: 100%; height: 100%;
-        background: rgba(0,0,0,0.95);
-        display: none;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        border-radius: 15px;
-        z-index: 10;
-        padding: 20px;
-        box-sizing: border-box;
-    }
-    .card-container { display: flex; flex-direction: column; gap: 10px; width: 90%; }
-    .powerup-card {
-        background: #333; border: 2px solid #555; padding: 10px;
-        border-radius: 10px; cursor: pointer; text-align: left;
-        border-left: 5px solid #777;
-    }
-    .powerup-card:hover { border-color: #ffd700; background: #444; }
-    
-    .card-type-rare { border-left-color: #ffd700; }
-    .card-type-risk { border-left-color: #ff4757; }
-    .card-type-safe { border-left-color: #2ed573; }
-    .card-type-special { border-left-color: #a55eea; }
-    .card-type-tech { border-left-color: #3742fa; }
-    .card-type-prestige { border-left: 5px solid #fff; border-right: 5px solid #a55eea; background: linear-gradient(90deg, #333, #444); }
-    .card-type-ascendancy { border-left: 5px solid #fff; border-right: 5px solid #fff; background: #222; }
+        .pool-container {
+            text-align: center;
+            margin-bottom: 30px;
+            background: rgba(0,0,0,0.4);
+            padding: 15px 40px;
+            border-radius: 50px;
+            border: 2px solid rgba(255,255,255,0.1);
+        }
+        .pool-label { font-size: 0.9rem; opacity: 0.8; }
+        .pool-value { font-size: 3rem; font-weight: bold; color: var(--accent-gold); line-height: 1; }
 
-    .card-title { color: #fff; font-weight: bold; margin-bottom: 3px; font-size: 16px; }
-    .card-desc { font-size: 12px; color: #ccc; }
-    
-    /* 新規ルールモーダルのスタイル */
-    #rules-modal {
-        justify-content: flex-start;
-        padding-top: 50px;
-        z-index: 30; /* 最前面に */
-    }
-    .rules-content {
-        background-color: #2d2d2d;
-        width: 90%;
-        max-width: 500px;
-        height: 80vh; 
-        border-radius: 10px;
-        padding: 20px;
-        overflow-y: auto; 
-        text-align: left;
-    }
-    .rules-content h3 { color: #ffd700; border-bottom: 1px solid #444; padding-bottom: 5px; margin-top: 15px; }
-    .rules-content ul { padding-left: 20px; font-size: 14px; }
-    .rules-content li { margin-bottom: 5px; }
-    #close-rules-btn {
-        margin-top: 20px;
-        width: 50%;
-        padding: 10px;
-        background-color: #555;
-    }
+        .dice-area {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 30px;
+            height: 120px;
+        }
+        .die {
+            width: 100px;
+            height: 100px;
+            background: var(--dice-bg);
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 4rem;
+            color: #333;
+            box-shadow: 0 8px 0 #bdc3c7;
+            font-weight: bold;
+            position: relative;
+        }
+        .die[data-value="1"] { color: #c0392b; }
 
-</style>
+        /* ログエリア */
+        .message-area {
+            min-height: 90px;
+            height: auto;
+            text-align: center;
+            margin-bottom: 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            width: 90%;
+        }
+        .main-msg { font-size: 2rem; font-weight: bold; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); line-height: 1.2; }
+        .sub-msg { font-size: 1.1rem; opacity: 0.9; margin-bottom: 5px; }
+        
+        .effect-log { 
+            font-size: 0.85rem; 
+            margin-top: 5px;
+            width: 100%;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 6px;
+        }
+        .log-tag {
+            background: rgba(0,0,0,0.5);
+            border: 1px solid rgba(255,255,255,0.2);
+            padding: 3px 10px;
+            border-radius: 15px;
+            color: #fff;
+            animation: fadeIn 0.3s ease-out;
+            white-space: nowrap;
+        }
+        .log-luck { border-color: #9b59b6; color: #d2b4de; background: rgba(155, 89, 182, 0.2); }
+        .log-ticket { border-color: #2ecc71; color: #a3e4d7; background: rgba(46, 204, 113, 0.2); }
+        .log-buff { border-color: #f39c12; color: #f9e79f; background: rgba(243, 156, 18, 0.2); }
+        .log-rate { border-color: #e74c3c; color: #ec7063; background: rgba(231, 76, 60, 0.2); }
+        .log-bad  { border-color: #7f8c8d; color: #95a5a6; background: rgba(0,0,0,0.5); }
+        .log-hifumi { border-color: #e74c3c; color: #e74c3c; background: rgba(231, 76, 60, 0.1); font-weight: bold; }
+
+        @keyframes fadeIn { from { opacity:0; transform:translateY(5px); } to { opacity:1; transform:translateY(0); } }
+
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            align-items: center;
+            min-height: 70px;
+        }
+
+        button {
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            color: #fff;
+            font-weight: bold;
+            transition: transform 0.1s, box-shadow 0.1s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            line-height: 1.1;
+        }
+        button:active { transform: translateY(4px); box-shadow: none !important; }
+        button:disabled { background: #7f8c8d !important; color: #bdc3c7 !important; box-shadow: none !important; cursor: not-allowed; }
+
+        .btn-roll {
+            background: var(--accent-gold);
+            color: #333;
+            padding: 15px 50px;
+            font-size: 1.5rem;
+            box-shadow: 0 6px 0 #d35400;
+            min-width: 180px;
+        }
+        .btn-roll:active { box-shadow: 0 2px 0 #d35400 !important; }
+
+        .btn-shop {
+            background: var(--btn-blue);
+            padding: 15px 30px;
+            font-size: 1.1rem;
+            box-shadow: 0 6px 0 #2980b9;
+        }
+        .btn-shop:active { box-shadow: 0 2px 0 #2980b9 !important; }
+
+        .btn-clear {
+            background: var(--btn-green);
+            padding: 10px 30px;
+            font-size: 1rem;
+            box-shadow: 0 6px 0 #27ae60;
+            display: none;
+        }
+        .btn-clear:active { box-shadow: 0 2px 0 #27ae60 !important; }
+        .btn-clear.visible { display: flex; animation: bounceIn 0.5s; }
+        .clear-sub { font-size: 0.8rem; opacity: 0.9; }
+
+        @keyframes bounceIn {
+            0% { transform: scale(0); opacity: 0; }
+            60% { transform: scale(1.1); opacity: 1; }
+            100% { transform: scale(1); }
+        }
+
+        .hidden-el { display: none !important; }
+
+        /* ショップビュー */
+        .shop-view {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            box-sizing: border-box;
+            display: none;
+        }
+        .shop-view.active { display: flex; }
+
+        .shop-header {
+            font-size: 2rem;
+            color: var(--accent-gold);
+            margin-bottom: 20px;
+            border-bottom: 2px solid var(--accent-gold);
+            width: 100%;
+            text-align: center;
+        }
+
+        .shop-shelves {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            width: 100%;
+            margin-bottom: 20px;
+            flex-grow: 1;
+        }
+
+        .shop-item {
+            background: rgba(0,0,0,0.3);
+            border: 2px solid rgba(255,255,255,0.2);
+            border-radius: 10px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            text-align: center;
+            transition: transform 0.2s;
+            position: relative;
+        }
+        .shop-item:hover { transform: translateY(-2px); background: rgba(255,255,255,0.1); }
+        .shop-item.sold-out { opacity: 0.5; pointer-events: none; background: rgba(0,0,0,0.5); }
+
+        .rarity-common { border-color: var(--rarity-common); } .rarity-common .item-name { color: var(--rarity-common); }
+        .rarity-uncommon { border-color: var(--rarity-uncommon); } .rarity-uncommon .item-name { color: var(--rarity-uncommon); }
+        .rarity-rare { border-color: var(--rarity-rare); } .rarity-rare .item-name { color: var(--rarity-rare); }
+        .rarity-sr { border-color: var(--rarity-sr); } .rarity-sr .item-name { color: var(--rarity-sr); }
+        .rarity-legendary { border-color: var(--rarity-legendary); } .rarity-legendary .item-name { color: var(--rarity-legendary); }
+
+        .item-name { font-size: 1.1rem; font-weight: bold; margin-bottom: 5px; }
+        .item-desc { font-size: 0.8rem; height: 3.6em; display: flex; align-items: center; justify-content: center; line-height: 1.3; }
+        .item-price { margin-top: 10px; font-weight: bold; color: #fff; }
+
+        .btn-buy {
+            background: #fff;
+            color: #333;
+            border: none;
+            padding: 5px 20px;
+            border-radius: 20px;
+            margin-top: 10px;
+            cursor: pointer;
+            font-weight: bold;
+            box-shadow: none;
+        }
+        .btn-buy:hover { background: #ddd; }
+
+        .shop-controls {
+            display: flex;
+            gap: 20px;
+            margin-top: auto;
+        }
+        .btn-reroll {
+            background: var(--accent-red);
+            padding: 10px 30px;
+            font-size: 1rem;
+            box-shadow: 0 4px 0 #c0392b;
+        }
+        .btn-back {
+            background: #95a5a6;
+            color: #333;
+            padding: 10px 30px;
+            font-size: 1rem;
+            box-shadow: 0 4px 0 #7f8c8d;
+        }
+
+        /* プレステージビュー */
+        .prestige-view {
+            width: 100%; height: 100%;
+            display: none;
+            flex-direction: column; align-items: center; padding: 20px;
+            box-sizing: border-box;
+            background: linear-gradient(135deg, rgba(44, 62, 80, 0.9), rgba(0, 0, 0, 0.9));
+        }
+        .prestige-view.active { display: flex; }
+        
+        .prestige-header {
+            font-size: 2.5rem; color: var(--accent-gold); margin-bottom: 10px;
+            text-shadow: 0 0 10px var(--accent-gold);
+        }
+        .prestige-sub { font-size: 1rem; margin-bottom: 30px; color: #bdc3c7; }
+
+        .prestige-container {
+            display: flex; gap: 20px; width: 100%; justify-content: center;
+            flex-wrap: wrap; margin-bottom: 30px;
+        }
+        .prestige-card {
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid var(--accent-gold);
+            border-radius: 15px; padding: 20px;
+            width: 200px; text-align: center; cursor: pointer;
+            transition: transform 0.2s, background 0.2s;
+            display: flex; flex-direction: column; justify-content: center; height: 200px;
+        }
+        .prestige-card:hover { transform: scale(1.05); background: rgba(241, 196, 15, 0.15); }
+        .p-icon { font-size: 3rem; margin-bottom: 15px; display: block; }
+        .p-desc { font-size: 1rem; line-height: 1.4; font-weight: bold; }
+
+        /* 右サイド */
+        .right-panel {
+            background: var(--panel-bg);
+            border-radius: 12px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            overflow: hidden; /* レイアウト崩れ防止 */
+            min-height: 0;    /* Grid内でのサイズ爆発防止 */
+        }
+        .score-box {
+            text-align: center;
+            background: rgba(0,0,0,0.3);
+            padding: 15px;
+            border-radius: 10px;
+        }
+        .score-label { display: block; font-size: 0.8rem; opacity: 0.8; margin-bottom: 3px; }
+        .score-num { font-size: 1.8rem; font-weight: bold; }
+        .target-num { color: #f39c12; }
+        
+        .stat-row { display: flex; gap: 10px; }
+        .stat-item { flex: 1; }
+        .ticket-box { background: var(--stat-ticket-bg); border: 1px solid var(--stat-ticket-border); color: var(--stat-ticket-border); }
+        .luck-box { background: var(--stat-luck-bg); border: 1px solid var(--stat-luck-border); color: var(--stat-luck-text); }
+        .rate-box { background: var(--stat-rate-bg); border: 1px solid var(--stat-rate-border); color: var(--stat-rate-text); }
+
+        .round-info { text-align: center; border-top: 1px solid rgba(255,255,255,0.2); padding-top: 15px; }
+
+        .inventory-section {
+            flex-grow: 1;
+            background: rgba(0,0,0,0.3);
+            border-radius: 10px;
+            padding: 15px;
+            overflow-y: auto; /* スクロール有効化 */
+            min-height: 0;
+        }
+        .inventory-header {
+            font-size: 0.9rem; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 5px; margin-bottom: 10px; display: flex; justify-content: space-between;
+        }
+        .inventory-list { display: flex; flex-direction: column; gap: 8px; }
+        .inv-item {
+            padding: 8px; border-radius: 5px; font-size: 0.85rem; display: flex; justify-content: space-between; align-items: center; cursor: help;
+            border-left: 4px solid;
+            background: rgba(255,255,255,0.1);
+        }
+        /* 売却ボタン */
+        .btn-inv-sell {
+            background: #c0392b;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            padding: 4px 8px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            box-shadow: 0 2px 0 #96281b;
+            font-weight: bold;
+        }
+        .btn-inv-sell:active { transform: translateY(2px); box-shadow: none; }
+
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+        @keyframes shock {
+            0% { transform: scale(1); background-color: rgba(231, 76, 60, 0); }
+            10% { transform: scale(1.1); background-color: rgba(231, 76, 60, 0.5); }
+            100% { transform: scale(1); background-color: rgba(231, 76, 60, 0); }
+        }
+        .shock-effect { animation: shock 0.6s ease-out; }
+        .hifumi-text { color: var(--accent-red); font-size: 3rem; }
+
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9);
+            display: flex; justify-content: center; align-items: center;
+            visibility: hidden; opacity: 0; transition: 0.3s; z-index: 999;
+        }
+        .modal-overlay.show { visibility: visible; opacity: 1; }
+        .modal-box {
+            background: #fff; color: #333; padding: 40px;
+            border-radius: 20px; text-align: center; width: 500px;
+        }
+        .modal-btn {
+            background: #27ae60; color: #fff; border: none;
+            padding: 15px 40px; font-size: 1.2rem; border-radius: 10px;
+            cursor: pointer; margin-top: 20px;
+            box-shadow: 0 4px 0 #219150;
+        }
+    </style>
 </head>
 <body>
 
-<div id="game-container">
-    <div class="status-bar">
-        <div>STAGE: <span id="stage-num">1</span></div>
-        <div style="font-size:12px; max-width: 60%; text-align:right;">所持バフ:<br><span id="buff-list" style="color:#aaa;">なし</span></div>
-    </div>
-    
-    <div>目標: <span id="target-score" class="target-score">100</span> pt</div>
-    <div id="kumon-status">積立済み: <span id="kumon-score">0</span> pt</div>
-
-    <div id="dice-area"></div>
-
-    <div id="message">サイコロを振ってください</div>
-    <div id="result-yaku"></div>
-
-    <button id="roll-btn" onclick="rollDice()">振る (残り3回)</button>
-
-    <div class="global-mult-box">
-        全体倍率: <span id="global-mult-display">x1.0</span> <span style="font-size:12px; color:#aaa;">(最終スコアに乗算)</span>
+<div class="game-wrapper">
+    <div class="header-area">
+        <h1>🎲 チンチロ・PIT</h1>
+        <div class="stage-info">STAGE <span id="ui-stage">1</span></div>
     </div>
 
-    <div class="score-table">
-        <h3>▼ 役の基礎点 (役倍率のみ反映) ▼</h3>
-        
-        <div class="score-row hidden-yaku" id="row-long-straight" style="display:none;">
-            <span class="score-name" id="lbl-long-straight">ロングストレート (1-5 / 2-6)</span>
-            <span class="score-val" id="sv-long-straight">15000</span>
+    <div class="left-panel">
+        <div class="rule-card">
+            <h3>🧮 出目点 / 確率</h3>
+            <table id="table-faces">
+                </table>
         </div>
-        <div class="score-row hidden-yaku" id="row-five-of-a-kind" style="display:none;">
-            <span class="score-name" id="lbl-five-of-a-kind">ファイブオブアカインド (5ゾロ)</span>
-            <span class="score-val" id="sv-five-of-a-kind">50000</span>
-        </div>
-
-        <div class="score-row"><span class="score-name">ピンゾロ (1-1-1)</span><span class="score-val" id="sv-pinzorou">5000</span></div>
-        <div class="score-row"><span class="score-name">アラシ (ゾロ目)</span><span class="score-val" id="sv-arashi">3000</span></div>
-        <div class="score-row"><span class="score-name" id="lbl-sigoro">シゴロ (4-5-6)</span><span class="score-val" id="sv-sigoro">2000</span></div>
-        <div class="score-row"><span class="score-name">通常の目 (例:1-6-6)</span><span class="score-val" id="sv-normal">出目 × 100</span></div>
-        <div class="score-row"><span class="score-name bad" id="lbl-hifumi">ヒフミ (1-2-3)</span><span class="score-val bad" id="sv-hifumi">即死</span></div>
-        <div class="score-row"><span class="score-name bad">役なし</span><span class="score-val bad">0 (失敗)</span></div>
-    </div>
-
-    <div id="common-modal" class="modal-overlay">
-        <h2 id="modal-title" style="color:#ffd700;">ASCENDANCY</h2>
-        <p id="modal-desc" style="color:#ddd; margin-top:0;">開始時の能力を選択してください</p>
-        
-        <button id="open-rules-btn" style="width:90%; padding: 10px; margin-bottom: 15px; background-color: #555;">ルールを確認</button>
-        
-        <div class="card-container" id="card-container"></div>
-        <button id="reroll-btn" style="display:none;" onclick="rerollPowerups()">リロール (残り3回)</button>
-    </div>
-
-    <div id="ending-modal" class="modal-overlay" style="z-index: 20; display:none;">
-        <h2 style="color:#ffd700; font-size:40px; margin-bottom:10px;">CONGRATULATIONS!!</h2>
-        <p style="color:white; margin:0 0 30px 0; line-height:1.5;">ステージ20 完全制覇！<br>伝説のギャンブラーとして名を刻みました。</p>
-        <div style="display:flex; gap:15px; width:90%; justify-content:center;">
-            <button onclick="goEndless()" style="width:48%; background:#a55eea; font-size:14px;">永遠に続ける</button>
-            <button onclick="resetGame()" style="width:48%; background:#555; font-size:14px;">タイトルへ</button>
+        <div class="rule-card">
+            <h3>🏆 役倍率 (乗算)</h3>
+            <table id="table-yaku">
+                </table>
         </div>
     </div>
 
-    <div id="overlay" class="modal-overlay" style="background:rgba(0,0,0,0.9);">
-        <h2 id="overlay-title">GAME OVER</h2>
-        <p id="overlay-msg">...</p>
-        <button id="restart-btn" onclick="resetGame()" style="width:80%; margin-top:20px; background:#2ed573;">最初から遊ぶ</button>
+    <div class="main-panel" id="main-panel">
+        
+        <div class="game-view" id="game-view">
+            <div class="pool-container" id="pool-box">
+                <div class="pool-label">ROUND POOL</div>
+                <div>
+                    <span class="pool-value" id="ui-pool">0</span>
+                    <span style="font-size:1.5rem">pt</span>
+                </div>
+            </div>
+
+            <div class="dice-area" id="dice-container">
+                <div class="die">?</div>
+                <div class="die">?</div>
+                <div class="die">?</div>
+            </div>
+
+            <div class="message-area">
+                <div class="main-msg" id="msg-main">GAME START</div>
+                <div class="sub-msg" id="msg-sub">ROLLボタンを押して開始</div>
+                <div class="effect-log" id="msg-log"></div>
+            </div>
+
+            <div class="action-buttons">
+                <button class="btn-roll" id="btn-roll" onclick="game.roll()">ROLL</button>
+                <button class="btn-clear" id="btn-clear" onclick="game.stageWin()">
+                    STAGE CLEAR
+                    <span class="clear-sub" id="clear-sub">(+2 🎫)</span>
+                </button>
+                <button class="btn-shop" id="btn-shop" onclick="game.openShop()">SHOP</button>
+            </div>
+        </div>
+
+        <div class="shop-view" id="shop-view">
+            <div class="shop-header">ITEM SHOP</div>
+            <div class="shop-shelves" id="shop-shelves">
+                </div>
+            <div class="shop-controls">
+                <button class="btn-reroll" id="btn-reroll" onclick="game.rerollShop()">再入荷 (Cost: 1)</button>
+                <button class="btn-back" onclick="game.closeShop()">戻る</button>
+            </div>
+        </div>
+
+        <div class="prestige-view" id="prestige-view">
+            <div class="prestige-header">✨ PRESTIGE ✨</div>
+            <div class="prestige-sub">次ステージへの永続強化を選択してください</div>
+            <div class="prestige-container" id="prestige-container">
+            </div>
+            <button class="btn-reroll" id="btn-prestige-reroll" onclick="game.rerollPrestige()">選択肢変更 (Cost: 1)</button>
+        </div>
+
+    </div>
+
+    <div class="right-panel">
+        <div class="score-section">
+            <div class="score-box">
+                <span class="score-label">TARGET SCORE</span>
+                <div class="score-num target-num" id="ui-target">1,500</div>
+            </div>
+            <div class="score-box">
+                <span class="score-label">TOTAL SCORE</span>
+                <div class="score-num" id="ui-total">0</div>
+            </div>
+            
+            <div class="stat-row">
+                <div class="score-box ticket-box stat-item">
+                    <span class="score-label">TICKETS</span>
+                    <div class="score-num" id="ui-tickets">4</div>
+                </div>
+                <div class="score-box luck-box stat-item">
+                    <span class="score-label">LUCK</span>
+                    <div class="score-num" id="ui-luck">100</div>
+                </div>
+                <div class="score-box rate-box stat-item">
+                    <span class="score-label">RATE</span>
+                    <div class="score-num" id="ui-rate">x1.0</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="round-info">
+            <div>ROUND: <span id="ui-round">1</span> / 3</div>
+            <div>ROLL: <span id="ui-roll">7</span> / 7</div>
+        </div>
+
+        <div class="inventory-section">
+            <div class="inventory-header">
+                <span>INVENTORY</span>
+                <span id="ui-inv-count">0/7</span>
+            </div>
+            <div class="inventory-list" id="ui-inventory">
+                <div style="opacity:0.5; text-align:center; padding:10px;">Empty</div>
+            </div>
+        </div>
     </div>
 </div>
 
-<div id="rules-modal" class="modal-overlay">
-    <div class="rules-content">
-        <h2 style="color:#ffd700; text-align:center; margin-top:0;">チンチロライク - ゲームルール</h2>
-        
-        <h3>1. 基本ルール</h3>
-        <ul>
-            <li>サイコロを振って役を作り、目標点数クリアを目指します。</li>
-            <li>振れる回数は最大3回です（能力などで増減します）。</li>
-            <li>スコアが目標点に達するとステージクリア、達しないまま振れる回数がなくなるとゲームオーバーです。</li>
-        </ul>
-
-        <h3>2. 役と基礎点 (役倍率のみ反映)</h3>
-        <ul style="list-style: none; padding-left: 0;">
-            <li style="color:#2ed573; font-weight:bold;">ピンゾロ (1-1-1)：5000点</li>
-            <li style="color:#2ed573; font-weight:bold;">アラシ (ゾロ目)：3000点</li>
-            <li style="color:#2ed573; font-weight:bold;">シゴロ (4-5-6)：2000点</li>
-            <li>通常の目 (ペア+数字)：ペアにならなかった出目 × 100点</li>
-            <li style="color:#ff4757; font-weight:bold;">ヒフミ (1-2-3)：**ペナルティ (残り回数-1)**</li>
-            <li style="color:#ff4757;">役なし：0点 (失敗)</li>
-        </ul>
-        <p style="font-size: 12px; color:#aaa; margin-top: 5px;">※最終スコアは (基礎点 × 役倍率) × 全体倍率 で計算されます。</p>
-        <p style="font-size: 12px; color:#aaa; margin-top: 5px;">※隠された役が存在するかも……？。</p>
-
-        <h3>3. 能力 (バフ) の獲得</h3>
-        <ul>
-            <li>**ASCENDANCY**: ゲーム開始時に選択。ゲーム全体に大きく影響する能力。</li>
-            <li>**PRESTIGE**: 5ステージごとに選択。強力な上級能力。</li>
-            <li>**通常パワーアップ**: 通常ステージクリア時に選択。役の倍率やゲームロジックを強化。</li>
-            <li>**リロール**: 能力選択時に、リロール回数を消費して選択肢を再生成できます。</li>
-        </ul>        
+<div class="modal-overlay" id="modal">
+    <div class="modal-box">
+        <h2 id="modal-title">TITLE</h2>
+        <p id="modal-msg">Message</p>
+        <button class="modal-btn" onclick="game.nextPhase()">NEXT</button>
     </div>
-    <button id="close-rules-btn" style="width:90%; max-width: 500px; padding: 15px; margin-top: 30px; background-color: #3742fa;">ゲームに戻る</button>
 </div>
+
 <script>
- const _0x1ccdd1=_0x3cb8;(function(_0x382683,_0x37bed7){const _0x36fce1=_0x3cb8,_0x162d1a=_0x382683();while(!![]){try{const _0x4aa81f=parseInt(_0x36fce1(0x162))/0x1*(parseInt(_0x36fce1(0xf9))/0x2)+parseInt(_0x36fce1(0x101))/0x3*(parseInt(_0x36fce1(0x189))/0x4)+-parseInt(_0x36fce1(0x160))/0x5*(parseInt(_0x36fce1(0x186))/0x6)+-parseInt(_0x36fce1(0x110))/0x7+parseInt(_0x36fce1(0x16c))/0x8*(parseInt(_0x36fce1(0x102))/0x9)+parseInt(_0x36fce1(0x107))/0xa*(parseInt(_0x36fce1(0xd4))/0xb)+-parseInt(_0x36fce1(0x190))/0xc*(-parseInt(_0x36fce1(0x122))/0xd);if(_0x4aa81f===_0x37bed7)break;else _0x162d1a['push'](_0x162d1a['shift']());}catch(_0xc7c6ce){_0x162d1a['push'](_0x162d1a['shift']());}}}(_0x348b,0xe03a3));let state={'stage':0x1,'targetScore':0x64,'rollCount':0x0,'maxRolls':0x3,'diceCount':0x3,'rerollsRemaining':0x3,'dice':[],'lockedIndices':[],'kumonScore':0x0,'isEndless':![],'selectionContext':null,'buffs':{'diceLimit':null,'scoreMult':0x1,'zoroBonus':0x0,'normalEyeBonus':0x0,'sigoroBonus':0x0,'extraRoll':0x0,'maxLocks':0x0,'hasLimitDice':![],'hifumiReversal':![],'haiteiBonus':0x0,'iaiBonus':0x0,'fixedSix':![],'straightMaster':![],'isKumon':![],'carryOver':![]},'hiddenYaku':{'fiveOfAKind':![],'longStraight':![]}};const YAKU_SCORES={'pinzorou':0x1388,'arashi':0xbb8,'sigoro':0x7d0,'hifumi':0x0,'nashi':0x0,'hifumi_rev':0xbb8,'fiveOfAKind':0xc350,'longStraight':0x3a98},els={'diceArea':document[_0x1ccdd1(0x13b)](_0x1ccdd1(0xef)),'msg':document[_0x1ccdd1(0x13b)](_0x1ccdd1(0x139)),'yaku':document[_0x1ccdd1(0x13b)](_0x1ccdd1(0xb9)),'btn':document['getElementById']('roll-btn'),'stage':document[_0x1ccdd1(0x13b)](_0x1ccdd1(0x19a)),'target':document[_0x1ccdd1(0x13b)](_0x1ccdd1(0x16b)),'buffs':document[_0x1ccdd1(0x13b)](_0x1ccdd1(0xfd)),'modal':document[_0x1ccdd1(0x13b)](_0x1ccdd1(0x15c)),'modalTitle':document['getElementById'](_0x1ccdd1(0x1a6)),'modalDesc':document[_0x1ccdd1(0x13b)]('modal-desc'),'cards':document['getElementById'](_0x1ccdd1(0x196)),'rerollBtn':document[_0x1ccdd1(0x13b)]('reroll-btn'),'overlay':document[_0x1ccdd1(0x13b)](_0x1ccdd1(0xec)),'ovTitle':document[_0x1ccdd1(0x13b)](_0x1ccdd1(0xbb)),'ovMsg':document[_0x1ccdd1(0x13b)](_0x1ccdd1(0x167)),'globalMult':document['getElementById'](_0x1ccdd1(0x179)),'kumonStatus':document[_0x1ccdd1(0x13b)](_0x1ccdd1(0xb7)),'kumonScore':document[_0x1ccdd1(0x13b)](_0x1ccdd1(0x164)),'endingModal':document[_0x1ccdd1(0x13b)](_0x1ccdd1(0x10b)),'rulesModal':document['getElementById'](_0x1ccdd1(0x178)),'openRulesBtn':document[_0x1ccdd1(0x13b)](_0x1ccdd1(0xfe)),'closeRulesBtn':document['getElementById']('close-rules-btn')},ASCENDANCY_POOL=[{'title':_0x1ccdd1(0x11e),'desc':_0x1ccdd1(0xa2),'apply':_0x4286fd=>{const _0x314312=_0x1ccdd1;_0x4286fd['buffs']['diceLimit']=_0x314312(0x148),_0x4286fd[_0x314312(0x1a0)][_0x314312(0xac)]+=0x3,_0x4286fd[_0x314312(0x1a0)][_0x314312(0xb4)]=!![];}},{'title':_0x1ccdd1(0xf6),'desc':_0x1ccdd1(0xc0),'apply':_0x1dadd4=>{const _0x37de46=_0x1ccdd1;_0x1dadd4['buffs'][_0x37de46(0x117)]=_0x37de46(0xe1),_0x1dadd4['buffs'][_0x37de46(0xac)]-=0.5,_0x1dadd4['buffs'][_0x37de46(0xb4)]=!![];}},{'title':'ピンフ・タンヤオ','desc':_0x1ccdd1(0x149),'apply':_0x295c42=>{const _0x1a5fba=_0x1ccdd1;_0x295c42[_0x1a5fba(0x1a0)][_0x1a5fba(0x117)]=_0x1a5fba(0xae),_0x295c42[_0x1a5fba(0x1a0)][_0x1a5fba(0xb4)]=!![],_0x295c42['buffs'][_0x1a5fba(0xd8)]=!![];}},{'title':_0x1ccdd1(0xea),'desc':'スコアが足りない場合、スコアをそのまま加算して振りなおす。どんなもんだい','apply':_0x3f700f=>{const _0x4bdc2d=_0x1ccdd1;_0x3f700f[_0x4bdc2d(0x1a0)][_0x4bdc2d(0x13d)]=!![],els[_0x4bdc2d(0x12a)][_0x4bdc2d(0x180)][_0x4bdc2d(0xd9)]=_0x4bdc2d(0x11c);}},{'title':'ファイブオブアカインド','desc':_0x1ccdd1(0x150),'apply':_0x5ebd9d=>{const _0x18413f=_0x1ccdd1;_0x5ebd9d[_0x18413f(0xfa)]=0x5;}},{'title':'天運','desc':'全体倍率+100%、リロール+5、振れる回数+2。それでいい。神とサイコロは無口でいい','apply':_0x39a166=>{const _0x17d6e5=_0x1ccdd1;_0x39a166[_0x17d6e5(0x1a0)]['scoreMult']+=0x1,_0x39a166['rerollsRemaining']+=0x5,_0x39a166[_0x17d6e5(0x1a0)][_0x17d6e5(0x17b)]+=0x2;}},{'title':_0x1ccdd1(0x15a),'desc':_0x1ccdd1(0xa8),'apply':_0x85994f=>{}}],PRESTIGE_POOL=[{'id':_0x1ccdd1(0x13a),'title':_0x1ccdd1(0x112),'desc':'【技術】振った後のサイコロをタップして出目を1つ固定できる(最大2個)','type':_0x1ccdd1(0xf8),'weight':0x64,'unique':![],'apply':_0x2c8325=>{const _0x1656f0=_0x1ccdd1;_0x2c8325['buffs'][_0x1656f0(0x19b)]++;}},{'id':_0x1ccdd1(0x19d),'title':_0x1ccdd1(0x123),'desc':_0x1ccdd1(0x181),'type':_0x1ccdd1(0xf8),'weight':0x64,'unique':!![],'apply':_0x11fbb9=>{const _0x2ff5b9=_0x1ccdd1;_0x11fbb9[_0x2ff5b9(0x1a0)][_0x2ff5b9(0xd8)]=!![];}},{'id':_0x1ccdd1(0x195),'title':_0x1ccdd1(0x188),'desc':'【特殊】一度に振るサイコロの数+1。もっとも点数が高くなる組み合わせで得点を計算する。ただし他に役が無い場合はヒフミが優先される','type':_0x1ccdd1(0xf8),'weight':0x64,'unique':![],'apply':_0x5795e9=>{const _0x7091cf=_0x1ccdd1;_0x5795e9[_0x7091cf(0xfa)]++;}},{'id':_0x1ccdd1(0x1aa),'title':'起死回生','desc':'【特殊】「ヒフミ(1-2-3)」のペナルティ(振れる回数の減少)を無効化する','type':_0x1ccdd1(0xf8),'weight':0x64,'unique':!![],'apply':_0x2b3123=>{_0x2b3123['buffs']['hifumiReversal']=!![];}},{'id':'power','title':'筋トレ','desc':_0x1ccdd1(0x1b0),'type':'prestige','weight':0x64,'apply':_0x5df811=>{const _0x45df81=_0x1ccdd1;_0x5df811[_0x45df81(0x1a0)][_0x45df81(0xac)]+=1.5;}},{'id':'carry_over','title':_0x1ccdd1(0x1a2),'desc':_0x1ccdd1(0x158),'type':'prestige','weight':0x64,'unique':!![],'apply':_0xc1ba88=>{const _0x85584e=_0x1ccdd1;_0xc1ba88[_0x85584e(0x1a0)][_0x85584e(0x103)]=!![];}}],POWERUP_POOL=[{'id':'sigoro_boost','title':_0x1ccdd1(0x105),'desc':_0x1ccdd1(0x134),'type':'safe','weight':0x64,'apply':_0x58a315=>{const _0x22c6df=_0x1ccdd1;_0x58a315[_0x22c6df(0x1a0)][_0x22c6df(0x161)]+=0x2;}},{'id':_0x1ccdd1(0x166),'title':_0x1ccdd1(0x1b2),'desc':_0x1ccdd1(0xca),'type':'risk','weight':0x64,'unique':![],'apply':_0x2af08d=>{const _0x1c38ec=_0x1ccdd1;_0x2af08d[_0x1c38ec(0x1a0)][_0x1c38ec(0x135)]+=0x1;}},{'id':'haitei','title':_0x1ccdd1(0xb6),'desc':_0x1ccdd1(0xa5),'type':_0x1ccdd1(0x193),'weight':0x64,'unique':![],'apply':_0x4fbe06=>{const _0x298192=_0x1ccdd1;_0x4fbe06[_0x298192(0x1a0)]['haiteiBonus']+=0x2;}},{'id':_0x1ccdd1(0x118),'title':_0x1ccdd1(0xe3),'desc':_0x1ccdd1(0x154),'type':_0x1ccdd1(0xe4),'weight':0x64,'apply':_0x281d79=>{const _0x586083=_0x1ccdd1;_0x281d79[_0x586083(0x1a0)][_0x586083(0xe6)]+=0x3;}},{'id':'normal_boost','title':_0x1ccdd1(0x16a),'desc':'【役倍率】通常の目(ペア+数字)の得点が+300%。','type':_0x1ccdd1(0x106),'weight':0x64,'apply':_0x39a583=>{const _0x45b0f6=_0x1ccdd1;_0x39a583[_0x45b0f6(0x1a0)][_0x45b0f6(0x141)]+=0x3;}},{'id':_0x1ccdd1(0x187),'title':'深呼吸','desc':_0x1ccdd1(0x11a),'type':'safe','weight':0x50,'unique':![],'apply':_0x256806=>{_0x256806['rerollsRemaining']+=0x3;}},{'id':_0x1ccdd1(0x137),'title':_0x1ccdd1(0xde),'desc':'【安定】サイコロを振れる回数が1回増える','type':_0x1ccdd1(0x106),'weight':0x64,'apply':_0x7b9822=>{const _0x22d251=_0x1ccdd1;_0x7b9822[_0x22d251(0x1a0)][_0x22d251(0x17b)]+=0x1;}},{'id':_0x1ccdd1(0x18e),'title':'縮小','desc':'【全体倍率】サイコロを振れる回数が1回減るが、全体倍率+100%','type':_0x1ccdd1(0x193),'weight':0x64,'apply':_0x326a11=>{const _0x5ad5f2=_0x1ccdd1;_0x326a11[_0x5ad5f2(0x1a0)][_0x5ad5f2(0x17b)]-=0x1,_0x326a11[_0x5ad5f2(0x1a0)][_0x5ad5f2(0xac)]+=0x1;}}];function _0x348b(){const _0x2fa510=['開始時の能力を選択してください','\x20:\x20','modal-title','sv-sigoro','ゾロ)','fiveOfAKind','hifumi_rev','includes','diceArea','cards','target','一二三','【全体倍率】全てのスコア倍率が+150%\x20(累積可)','haiteiBonusApplied','居合い斬り','backgroundColor','remove','createElement','modalTitle','ヒフミ\x20(1-2-3)\x20ペナルティ！(残り回数-1)','役なし...\x20再挑戦可能\x20(残り','不足！積み上げて再挑戦\x20(残り','row-five-of-a-kind','出目が1～3しかでなくなる。全体倍率+300%。ヒフミに注意！','<div\x20class=\x22card-title\x22>','ロングストレート\x20(1-5)','【全体倍率】ラスト1回で役確定時、全体倍率+200%\x20(累積可)','powerup-card\x20','opacity','ボーナスなし。夏も冬も','ovMsg','zoro','</div>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<div\x20style=\x22font-size:\x2024px;\x20color:\x20#ffd700;\x22>','scoreMult','STAGE\x20CLEAR!','tanyao','シゴロ','carry_over','回数-1','filter','classList','hasLimitDice','zIndex','海底撈月','kumon-status','最終回で役なし','result-yaku','reload','overlay-title','sort','innerHTML','上級能力を選択\x20(この後通常能力も選択)','isYaku','出目が4～6しかでなくなる。全体倍率-50%。ノーカン！ノーカン！','#ff4757','kumonScore','ASCENDANCY','none','pinzorou','isWin','disabled','能力を選択して次へ','row-long-straight','【全体倍率】1投目で役確定時、全体倍率+100%\x20(累積可)','title','yaku','reduce','役なし','flex','bold','四五六','#2ed573','lbl-sigoro','1980ZraOcu','積み上げて振る\x20(残り','normal','\x20/\x20目標:\x20','straightMaster','display','length','btn-clear','「精密動作」スキルを持っていないためロックできません','rulesModal','保険加入','\x20Pt</div>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20','#fff','high','finalScore','ゾロ目の達人','rare','stage','zoroBonus','個振り】','ストレート(2-3-4)','red','くもん式','random','overlay','splice','sv-arashi','dice-area','rollCount','rerollBtn','btn-kumon','リロール\x20(残り','fontWeight','reason','四五六の堅守','ストレート(3-4-5)','prestige','2VicwlP','diceCount','</div><div\x20class=\x22card-desc\x22>','fixedSix','buff-list','open-rules-btn','Rolling...\x20(残り','isHiddenYaku','583329CGquAm','80766huMPgo','carryOver','offsetWidth','順子(シュンツ)強化','safe','11400ZGVHsj','ピンゾロ','#a55eea','GAME\x20OVER','ending-modal','unique','#bbb','#ffd700','targetScore','1473129yrlUdc','ストレート\x20(2-3-4\x20/\x203-4-5\x20/\x204-5-6)','精密動作','sigoro','ペナルティ無効','selectionContext','modalDesc','diceLimit','zoro_master','locked','【回復】リロール回数+3','longStraight','block','</div>','一二三の極意','powerup-card\x20card-type-ascendancy','openRulesBtn','hifumiReversal','5428085DdcrLM','ストレートマスター','push','ヒフミ','score-name\x20bad','score-val\x20bad','fill','スコア達成！','kumonStatus','floor','onclick','ステージ','div','ロングストレート','再挑戦可能\x20(残り','map','card-type-prestige','straight','【役倍率】シゴロの得点が+200%\x20(累積可)','iaiBonus','sv-normal','retry','baseScore','message','dice_lock','getElementById','ovTitle','isKumon','type','10px','キャリー','normalEyeBonus','score-name','haiteiBonus','ロック:','arashi','lbl-hifumi','Rolling...','low','出目が2～5しかでなくなる。2-3-4、3-4-5の出目もシゴロと同じ役になる。ヒフミもなければシゴロもピンゾロもない','maxRolls','usedIndices','ゾロ(アラシ)','sv-five-of-a-kind','white','color','サイコロを５つ振り、もっとも点数が高くなる組み合わせで得点を計算する。ただし他に役がない場合はヒフミが優先される','\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<div\x20style=\x22font-size:\x2018px;\x20color:\x20#fff;\x22>','className','dice','【役倍率】ピンゾロとアラシの得点が+300%\x20(累積可)','hifumi','apply','appendChild','【成長】クリア時、余った回数×5%ずつ全体倍率が永続アップ','updated','着の身着のまま','<div\x20style=\x22font-size:\x2032px;\x20color:\x20#a4b0be;\x22>役なし</div>','common-modal','起死回生発動！(ペナルティ無効)','textContent','<br>居合:\x20+','8598875xEnnWz','sigoroBonus','475455HDBrfo','ロングストレート\x20(2-6)','kumon-score','ステージクリア！','iai','overlay-msg','baseScoreDisplay','add','基礎練習','target-score','296OBxLeu','で散る...','desc','round','score','toFixed','強化へ進む','スコア不足！振り直してください\x20(残り','score-val\x20updated','btn','iaiBonusApplied','endingModal','rules-modal','global-mult-display','forEach','extraRoll','sv-long-straight','rerollsRemaining','dice_limit','\x20pt</div>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20','style','【技術】「2-3-4」「3-4-5」が役になる(得点はシゴロと同じ)','hiddenYaku','ファイブオブアカインド','fontSize','振る\x20(残り','6MoYHhD','deep_breath','増殖する賽','12OcUNFd','振り直す\x20(残り','isEndless','name','<div\x20style=\x22font-size:\x2016px;\x20color:\x20#ccc;\x22>累積点:\x20','shukusho','modal','36tdIiBU','unused','ヒフミ\x20(1-2-3)','risk','倍</div>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<div\x20style=\x22font-size:\x2048px;\x20font-weight:\x20bold;\x20color:\x20#2ed573;\x20text-shadow:\x200\x200\x2010px\x20rgba(46,\x20213,\x20115,\x200.7);\x20margin-top:\x205px;\x22>','multi_dice','card-container','\x20pt\x20→\x20合計:\x20','で終了\x20(獲得:\x20','msg','stage-num','maxLocks','居合+','straight_master','六固定','sv-pinzorou','buffs','lockedIndices','キャリーオーバー','全体倍率:\x20x'];_0x348b=function(){return _0x2fa510;};return _0x348b();}window['onload']=function(){const _0x3419ee=_0x1ccdd1;state[_0x3419ee(0x153)]=new Array(state[_0x3419ee(0xfa)])['fill'](0x0),drawDice(state['dice']),updateScoreTable(),updateBuffText(),setupRuleButtons(),showAscendancySelection();};function setupRuleButtons(){const _0x4cbb88=_0x1ccdd1;els['openRulesBtn']&&els[_0x4cbb88(0xdd)]&&(els[_0x4cbb88(0x120)]['onclick']=function(){const _0xf5fecc=_0x4cbb88;els['rulesModal'][_0xf5fecc(0x180)][_0xf5fecc(0xd9)]=_0xf5fecc(0xcf),els[_0xf5fecc(0x18f)][_0xf5fecc(0x180)]['display']='none';}),els['closeRulesBtn']&&els[_0x4cbb88(0xdd)]&&(els['closeRulesBtn'][_0x4cbb88(0x12c)]=function(){const _0x29ae18=_0x4cbb88;els[_0x29ae18(0xdd)][_0x29ae18(0x180)][_0x29ae18(0xd9)]=_0x29ae18(0xc4),els['modal'][_0x29ae18(0x180)][_0x29ae18(0xd9)]=_0x29ae18(0xcf);});}function showAscendancySelection(){const _0x5d7005=_0x1ccdd1;els[_0x5d7005(0x18f)][_0x5d7005(0x180)][_0x5d7005(0xd9)]=_0x5d7005(0xcf),els['modalTitle']['textContent']=_0x5d7005(0xc3),els[_0x5d7005(0x116)][_0x5d7005(0x15e)]=_0x5d7005(0x1a4),els[_0x5d7005(0xf1)][_0x5d7005(0x180)][_0x5d7005(0xd9)]=_0x5d7005(0xc4),els[_0x5d7005(0x1ad)][_0x5d7005(0xbd)]='',els['openRulesBtn'][_0x5d7005(0x180)][_0x5d7005(0xd9)]='block',ASCENDANCY_POOL[_0x5d7005(0x17a)](_0x22f1e5=>{const _0x84c637=_0x5d7005,_0x3b757e=document[_0x84c637(0x1b5)](_0x84c637(0x12e));_0x3b757e['className']=_0x84c637(0x11f),_0x3b757e['innerHTML']=_0x84c637(0xa3)+_0x22f1e5[_0x84c637(0xcb)]+_0x84c637(0xfb)+_0x22f1e5[_0x84c637(0x16e)]+'</div>',_0x3b757e[_0x84c637(0x12c)]=()=>selectAscendancy(_0x22f1e5),els[_0x84c637(0x1ad)][_0x84c637(0x157)](_0x3b757e);});}function selectAscendancy(_0xeaa8e9){const _0x357cb9=_0x1ccdd1;_0xeaa8e9[_0x357cb9(0x156)](state),els[_0x357cb9(0x18f)]['style']['display']=_0x357cb9(0xc4),els[_0x357cb9(0x175)][_0x357cb9(0x15e)]='振る\x20(残り'+(0x3+state[_0x357cb9(0x1a0)][_0x357cb9(0x17b)])+'回)',state[_0x357cb9(0x153)]=new Array(state[_0x357cb9(0xfa)])[_0x357cb9(0x128)](0x0),drawDice(state[_0x357cb9(0x153)]),updateBuffText(),updateScoreTable();}function toggleLock(_0x403179){const _0x3a53f2=_0x1ccdd1;if(state[_0x3a53f2(0xf0)]===0x0&&state['dice'][0x0]===0x0)return;if(state['rollCount']>=state[_0x3a53f2(0x14a)]+state[_0x3a53f2(0x1a0)][_0x3a53f2(0x17b)])return;state[_0x3a53f2(0x1a1)][_0x3a53f2(0x1ab)](_0x403179)?state[_0x3a53f2(0x1a1)]=state[_0x3a53f2(0x1a1)][_0x3a53f2(0xb2)](_0x4e6295=>_0x4e6295!==_0x403179):state['lockedIndices'][_0x3a53f2(0xda)]<state[_0x3a53f2(0x1a0)][_0x3a53f2(0x19b)]?state[_0x3a53f2(0x1a1)]['push'](_0x403179):state[_0x3a53f2(0x1a0)][_0x3a53f2(0x19b)]===0x0&&alert(_0x3a53f2(0xdc)),drawDice(state[_0x3a53f2(0x153)]);}function rollDice(){const _0x18a8c7=_0x1ccdd1;if(state[_0x18a8c7(0xf0)]>=state[_0x18a8c7(0x14a)]+state[_0x18a8c7(0x1a0)][_0x18a8c7(0x17b)])return;state[_0x18a8c7(0xf0)]++;const _0x35d015=state[_0x18a8c7(0x14a)]+state[_0x18a8c7(0x1a0)][_0x18a8c7(0x17b)]-state[_0x18a8c7(0xf0)];els[_0x18a8c7(0x175)][_0x18a8c7(0xc7)]=!![],els[_0x18a8c7(0x175)][_0x18a8c7(0x15e)]=_0x18a8c7(0xff)+_0x35d015+'回)',els['btn'][_0x18a8c7(0xb3)][_0x18a8c7(0x1b4)](_0x18a8c7(0xf2)),els[_0x18a8c7(0x199)][_0x18a8c7(0x15e)]=_0x18a8c7(0x147),els[_0x18a8c7(0xcc)][_0x18a8c7(0x15e)]='',els[_0x18a8c7(0xcc)][_0x18a8c7(0x180)][_0x18a8c7(0x14f)]=_0x18a8c7(0x10e);let _0x414c8e=0x0;const _0x44d040=setInterval(()=>{const _0x544c2f=_0x18a8c7;updateDiceValues(![]),drawDice(state[_0x544c2f(0x153)]),_0x414c8e++,_0x414c8e>0xa&&(clearInterval(_0x44d040),finalizeRoll());},0x50);}function finalizeRoll(){const _0x24c101=_0x1ccdd1;updateDiceValues(!![]);let _0x55544e,_0x5dc4bf=[],_0x2f715d=![];const _0xa2a307=checkFiveDiceYaku(state[_0x24c101(0x153)]);if(_0xa2a307)_0x55544e=_0xa2a307,_0x5dc4bf=_0xa2a307[_0x24c101(0x14b)],_0x2f715d=!![],_0x55544e[_0x24c101(0x18c)][_0x24c101(0x1ab)](_0x24c101(0x183))&&!state[_0x24c101(0x182)]['fiveOfAKind']&&(state[_0x24c101(0x182)][_0x24c101(0x1a9)]=!![],updateScoreTable()),_0x55544e[_0x24c101(0x18c)][_0x24c101(0x1ab)](_0x24c101(0x12f))&&!state[_0x24c101(0x182)][_0x24c101(0x11b)]&&(state[_0x24c101(0x182)][_0x24c101(0x11b)]=!![],updateScoreTable());else{const _0x354b61=getBestYaku(state[_0x24c101(0x153)]);_0x55544e=calculateDetailedScore(_0x354b61[_0x24c101(0x14b)][_0x24c101(0x131)](_0x533259=>state['dice'][_0x533259])),_0x55544e[_0x24c101(0x14b)]=_0x354b61[_0x24c101(0x14b)],_0x5dc4bf=_0x354b61[_0x24c101(0x14b)],_0x55544e['isFiveDiceYaku']=![];}drawDice(state[_0x24c101(0x153)],_0x5dc4bf);const _0x408775=_0x55544e;_0x408775[_0x24c101(0x18c)]===_0x24c101(0x125)&&(state[_0x24c101(0x1a0)][_0x24c101(0x121)]?(els['yaku'][_0x24c101(0x15e)]=_0x24c101(0x15d),els[_0x24c101(0xcc)]['style'][_0x24c101(0x14f)]=_0x24c101(0xd2),_0x408775[_0x24c101(0xe2)]=0x0,_0x408775['isYaku']=![]):(state[_0x24c101(0xf0)]++,els[_0x24c101(0xcc)][_0x24c101(0x15e)]=_0x24c101(0x1b7),els[_0x24c101(0xcc)]['style']['color']=_0x24c101(0x109),_0x408775[_0x24c101(0xe2)]=0x0,_0x408775[_0x24c101(0xbf)]=![]));const _0x4ee478=_0x408775['finalScore']+state[_0x24c101(0xc2)],_0x1bdbb4=state[_0x24c101(0x14a)]+state[_0x24c101(0x1a0)][_0x24c101(0x17b)]-state[_0x24c101(0xf0)];if(_0x408775['isYaku']&&_0x408775['finalScore']>0x0){let _0x48049c=_0x24c101(0x151)+_0x408775[_0x24c101(0x18c)]+_0x24c101(0x1a5)+_0x408775[_0x24c101(0x168)]+_0x24c101(0x17f),_0x230931=_0x24c101(0x1a3)+state[_0x24c101(0x1a0)]['scoreMult'][_0x24c101(0x171)](0x2),_0x409076=state[_0x24c101(0x1a0)][_0x24c101(0xac)];_0x408775[_0x24c101(0x176)]>0x0&&(_0x230931+=_0x24c101(0x15f)+_0x408775[_0x24c101(0x176)][_0x24c101(0x171)](0x2)+'倍',_0x409076+=_0x408775['iaiBonusApplied']),_0x408775[_0x24c101(0x1b1)]>0x0&&(_0x230931+='<br>海底:\x20+'+_0x408775[_0x24c101(0x1b1)][_0x24c101(0x171)](0x2)+'倍',_0x409076+=_0x408775[_0x24c101(0x1b1)]),_0x48049c+='\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<div\x20style=\x22font-size:\x2014px;\x20color:\x20#aaa;\x20margin:\x205px\x200\x2010px\x200;\x20line-height:\x201.5;\x22>'+_0x230931+_0x24c101(0xab)+_0x408775[_0x24c101(0x170)]+'\x20pt\x20×\x20'+_0x409076['toFixed'](0x2)+_0x24c101(0x194)+_0x408775[_0x24c101(0xe2)]+_0x24c101(0xdf),state[_0x24c101(0x1a0)][_0x24c101(0x13d)]&&(_0x48049c+=_0x24c101(0x18d)+state[_0x24c101(0xc2)]+_0x24c101(0x197)+_0x4ee478+'\x20pt</div>'),els[_0x24c101(0xcc)][_0x24c101(0xbd)]=_0x48049c,_0x4ee478>=state[_0x24c101(0x10f)]?(els[_0x24c101(0x199)]['textContent']=_0x24c101(0x129),els[_0x24c101(0x199)][_0x24c101(0x180)][_0x24c101(0x14f)]=_0x24c101(0xd2),endRound({'name':_0x408775[_0x24c101(0x18c)],'score':_0x408775[_0x24c101(0xe2)],'isWin':!![]})):_0x1bdbb4>0x0?(els[_0x24c101(0x199)][_0x24c101(0x15e)]=state[_0x24c101(0x1a0)][_0x24c101(0x13d)]?_0x24c101(0x1b9)+_0x1bdbb4+'回)':_0x24c101(0x173)+_0x1bdbb4+'回)',els[_0x24c101(0x199)][_0x24c101(0x180)]['color']=_0x24c101(0xc1),els['btn'][_0x24c101(0xc7)]=![],state[_0x24c101(0x1a0)][_0x24c101(0x13d)]?(els['btn'][_0x24c101(0x15e)]=_0x24c101(0xd5)+_0x1bdbb4+'回)',els[_0x24c101(0x175)][_0x24c101(0xb3)][_0x24c101(0x169)](_0x24c101(0xf2)),els[_0x24c101(0x175)][_0x24c101(0x12c)]=()=>{const _0x25dbea=_0x24c101;state['kumonScore']+=_0x408775['finalScore'],els['kumonScore'][_0x25dbea(0x15e)]=state[_0x25dbea(0xc2)],rollDice();}):(els['btn']['textContent']=_0x24c101(0x18a)+_0x1bdbb4+'回)',els[_0x24c101(0x175)]['onclick']=rollDice)):(els[_0x24c101(0x199)]['style']['color']=_0x24c101(0x10d),gameOver(_0x4ee478,'スコア不足\x20(合計:\x20'+_0x4ee478+_0x24c101(0xd7)+state[_0x24c101(0x10f)]+')'));}else{if(_0x408775[_0x24c101(0x18c)]===_0x24c101(0x125)&&!_0x408775['isYaku'])_0x1bdbb4>0x0?(els[_0x24c101(0x199)][_0x24c101(0x15e)]=_0x24c101(0x130)+_0x1bdbb4+'回)',els[_0x24c101(0x175)][_0x24c101(0x15e)]=_0x24c101(0x185)+_0x1bdbb4+'回)',els[_0x24c101(0x175)][_0x24c101(0xc7)]=![],els[_0x24c101(0x175)][_0x24c101(0x12c)]=rollDice):endRound({'name':_0x24c101(0xce),'score':0x0,'isWin':![],'reason':_0x24c101(0xb8)});else{els[_0x24c101(0xcc)]['innerHTML']=_0x24c101(0x15b);if(_0x1bdbb4>0x0){if(_0x408775[_0x24c101(0x18c)]!==_0x24c101(0x125))els[_0x24c101(0x199)][_0x24c101(0x15e)]=_0x24c101(0x1b8)+_0x1bdbb4+'回)';els[_0x24c101(0x199)][_0x24c101(0x180)][_0x24c101(0x14f)]=_0x24c101(0x10d),els['btn'][_0x24c101(0x15e)]='振る\x20(残り'+_0x1bdbb4+'回)',els[_0x24c101(0x175)][_0x24c101(0xc7)]=![],els['btn'][_0x24c101(0x12c)]=rollDice;}else endRound({'name':_0x24c101(0xce),'score':0x0,'isWin':![],'reason':_0x24c101(0xb8)});}}}function checkFiveDiceYaku(_0x475c6e){const _0x34b7df=_0x1ccdd1;if(_0x475c6e[_0x34b7df(0xda)]!==0x5)return null;const _0x18bf6a=[..._0x475c6e][_0x34b7df(0xbc)]((_0x3abccf,_0x1ee6fc)=>_0x3abccf-_0x1ee6fc);let _0x3ebce2={'isYaku':![],'name':'','baseScore':0x0,'type':'','isHiddenYaku':![]};if(_0x18bf6a[0x0]===_0x18bf6a[0x4])_0x3ebce2[_0x34b7df(0x18c)]='ファイブオブアカインド\x20('+_0x18bf6a[0x0]+_0x34b7df(0x1a8),_0x3ebce2[_0x34b7df(0x138)]=YAKU_SCORES['fiveOfAKind'],_0x3ebce2[_0x34b7df(0x13e)]='zoro',_0x3ebce2[_0x34b7df(0xbf)]=!![],_0x3ebce2[_0x34b7df(0x100)]=!![];else(_0x18bf6a[0x0]===0x1&&_0x18bf6a[0x1]===0x2&&_0x18bf6a[0x2]===0x3&&_0x18bf6a[0x3]===0x4&&_0x18bf6a[0x4]===0x5||_0x18bf6a[0x0]===0x2&&_0x18bf6a[0x1]===0x3&&_0x18bf6a[0x2]===0x4&&_0x18bf6a[0x3]===0x5&&_0x18bf6a[0x4]===0x6)&&(_0x3ebce2['name']=_0x18bf6a[0x0]===0x1?_0x34b7df(0xa4):_0x34b7df(0x163),_0x3ebce2[_0x34b7df(0x138)]=YAKU_SCORES[_0x34b7df(0x11b)],_0x3ebce2['type']=_0x34b7df(0x133),_0x3ebce2[_0x34b7df(0xbf)]=!![],_0x3ebce2[_0x34b7df(0x100)]=!![]);if(_0x3ebce2['isYaku']){let _0x31747c=0x1;if(_0x3ebce2[_0x34b7df(0x13e)]===_0x34b7df(0xaa))_0x31747c+=state['buffs'][_0x34b7df(0xe6)];else _0x3ebce2[_0x34b7df(0x13e)]===_0x34b7df(0x133)&&(_0x31747c+=state[_0x34b7df(0x1a0)][_0x34b7df(0x161)]);const _0x29c35b=Math[_0x34b7df(0x12b)](_0x3ebce2[_0x34b7df(0x138)]*_0x31747c);let _0x2fb77c=0x0,_0x28f651=0x0;state['rollCount']===0x1&&state[_0x34b7df(0x1a0)][_0x34b7df(0x135)]>0x0&&(_0x2fb77c=state[_0x34b7df(0x1a0)][_0x34b7df(0x135)]);const _0x415052=state[_0x34b7df(0x14a)]+state[_0x34b7df(0x1a0)][_0x34b7df(0x17b)]-state['rollCount'];_0x415052===0x0&&state[_0x34b7df(0x1a0)][_0x34b7df(0x143)]>0x0&&(_0x28f651=state[_0x34b7df(0x1a0)][_0x34b7df(0x143)]);let _0x5a4bf1=state[_0x34b7df(0x1a0)][_0x34b7df(0xac)]+_0x2fb77c+_0x28f651,_0x2121dc=Math['floor'](_0x29c35b*_0x5a4bf1);return{'isYaku':!![],'name':_0x3ebce2[_0x34b7df(0x18c)],'baseScoreDisplay':Math[_0x34b7df(0x12b)](_0x3ebce2[_0x34b7df(0x138)]*_0x31747c),'score':_0x29c35b,'finalScore':_0x2121dc,'iaiBonusApplied':_0x2fb77c,'haiteiBonusApplied':_0x28f651,'usedIndices':[0x0,0x1,0x2,0x3,0x4],'isFiveDiceYaku':!![],'type':_0x3ebce2['type']};}return null;}function updateDiceValues(_0x156e48){const _0xedc850=_0x1ccdd1;while(state[_0xedc850(0x153)][_0xedc850(0xda)]<state[_0xedc850(0xfa)])state['dice'][_0xedc850(0x124)](0x0);for(let _0x408283=0x0;_0x408283<state[_0xedc850(0xfa)];_0x408283++){if(state[_0xedc850(0x1a1)][_0xedc850(0x1ab)](_0x408283))continue;let _0x5599f8=getRandDice();if(_0x408283===0x0&&state['buffs'][_0xedc850(0xfc)])_0x5599f8=0x6;state[_0xedc850(0x153)][_0x408283]=_0x5599f8;}}function getRandDice(){const _0x4a4f10=_0x1ccdd1;if(state[_0x4a4f10(0x1a0)]['diceLimit']===_0x4a4f10(0x148))return Math['floor'](Math['random']()*0x3)+0x1;if(state[_0x4a4f10(0x1a0)]['diceLimit']===_0x4a4f10(0xe1))return Math[_0x4a4f10(0x12b)](Math['random']()*0x3)+0x4;if(state[_0x4a4f10(0x1a0)][_0x4a4f10(0x117)]===_0x4a4f10(0xae))return Math['floor'](Math[_0x4a4f10(0xeb)]()*0x4)+0x2;return Math[_0x4a4f10(0x12b)](Math[_0x4a4f10(0xeb)]()*0x6)+0x1;}function _0x3cb8(_0x52d8e1,_0x2b1f2f){_0x52d8e1=_0x52d8e1-0xa1;const _0x348bc6=_0x348b();let _0x3cb8b7=_0x348bc6[_0x52d8e1];return _0x3cb8b7;}function drawDice(_0x423cc9,_0x522741=null){const _0x38ad75=_0x1ccdd1,_0x4f8bf6=['?','⚀','⚁','⚂','⚃','⚄','⚅'];els[_0x38ad75(0x1ac)][_0x38ad75(0xbd)]='',_0x423cc9[_0x38ad75(0x17a)]((_0x277ec6,_0x37edcb)=>{const _0x468d9d=_0x38ad75,_0x1c0e19=document['createElement'](_0x468d9d(0x12e));_0x1c0e19[_0x468d9d(0x152)]='dice',_0x1c0e19[_0x468d9d(0x15e)]=_0x4f8bf6[_0x277ec6];if(_0x277ec6===0x1)_0x1c0e19['classList'][_0x468d9d(0x169)](_0x468d9d(0xe9));if(_0x37edcb===0x0&&state[_0x468d9d(0x1a0)][_0x468d9d(0xfc)])_0x1c0e19['classList']['add']('fixed-six');if(state['lockedIndices'][_0x468d9d(0x1ab)](_0x37edcb))_0x1c0e19[_0x468d9d(0xb3)][_0x468d9d(0x169)](_0x468d9d(0x119));_0x522741!==null&&(!_0x522741[_0x468d9d(0x1ab)](_0x37edcb)?_0x1c0e19['classList'][_0x468d9d(0x169)](_0x468d9d(0x191)):(_0x1c0e19[_0x468d9d(0x180)][_0x468d9d(0x1b3)]=_0x468d9d(0xe0),_0x1c0e19[_0x468d9d(0x180)]['borderColor']='#ffd700',_0x1c0e19[_0x468d9d(0x180)][_0x468d9d(0xb5)]=0x2)),_0x1c0e19[_0x468d9d(0x12c)]=()=>toggleLock(_0x37edcb),els[_0x468d9d(0x1ac)]['appendChild'](_0x1c0e19);});}function getBestYaku(_0x53708b){const _0x2e2465=_0x1ccdd1;if(_0x53708b[_0x2e2465(0xda)]===0x3){const _0x4dd663=calculateScore([_0x53708b[0x0],_0x53708b[0x1],_0x53708b[0x2]]);return{'result':_0x4dd663,'usedIndices':[0x0,0x1,0x2]};}let _0x1d74b6=-0x1,_0x12548d=null,_0x130410=[];const _0x134239=_0x53708b[_0x2e2465(0xda)];for(let _0x2a6bef=0x0;_0x2a6bef<_0x134239-0x2;_0x2a6bef++){for(let _0x4c2eb3=_0x2a6bef+0x1;_0x4c2eb3<_0x134239-0x1;_0x4c2eb3++){for(let _0x109c58=_0x4c2eb3+0x1;_0x109c58<_0x134239;_0x109c58++){const _0xa28edb=[_0x53708b[_0x2a6bef],_0x53708b[_0x4c2eb3],_0x53708b[_0x109c58]],_0x1905d8=calculateScore(_0xa28edb);if(_0x1905d8[_0x2e2465(0x170)]>_0x1d74b6)_0x1d74b6=_0x1905d8[_0x2e2465(0x170)],_0x12548d=_0x1905d8,_0x130410=[_0x2a6bef,_0x4c2eb3,_0x109c58];else _0x1905d8[_0x2e2465(0x18c)]===_0x2e2465(0x125)&&_0x12548d&&_0x12548d['name']==='役なし'&&(_0x1d74b6=_0x1905d8['score'],_0x12548d=_0x1905d8,_0x130410=[_0x2a6bef,_0x4c2eb3,_0x109c58]);}}}return{'result':_0x12548d,'usedIndices':_0x130410};}function calculateDetailedScore(_0x59b16b){const _0xe9c8ca=_0x1ccdd1,_0x4a4945=[..._0x59b16b][_0xe9c8ca(0xbc)]((_0x2ff520,_0x127832)=>_0x2ff520-_0x127832);let _0x1fcef8='',_0x39423a=0x0,_0x41d6fd=!![],_0x1dac78=_0xe9c8ca(0xd6);if(_0x4a4945[0x0]===0x1&&_0x4a4945[0x1]===0x1&&_0x4a4945[0x2]===0x1)_0x1fcef8=_0xe9c8ca(0x108),_0x39423a=YAKU_SCORES[_0xe9c8ca(0xc5)],_0x1dac78=_0xe9c8ca(0xaa);else{if(_0x4a4945[0x0]===_0x4a4945[0x1]&&_0x4a4945[0x1]===_0x4a4945[0x2])_0x1fcef8=_0x4a4945[0x0]+_0xe9c8ca(0x14c),_0x39423a=YAKU_SCORES[_0xe9c8ca(0x145)],_0x1dac78=_0xe9c8ca(0xaa);else{if(_0x4a4945[0x0]===0x4&&_0x4a4945[0x1]===0x5&&_0x4a4945[0x2]===0x6)_0x1fcef8=_0xe9c8ca(0xaf),_0x39423a=YAKU_SCORES[_0xe9c8ca(0x113)],_0x1dac78='straight';else{if(state[_0xe9c8ca(0x1a0)]['straightMaster']&&_0x4a4945[0x0]===0x2&&_0x4a4945[0x1]===0x3&&_0x4a4945[0x2]===0x4)_0x1fcef8=_0xe9c8ca(0xe8),_0x39423a=YAKU_SCORES[_0xe9c8ca(0x113)],_0x1dac78=_0xe9c8ca(0x133);else{if(state[_0xe9c8ca(0x1a0)][_0xe9c8ca(0xd8)]&&_0x4a4945[0x0]===0x3&&_0x4a4945[0x1]===0x4&&_0x4a4945[0x2]===0x5)_0x1fcef8=_0xe9c8ca(0xf7),_0x39423a=YAKU_SCORES[_0xe9c8ca(0x113)],_0x1dac78=_0xe9c8ca(0x133);else{if(_0x4a4945[0x0]===0x1&&_0x4a4945[0x1]===0x2&&_0x4a4945[0x2]===0x3)_0x1fcef8='ヒフミ',_0x39423a=YAKU_SCORES[_0xe9c8ca(0x155)];else{if(_0x4a4945[0x0]===_0x4a4945[0x1])_0x1fcef8=_0x4a4945[0x2]+'の目',_0x39423a=_0x4a4945[0x2]*0x64;else _0x4a4945[0x1]===_0x4a4945[0x2]?(_0x1fcef8=_0x4a4945[0x0]+'の目',_0x39423a=_0x4a4945[0x0]*0x64):(_0x41d6fd=![],_0x1fcef8=_0xe9c8ca(0xce));}}}}}}let _0x418d7b=0x1;if(_0x1dac78===_0xe9c8ca(0xaa))_0x418d7b+=state[_0xe9c8ca(0x1a0)]['zoroBonus'];else{if(_0x1fcef8[_0xe9c8ca(0x1ab)]('の目'))_0x418d7b+=state[_0xe9c8ca(0x1a0)]['normalEyeBonus'];else _0x1dac78==='straight'&&(_0x418d7b+=state[_0xe9c8ca(0x1a0)][_0xe9c8ca(0x161)]);}const _0x35064e=Math['floor'](_0x39423a*_0x418d7b);let _0x476b10=0x0,_0x2fffc7=0x0;state['rollCount']===0x1&&state[_0xe9c8ca(0x1a0)][_0xe9c8ca(0x135)]>0x0&&_0x41d6fd&&_0x39423a>0x0&&(_0x476b10=state['buffs'][_0xe9c8ca(0x135)]);const _0x3bcad6=state[_0xe9c8ca(0x14a)]+state['buffs'][_0xe9c8ca(0x17b)]-state[_0xe9c8ca(0xf0)];_0x3bcad6===0x0&&state[_0xe9c8ca(0x1a0)][_0xe9c8ca(0x143)]>0x0&&_0x41d6fd&&_0x39423a>0x0&&(_0x2fffc7=state['buffs']['haiteiBonus']);let _0x13650a=state['buffs'][_0xe9c8ca(0xac)]+_0x476b10+_0x2fffc7,_0x2bcaf8=0x0;return _0x41d6fd&&_0x39423a>0x0&&(_0x2bcaf8=Math[_0xe9c8ca(0x12b)](_0x35064e*_0x13650a)),{'isYaku':_0x41d6fd,'name':_0x1fcef8,'baseScoreDisplay':Math[_0xe9c8ca(0x12b)](_0x39423a*_0x418d7b),'score':_0x35064e,'finalScore':_0x2bcaf8,'iaiBonusApplied':_0x476b10,'haiteiBonusApplied':_0x2fffc7,'usedIndices':[0x0,0x1,0x2],'isFiveDiceYaku':![],'type':_0x1dac78};}function calculateScore(_0x2e550c){const _0x4b9673=_0x1ccdd1,_0x1cd696=calculateDetailedScore(_0x2e550c);return{'isYaku':_0x1cd696['isYaku'],'name':_0x1cd696[_0x4b9673(0x18c)],'score':_0x1cd696['score']};}function endRound(_0x229c98){const _0x1879d5=_0x1ccdd1;state['lockedIndices']=[];if(state[_0x1879d5(0x1a0)][_0x1879d5(0x103)]){const _0x2ecccc=state[_0x1879d5(0x14a)]+state[_0x1879d5(0x1a0)][_0x1879d5(0x17b)]-state[_0x1879d5(0xf0)];if(_0x2ecccc>0x0){const _0x19efba=_0x2ecccc*0.05;state[_0x1879d5(0x1a0)][_0x1879d5(0xac)]+=_0x19efba,els['globalMult'][_0x1879d5(0x15e)]='x'+state[_0x1879d5(0x1a0)][_0x1879d5(0xac)][_0x1879d5(0x171)](0x2);}}if(_0x229c98[_0x1879d5(0xc6)])els[_0x1879d5(0x199)]['textContent']=_0x1879d5(0x165),els['msg']['style']['color']=_0x1879d5(0x10e),state[_0x1879d5(0xe5)]===0x14&&!state[_0x1879d5(0x18b)]?setTimeout(()=>{const _0x299a72=_0x1879d5;els[_0x299a72(0x177)]['style'][_0x299a72(0xd9)]=_0x299a72(0xcf);},0x3e8):(els[_0x1879d5(0x175)][_0x1879d5(0x15e)]=_0x1879d5(0x172),els[_0x1879d5(0x175)]['disabled']=![],els[_0x1879d5(0x175)][_0x1879d5(0xb3)][_0x1879d5(0x169)](_0x1879d5(0xdb)),els['btn'][_0x1879d5(0xb3)][_0x1879d5(0x1b4)](_0x1879d5(0xf2)),els[_0x1879d5(0x175)]['onclick']=()=>{const _0x39450b=_0x1879d5;state[_0x39450b(0xe5)]%0x5===0x0?showPrestige():showPowerups();});else{const _0x47845a=_0x229c98[_0x1879d5(0xf5)]||_0x1879d5(0xce);setTimeout(()=>gameOver(_0x229c98[_0x1879d5(0x170)]+state['kumonScore'],_0x47845a),0x3e8);}}function goEndless(){const _0x37f1cf=_0x1ccdd1;state['isEndless']=!![],els[_0x37f1cf(0x177)][_0x37f1cf(0x180)][_0x37f1cf(0xd9)]=_0x37f1cf(0xc4),state[_0x37f1cf(0xe5)]%0x5===0x0?showPrestige():showPowerups();}function showPrestige(){const _0x2fae10=_0x1ccdd1;state['selectionContext']='prestige',els['modal'][_0x2fae10(0x180)][_0x2fae10(0xd9)]='flex',els[_0x2fae10(0x1b6)][_0x2fae10(0x15e)]='PRESTIGE!',els[_0x2fae10(0x116)][_0x2fae10(0x15e)]=_0x2fae10(0xbe),els[_0x2fae10(0x1b6)][_0x2fae10(0x180)][_0x2fae10(0x14f)]=_0x2fae10(0x109),els['rerollBtn'][_0x2fae10(0x180)][_0x2fae10(0xd9)]='block',els[_0x2fae10(0x120)][_0x2fae10(0x180)][_0x2fae10(0xd9)]=_0x2fae10(0x11c),renderCards(PRESTIGE_POOL),updateRerollBtn();}function showPowerups(){const _0x13dd03=_0x1ccdd1;state[_0x13dd03(0x115)]=_0x13dd03(0xd6),els[_0x13dd03(0x18f)][_0x13dd03(0x180)][_0x13dd03(0xd9)]=_0x13dd03(0xcf),els['modalTitle']['textContent']=_0x13dd03(0xad),els[_0x13dd03(0x116)]['textContent']=_0x13dd03(0xc8),els[_0x13dd03(0x1b6)][_0x13dd03(0x180)][_0x13dd03(0x14f)]=_0x13dd03(0x10e),els[_0x13dd03(0xf1)]['style'][_0x13dd03(0xd9)]=_0x13dd03(0x11c),els[_0x13dd03(0x120)][_0x13dd03(0x180)]['display']=_0x13dd03(0x11c),renderCards(POWERUP_POOL),updateRerollBtn();}function renderCards(_0x5d0fbd){const _0x6e16ce=_0x1ccdd1;els[_0x6e16ce(0x1ad)]['innerHTML']='';let _0x5f3426=_0x5d0fbd['filter'](_0x590fa3=>{const _0x18c40e=_0x6e16ce;if(_0x590fa3[_0x18c40e(0x10c)]){if(_0x590fa3['id']==='hifumi_rev'&&state[_0x18c40e(0x1a0)]['hifumiReversal'])return![];if(_0x590fa3['id']===_0x18c40e(0x19d)&&state['buffs'][_0x18c40e(0xd8)])return![];if(_0x590fa3['id']===_0x18c40e(0xb0)&&state[_0x18c40e(0x1a0)]['carryOver'])return![];}if(_0x590fa3['exclusive']===_0x18c40e(0x17e)&&state['buffs'][_0x18c40e(0xb4)])return![];if(_0x590fa3['id']===_0x18c40e(0x1aa)&&(state[_0x18c40e(0x1a0)]['diceLimit']==='high'||state[_0x18c40e(0x1a0)]['diceLimit']==='tanyao'))return![];if(_0x590fa3['id']===_0x18c40e(0x19d)&&(state[_0x18c40e(0x1a0)][_0x18c40e(0x117)]===_0x18c40e(0x148)||state[_0x18c40e(0x1a0)][_0x18c40e(0x117)]===_0x18c40e(0xe1)))return![];if(_0x590fa3['id']==='sigoro_boost'){if(state[_0x18c40e(0x1a0)][_0x18c40e(0x117)]===_0x18c40e(0x148))return![];}if(_0x590fa3['id']===_0x18c40e(0x195)&&state[_0x18c40e(0xfa)]>=0x5)return![];if(_0x590fa3['id']==='dice_lock'&&state[_0x18c40e(0x1a0)][_0x18c40e(0x19b)]>=0x2)return![];if(_0x590fa3['id']==='shukusho'&&state[_0x18c40e(0x14a)]+state[_0x18c40e(0x1a0)][_0x18c40e(0x17b)]<=0x1)return![];return!![];});const _0x3179dd=[];for(let _0x1a710c=0x0;_0x1a710c<0x3;_0x1a710c++){if(_0x5f3426[_0x6e16ce(0xda)]===0x0)break;let _0x2b582e=_0x5f3426[_0x6e16ce(0xcd)]((_0x2dbc4a,_0x39e6ee)=>_0x2dbc4a+(_0x39e6ee['weight']||0x64),0x0),_0x592a7e=Math[_0x6e16ce(0xeb)]()*_0x2b582e;for(let _0x189b06=0x0;_0x189b06<_0x5f3426['length'];_0x189b06++){const _0x873ff6=_0x5f3426[_0x189b06],_0x42d2a1=_0x873ff6['weight']||0x64;if(_0x592a7e<_0x42d2a1){_0x3179dd[_0x6e16ce(0x124)](_0x873ff6),_0x5f3426[_0x6e16ce(0xed)](_0x189b06,0x1);break;}_0x592a7e-=_0x42d2a1;}}_0x3179dd[_0x6e16ce(0x17a)](_0xed7cb7=>{const _0x2ca75b=_0x6e16ce,_0x969d01=document[_0x2ca75b(0x1b5)](_0x2ca75b(0x12e)),_0x3002d5=state['selectionContext']==='prestige'?_0x2ca75b(0x132):'card-type-'+(_0xed7cb7['type']||_0x2ca75b(0x106));_0x969d01['className']=_0x2ca75b(0xa6)+_0x3002d5,_0x969d01[_0x2ca75b(0xbd)]=_0x2ca75b(0xa3)+_0xed7cb7[_0x2ca75b(0xcb)]+_0x2ca75b(0xfb)+_0xed7cb7[_0x2ca75b(0x16e)]+_0x2ca75b(0x11d),_0x969d01[_0x2ca75b(0x12c)]=()=>selectCard(_0xed7cb7),els[_0x2ca75b(0x1ad)][_0x2ca75b(0x157)](_0x969d01);});}function updateRerollBtn(){const _0x400440=_0x1ccdd1;els[_0x400440(0xf1)][_0x400440(0x15e)]=_0x400440(0xf3)+state[_0x400440(0x17d)]+'回)',state['rerollsRemaining']<=0x0?(els['rerollBtn'][_0x400440(0xc7)]=!![],els[_0x400440(0xf1)][_0x400440(0x180)][_0x400440(0xa7)]=0.5):(els['rerollBtn'][_0x400440(0xc7)]=![],els[_0x400440(0xf1)]['style'][_0x400440(0xa7)]=0x1);}function rerollPowerups(){const _0x5dd7c7=_0x1ccdd1;state[_0x5dd7c7(0x17d)]>0x0&&(state['rerollsRemaining']--,state[_0x5dd7c7(0x115)]===_0x5dd7c7(0xf8)?renderCards(PRESTIGE_POOL):renderCards(POWERUP_POOL),updateRerollBtn());}function selectCard(_0x5dd7bc){const _0xc38a07=_0x1ccdd1;_0x5dd7bc[_0xc38a07(0x156)](state),state[_0xc38a07(0x115)]===_0xc38a07(0xf8)?showPowerups():nextStage();}function nextStage(){const _0x219dff=_0x1ccdd1;state[_0x219dff(0xe5)]++;let _0x4517b2=0x0;if(state[_0x219dff(0xe5)]<=0x5)_0x4517b2=(state['stage']+0x1)*0x64;else{if(state[_0x219dff(0xe5)]<=0xa)_0x4517b2=0x3e8+state[_0x219dff(0xe5)]*0xc8;else state[_0x219dff(0xe5)]<=0x14?_0x4517b2=0x7d0+state[_0x219dff(0xe5)]*0x1f4:_0x4517b2=Math['floor'](state['targetScore']*0.4);}state[_0x219dff(0x10f)]+=_0x4517b2,state[_0x219dff(0xf0)]=0x0,state[_0x219dff(0xc2)]=0x0,state[_0x219dff(0x153)]=new Array(state[_0x219dff(0xfa)])[_0x219dff(0x128)](0x0),state[_0x219dff(0x1a1)]=[],els[_0x219dff(0x18f)][_0x219dff(0x180)][_0x219dff(0xd9)]=_0x219dff(0xc4),els[_0x219dff(0xe5)]['textContent']=state['stage'],els[_0x219dff(0x1ae)][_0x219dff(0x15e)]=state[_0x219dff(0x10f)],els['kumonScore'][_0x219dff(0x15e)]='0',els[_0x219dff(0x199)][_0x219dff(0x15e)]='サイコロを振ってください',els['msg']['style'][_0x219dff(0x14f)]=_0x219dff(0x10d),els[_0x219dff(0xcc)]['textContent']='',els[_0x219dff(0xcc)][_0x219dff(0x180)]['color']='#ffd700',els['btn']['textContent']=_0x219dff(0x185)+(0x3+state[_0x219dff(0x1a0)][_0x219dff(0x17b)])+'回)',els['btn'][_0x219dff(0xc7)]=![],els['btn']['onclick']=rollDice,els['btn'][_0x219dff(0xb3)]['remove'](_0x219dff(0xdb)),drawDice(state['dice']),updateBuffText(),updateScoreTable();}function updateBuffText(){const _0x299332=_0x1ccdd1;let _0x5f52cc=[];_0x5f52cc[_0x299332(0x124)]('【'+state[_0x299332(0xfa)]+_0x299332(0xe7));if(state[_0x299332(0x1a0)][_0x299332(0x19b)]>0x0)_0x5f52cc[_0x299332(0x124)](_0x299332(0x144)+state[_0x299332(0x1a0)][_0x299332(0x19b)]);if(state['buffs']['fixedSix'])_0x5f52cc['push'](_0x299332(0x19e));else{if(state[_0x299332(0x1a0)][_0x299332(0x117)]===_0x299332(0x148))_0x5f52cc['push'](_0x299332(0x1af));else{if(state[_0x299332(0x1a0)][_0x299332(0x117)]===_0x299332(0xe1))_0x5f52cc[_0x299332(0x124)](_0x299332(0xd1));else{if(state['buffs'][_0x299332(0x117)]==='tanyao')_0x5f52cc[_0x299332(0x124)]('タンヤオ');}}}if(state[_0x299332(0x1a0)][_0x299332(0x121)])_0x5f52cc[_0x299332(0x124)]('逆転');if(state[_0x299332(0x1a0)][_0x299332(0xd8)])_0x5f52cc[_0x299332(0x124)]('連番');if(state[_0x299332(0x1a0)][_0x299332(0x13d)])_0x5f52cc[_0x299332(0x124)]('くもん');if(state[_0x299332(0x1a0)][_0x299332(0x103)])_0x5f52cc['push'](_0x299332(0x140));if(state[_0x299332(0x1a0)][_0x299332(0x135)]>0x0)_0x5f52cc[_0x299332(0x124)](_0x299332(0x19c)+Math['round'](state[_0x299332(0x1a0)]['iaiBonus']*0x64)+'%');if(state[_0x299332(0x1a0)][_0x299332(0x143)]>0x0)_0x5f52cc[_0x299332(0x124)]('海底+'+Math[_0x299332(0x16f)](state[_0x299332(0x1a0)][_0x299332(0x143)]*0x64)+'%');els['globalMult']['textContent']='x'+state[_0x299332(0x1a0)]['scoreMult'][_0x299332(0x171)](0x2),els[_0x299332(0x1a0)][_0x299332(0x15e)]=_0x5f52cc[_0x299332(0xda)]>0x0?_0x5f52cc['join'](','):'なし';}function updateScoreTable(){const _0x1938f1=_0x1ccdd1,_0x49a630=state[_0x1938f1(0x1a0)],_0x3d4655=0x1+_0x49a630[_0x1938f1(0xe6)],_0x5e1893=0x1+_0x49a630[_0x1938f1(0x161)],_0x325c00=document[_0x1938f1(0x13b)](_0x1938f1(0xa1)),_0x5d8b85=document[_0x1938f1(0x13b)](_0x1938f1(0xc9));if(state[_0x1938f1(0x182)][_0x1938f1(0x1a9)]){_0x325c00[_0x1938f1(0x180)][_0x1938f1(0xd9)]=_0x1938f1(0xcf);const _0x18264d=Math['floor'](YAKU_SCORES[_0x1938f1(0x1a9)]*_0x3d4655);updateVal(_0x1938f1(0x14d),_0x18264d);}else _0x325c00[_0x1938f1(0x180)][_0x1938f1(0xd9)]='none';if(state['hiddenYaku'][_0x1938f1(0x11b)]){_0x5d8b85[_0x1938f1(0x180)][_0x1938f1(0xd9)]=_0x1938f1(0xcf);const _0x185888=Math[_0x1938f1(0x12b)](YAKU_SCORES[_0x1938f1(0x11b)]*_0x5e1893);updateVal(_0x1938f1(0x17c),_0x185888);}else _0x5d8b85[_0x1938f1(0x180)]['display']=_0x1938f1(0xc4);updateVal(_0x1938f1(0x19f),Math['floor'](YAKU_SCORES[_0x1938f1(0xc5)]*_0x3d4655)),updateVal(_0x1938f1(0xee),Math[_0x1938f1(0x12b)](YAKU_SCORES[_0x1938f1(0x145)]*_0x3d4655)),updateVal(_0x1938f1(0x1a7),Math[_0x1938f1(0x12b)](YAKU_SCORES[_0x1938f1(0x113)]*_0x5e1893));const _0x468af8=Math[_0x1938f1(0x12b)](0x64*(0x1+_0x49a630[_0x1938f1(0x141)]));updateVal(_0x1938f1(0x136),'出目\x20×\x20'+_0x468af8);_0x49a630[_0x1938f1(0xd8)]&&(document[_0x1938f1(0x13b)](_0x1938f1(0xd3))[_0x1938f1(0x15e)]=_0x1938f1(0x111));const _0x1fcf10=document['getElementById'](_0x1938f1(0x146)),_0x12b17d=document[_0x1938f1(0x13b)]('sv-hifumi');_0x49a630[_0x1938f1(0x121)]?(_0x1fcf10['textContent']='起死回生\x20(1-2-3)',_0x1fcf10[_0x1938f1(0x152)]=_0x1938f1(0x142),_0x12b17d[_0x1938f1(0x15e)]=_0x1938f1(0x114),_0x12b17d['className']=_0x1938f1(0x174),_0x12b17d[_0x1938f1(0x180)][_0x1938f1(0x184)]=_0x1938f1(0x13f)):(_0x1fcf10[_0x1938f1(0x15e)]=_0x1938f1(0x192),_0x1fcf10[_0x1938f1(0x152)]=_0x1938f1(0x126),_0x12b17d[_0x1938f1(0x15e)]=_0x1938f1(0xb1),_0x12b17d[_0x1938f1(0x152)]=_0x1938f1(0x127),_0x12b17d[_0x1938f1(0x180)]['fontSize']='');}function updateVal(_0x44231a,_0x432c5b){const _0x2bb6ac=_0x1ccdd1,_0x3e4322=document[_0x2bb6ac(0x13b)](_0x44231a);_0x3e4322[_0x2bb6ac(0x15e)]!=_0x432c5b&&(_0x3e4322[_0x2bb6ac(0x15e)]=_0x432c5b,_0x3e4322[_0x2bb6ac(0xb3)]['remove']('updated'),void _0x3e4322[_0x2bb6ac(0x104)],_0x3e4322['classList']['add'](_0x2bb6ac(0x159)));}function gameOver(_0x38c869,_0x113b85){const _0x34515c=_0x1ccdd1;els[_0x34515c(0xec)]['style']['display']='flex',els[_0x34515c(0x13c)]['textContent']=_0x34515c(0x10a),_0x113b85?(els['ovMsg']['innerHTML']=_0x113b85+'<br><br>ステージ'+state[_0x34515c(0xe5)]+_0x34515c(0x16d),els['ovMsg'][_0x34515c(0x180)][_0x34515c(0x14f)]=_0x34515c(0xc1),els['ovMsg'][_0x34515c(0x180)][_0x34515c(0xf4)]=_0x34515c(0xd0)):(els[_0x34515c(0xa9)]['textContent']=_0x34515c(0x12d)+state[_0x34515c(0xe5)]+_0x34515c(0x198)+_0x38c869+_0x34515c(0xd7)+state[_0x34515c(0x10f)]+')',els['ovMsg']['style']['color']=_0x34515c(0x14e));}function resetGame(){const _0x44d93c=_0x1ccdd1;location[_0x44d93c(0xba)]();}
+// --- 定数定義 ---
+
+const RARITY = {
+    COMMON:    { id: 'common',    name: 'コモン',       color: 'var(--rarity-common)',    price: 1,  weight: 60 },
+    UNCOMMON:  { id: 'uncommon',  name: 'アンコモン',     color: 'var(--rarity-uncommon)',  price: 2,  weight: 30 },
+    RARE:      { id: 'rare',      name: 'レア',        color: 'var(--rarity-rare)',      price: 4,  weight: 7 },
+    SR:        { id: 'sr',        name: 'スーパーレア',   color: 'var(--rarity-sr)',        price: 8,  weight: 2.5 },
+    LEGENDARY: { id: 'legendary', name: 'レジェンダリー', color: 'var(--rarity-legendary)', price: 16, weight: 0.5 }
+};
+
+// アイテムデータの生成
+const ITEM_DATA = [];
+
+// 金の〇〇 (Common)
+const GOLD_PROBS = [0.50, 0.45, 0.40, 0.35, 0.30, 0.25];
+['壱','弐','参','肆','伍','陸'].forEach((kanji, idx) => {
+    const face = idx + 1;
+    const prob = GOLD_PROBS[idx];
+    ITEM_DATA.push({
+        id: `gold_${face}`,
+        name: `金の${kanji}`,
+        rarity: 'common',
+        desc: `${kanji}の目が出た時、${Math.floor(prob*100)}%の確率で、${kanji}の出目点が${face}点分、永続的に強化される`,
+        price: RARITY.COMMON.price,
+        effectType: 'gold',
+        targetFace: face,
+        prob: prob
+    });
+});
+
+// 幸福の〇〇 (Uncommon)
+const HAPPY_PROBS = [0.30, 0.25, 0.20, 0.15, 0.10, 0.05];
+['壱','弐','参','肆','伍','陸'].forEach((kanji, idx) => {
+    const face = idx + 1;
+    const prob = HAPPY_PROBS[idx];
+    ITEM_DATA.push({
+        id: `happy_${face}`,
+        name: `幸福の${kanji}`,
+        rarity: 'uncommon',
+        desc: `${kanji}の目が出た時、${Math.floor(prob*100)}%の確率でチケットを1枚獲得する`,
+        price: RARITY.UNCOMMON.price,
+        effectType: 'happy',
+        targetFace: face,
+        prob: prob
+    });
+});
+
+// 確率操作系アイテム (Uncommon)
+['壱','弐','参','肆','伍','陸'].forEach((kanji, idx) => {
+    const face = idx + 1;
+    ITEM_DATA.push({
+        id: `charm_fixed_${face}`,
+        name: `${kanji}のお守り`,
+        rarity: 'uncommon',
+        desc: `常に${kanji}の目が出る確率の重みが増加(+5)し、出やすくなる`,
+        price: RARITY.UNCOMMON.price,
+        effectType: 'weight_fixed',
+        targetFace: face,
+        value: 5
+    });
+});
+
+ITEM_DATA.push({ id: 'charm_odd', name: '奇数のお守り', rarity: 'uncommon', desc: '奇数(1,3,5)の目の出やすさが、全て上昇(+3)する', price: RARITY.UNCOMMON.price, effectType: 'weight_parity', targetParity: 1, value: 3 });
+ITEM_DATA.push({ id: 'charm_even', name: '偶数のお守り', rarity: 'uncommon', desc: '偶数(2,4,6)の目の出やすさが、全て上昇(+3)する', price: RARITY.UNCOMMON.price, effectType: 'weight_parity', targetParity: 0, value: 3 });
+ITEM_DATA.push({ id: 'charm_cursed', name: '呪われたお守り', rarity: 'uncommon', desc: '最も点数の高い目が出現しなくなる（重みが0になる）', price: RARITY.UNCOMMON.price, effectType: 'weight_curse' });
+
+// LUCK系
+ITEM_DATA.push({ id: 'luck_1', name: '星の欠片', rarity: 'common', desc: '幸運ステータスが50上昇する', price: 1, effectType: 'luck_static', value: 50 });
+ITEM_DATA.push({ id: 'luck_2', name: '月光の指輪', rarity: 'uncommon', desc: '幸運ステータスが100上昇する', price: 2, effectType: 'luck_static', value: 100 });
+ITEM_DATA.push({ id: 'luck_3', name: '太陽のタリスマン', rarity: 'rare', desc: '幸運ステータスが200上昇する', price: 4, effectType: 'luck_static', value: 200 });
+ITEM_DATA.push({ id: 'luck_4', name: '運命の歯車', rarity: 'sr', desc: '幸運ステータスが400上昇する', price: 8, effectType: 'luck_static', value: 400 });
+ITEM_DATA.push({ id: 'luck_5', name: '奇跡の聖杯', rarity: 'legendary', desc: '幸運ステータスが1000上昇する', price: 16, effectType: 'luck_static', value: 1000 });
+
+ITEM_DATA.push({ id: 'luck_cond_menashi', name: '泥沼からの光', rarity: 'common', desc: '目なしが2回連続で発生した時、次のロールで幸運が一時的に+200される', price: 1, effectType: 'luck_cond_menashi', value: 200 });
+ITEM_DATA.push({ id: 'luck_chance_50', name: 'コインの表裏', rarity: 'common', desc: 'ロール開始時、50%の確率でそのロール中の幸運が+100される', price: 1, effectType: 'luck_chance', prob: 0.5, value: 100 });
+ITEM_DATA.push({ id: 'luck_chance_25', name: '四分の一の賭け', rarity: 'common', desc: 'ロール開始時、25%の確率でそのロール中の幸運が+400される', price: 1, effectType: 'luck_chance', prob: 0.25, value: 400 });
+ITEM_DATA.push({ id: 'inv_expand', name: '魔法の鞄', rarity: 'uncommon', desc: 'アイテムの最大所持数が2つ増加する', price: 2, effectType: 'inv_expand', value: 2 });
+ITEM_DATA.push({ id: 'buff_streak_win', name: '昇り龍の像', rarity: 'uncommon', desc: '「目あり」以上の役が3連続で続いた時、全てのサイコロの出目点が初期値分だけ永続的に強化される', price: 2, effectType: 'buff_streak_win' });
+
+// 特殊効果
+ITEM_DATA.push({ id: 'rate_ticket', name: 'チケット・タックス', rarity: 'uncommon', desc: '所持しているチケット10枚ごとに、スコア計算時の全体倍率が+0.3加算される', price: 2, effectType: 'rate_ticket', value: 0.3 });
+ITEM_DATA.push({ id: 'nerf_low', name: '重り', rarity: 'uncommon', desc: '1～3の目の出やすさが減少(-2)する', price: 2, effectType: 'weight_nerf_low', value: 2 });
+ITEM_DATA.push({ id: 'nerf_high', name: '軽石', rarity: 'uncommon', desc: '4～6の目の出やすさが減少(-3)する', price: 2, effectType: 'weight_nerf_high', value: 3 });
+ITEM_DATA.push({ id: 'ticket_interest', name: '利子', rarity: 'uncommon', desc: 'ステージクリア時、所持チケット5枚につき+1枚のチケットを追加で獲得する', price: 2, effectType: 'ticket_interest', value: 1 });
+ITEM_DATA.push({ id: 'rate_streak', name: 'コンボボーナス', rarity: 'common', desc: '「目あり」以上の役が続く限り、連勝数に応じて全体倍率が+0.2ずつ加算される（目なし・ヒフミでリセット）', price: 1, effectType: 'rate_streak', value: 0.2 });
+ITEM_DATA.push({ id: 'roll_add', name: 'アンコール', rarity: 'common', desc: 'ロールを行った際、15%の確率でロール回数が1回分回復する', price: 1, effectType: 'roll_add', prob: 0.15 });
+ITEM_DATA.push({ id: 'prob_boost', name: '幸運のクローバー', rarity: 'common', desc: '確率で発動するアイテムの判定成功率が2倍になる', price: 1, effectType: 'prob_boost' });
+ITEM_DATA.push({ id: 'score_odd_2x', name: '奇数の極意', rarity: 'common', desc: 'サイコロの出目が奇数の場合、その出目にかかる計算上のスコアが2倍になる', price: 1, effectType: 'score_odd', value: 2 });
+ITEM_DATA.push({ id: 'score_even_2x', name: '偶数の極意', rarity: 'common', desc: 'サイコロの出目が偶数の場合、その出目にかかる計算上のスコアが2倍になる', price: 1, effectType: 'score_even', value: 2 });
+ITEM_DATA.push({ id: 'score_odd_focus', name: '奇数の呪縛', rarity: 'uncommon', desc: 'サイコロの出目が奇数の場合スコアが4倍になるが、偶数の場合は0.5倍になる', price: 2, effectType: 'score_focus_odd' });
+ITEM_DATA.push({ id: 'score_even_focus', name: '偶数の呪縛', rarity: 'uncommon', desc: 'サイコロの出目が偶数の場合スコアが4倍になるが、奇数の場合は0.5倍になる', price: 2, effectType: 'score_focus_even' });
+
+// ヒフミ系
+ITEM_DATA.push({ id: 'hifumi_act_roll', name: '逆境の糧', rarity: 'uncommon', desc: '役「ヒフミ」が成立した時、ロール回数が3回分回復する（1ラウンドにつき3回まで発動）', price: 2, effectType: 'hifumi_act_roll' });
+ITEM_DATA.push({ id: 'hifumi_act_pin', name: '起死回生', rarity: 'uncommon', desc: '役「ヒフミ」が成立した時、次回のロール結果が確定で「ピンゾロ」になる', price: 2, effectType: 'hifumi_act_pin' });
+ITEM_DATA.push({ id: 'hifumi_guard', name: '身代わりの人形', rarity: 'uncommon', desc: '役「ヒフミ」が成立した際に発生する、プールスコア没収のペナルティを無効化する', price: 2, effectType: 'hifumi_guard' });
+ITEM_DATA.push({ id: 'hifumi_buff_rate', name: '狂戦士の魂', rarity: 'rare', desc: '役「ヒフミ」が成立した時、そのラウンドが終了するまで全体倍率に+4.0を加算する', price: 4, effectType: 'hifumi_buff_rate' });
+ITEM_DATA.push({ id: 'hifumi_buff_face', name: '混沌の力', rarity: 'rare', desc: '役「ヒフミ」が成立した時、全てのサイコロの出目点が永続的に2倍になる', price: 4, effectType: 'hifumi_buff_face' });
+ITEM_DATA.push({ id: 'hifumi_gain_ticket', name: '保険金', rarity: 'rare', desc: '役「ヒフミ」が成立した時、保険金としてチケットを20枚獲得する', price: 4, effectType: 'hifumi_gain_ticket' });
+ITEM_DATA.push({ id: 'start_fixed_hifumi', name: '破滅の契約書', rarity: 'sr', desc: '各ラウンドの最初のロール結果が、回避不能な確定の「ヒフミ」になる', price: 8, effectType: 'start_fixed_hifumi' });
+
+// === 新規追加アイテム (無料再入荷系) ===
+ITEM_DATA.push({ id: 'reroll_c_1', name: '商人の会員証', rarity: 'common', desc: '新しいステージが開始されるたび、ショップの無料再入荷回数が2回分追加される', price: 1, effectType: 'reroll_stage', value: 2 });
+ITEM_DATA.push({ id: 'reroll_r_1', name: '貴族の紹介状', rarity: 'rare', desc: '各ラウンドが終了するたび、ショップの無料再入荷回数が1回分追加される', price: 4, effectType: 'reroll_round', value: 1 });
+
+// --- プレステージデータ定義 ---
+const PRESTIGE_OPTIONS = [
+    // 出目確率アップ
+    { type: 'weight', target: 1, text: '壱の目の出る確率の重みが+3永続的に増加する', icon: '⚀' },
+    { type: 'weight', target: 2, text: '弐の目の出る確率の重みが+3永続的に増加する', icon: '⚁' },
+    { type: 'weight', target: 3, text: '参の目の出る確率の重みが+3永続的に増加する', icon: '⚂' },
+    { type: 'weight', target: 4, text: '肆の目の出る確率の重みが+3永続的に増加する', icon: '⚃' },
+    { type: 'weight', target: 5, text: '伍の目の出る確率の重みが+3永続的に増加する', icon: '⚄' },
+    { type: 'weight', target: 6, text: '陸の目の出る確率の重みが+3永続的に増加する', icon: '⚅' },
+    // 役倍率2倍 (Base更新)
+    { type: 'multi', target: 'pinzoro', text: '役「ピンゾロ」の現在の倍率が2倍になる（基礎点更新）', icon: '👑' },
+    { type: 'multi', target: 'arashi', text: '役「アラシ」の現在の倍率が2倍になる（基礎点更新）', icon: '🌀' },
+    { type: 'multi', target: '456', text: '役「シゴロ」の現在の倍率が2倍になる（基礎点更新）', icon: '🔥' },
+    { type: 'multi', target: 'meari', text: '役「目あり」の現在の倍率が2倍になる（基礎点更新）', icon: '👀' },
+    { type: 'multi', target: 'menashi', text: '役「目なし」の現在の倍率が2倍になる（基礎点更新）', icon: '☠️' },
+    // チケット獲得
+    { type: 'ticket', val: 5, text: 'チケットを5枚獲得する', icon: '🎫' },
+    // インベントリ最大数
+    { type: 'inv_max', text: 'インベントリの最大数が永続的に1つ増加する', icon: '🎒' }
+];
+
+
+// --- ゲームクラス ---
+
+class Game {
+    constructor() {
+        this.diceChars = ['?', '⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
+        this.stage = 1;
+        this.round = 1;
+        this.rollCount = 7;
+        this.initialRollCount = 7; // 初期ロール数（判定用）
+        this.pool = 0;
+        this.totalScore = 0;
+        this.targetScore = 1500;
+        
+        // 状態変数
+        this.diceWeights = [0, 5, 5, 5, 5, 5, 5];
+        this.faceValues = [0, 1, 2, 3, 4, 5, 6]; 
+        this.baseMultipliers = {
+            'pinzoro': 500, 'arashi': 100, '456': 20, 'meari': 5, 'menashi': 1, 'hifumi': 0
+        };
+        this.yakuMultipliers = { ...this.baseMultipliers };
+
+        this.tickets = 4;
+        this.freeRerolls = 0; 
+        this.baseLuck = 50;
+        this.currentLuck = 50;
+        this.globalMultiplier = 1.0; 
+        this.inventory = [];
+        this.shopItems = []; 
+        this.rerollCost = 1;
+        this.maxInventory = 7;
+
+        // 連鎖・一時効果管理
+        this.streakMenashi = 0;
+        this.streakWin = 0;
+        this.tempLuckBoost = 0;
+        
+        // 新規追加状態
+        this.tempRateBoost = 0; // ヒフミRate+4.0用
+        this.hifumiTriggerCount = 0; // ヒフミRoll回復の回数制限用
+        this.nextRollFixedDice = null; // 次回確定出目 (配列)
+        this.forcedDice = null; // roll内で使用する一時変数
+        
+        // プレステージ関連状態
+        this.prestigeState = {
+            weights: [0, 0, 0, 0, 0, 0, 0], // 各出目の追加ウェイト
+            extraInv: 0 // インベントリ追加分
+        };
+        this.prestigeRerollCost = 1;
+        this.currentPrestigeOptions = [];
+
+        // ショップ開閉フラグ
+        this.isShopOpen = false;
+
+        this.roundGains = { faces: [0,0,0,0,0,0,0], yakus: {} };
+
+        // UI参照
+        this.ui = {
+            stage: document.getElementById('ui-stage'),
+            round: document.getElementById('ui-round'),
+            roll: document.getElementById('ui-roll'),
+            pool: document.getElementById('ui-pool'),
+            target: document.getElementById('ui-target'),
+            total: document.getElementById('ui-total'),
+            tickets: document.getElementById('ui-tickets'),
+            luck: document.getElementById('ui-luck'),
+            rate: document.getElementById('ui-rate'), 
+            invList: document.getElementById('ui-inventory'),
+            invCount: document.getElementById('ui-inv-count'),
+            diceCont: document.getElementById('dice-container'),
+            msgMain: document.getElementById('msg-main'),
+            msgSub: document.getElementById('msg-sub'),
+            msgLog: document.getElementById('msg-log'),
+            btnRoll: document.getElementById('btn-roll'),
+            btnShop: document.getElementById('btn-shop'),
+            btnClear: document.getElementById('btn-clear'),
+            clearSub: document.getElementById('clear-sub'),
+            mainPanel: document.getElementById('main-panel'),
+            gameView: document.getElementById('game-view'),
+            shopView: document.getElementById('shop-view'),
+            shopShelves: document.getElementById('shop-shelves'),
+            btnReroll: document.getElementById('btn-reroll'),
+            
+            prestigeView: document.getElementById('prestige-view'),
+            prestigeCont: document.getElementById('prestige-container'),
+            btnPrestigeReroll: document.getElementById('btn-prestige-reroll'),
+
+            modal: document.getElementById('modal'),
+            mTitle: document.getElementById('modal-title'),
+            mMsg: document.getElementById('modal-msg'),
+            tableFaces: document.getElementById('table-faces'),
+            tableYaku: document.getElementById('table-yaku')
+        };
+        
+        this.initStage();
+    }
+
+    initStage() {
+        this.round = 1;
+        this.pool = 0;
+        this.rollCount = this.initialRollCount;
+        this.targetScore = Math.floor(1000 * Math.pow(3.0, this.stage - 1));
+        
+        this.nextRollFixedDice = null;
+        this.tempRateBoost = 0;
+        this.hifumiTriggerCount = 0;
+
+        // ステージ開始時の無料再入荷付与
+        this.inventory.forEach(item => {
+            if (item.effectType === 'reroll_stage') {
+                this.freeRerolls += item.value;
+            }
+        });
+
+        this.recalcStats();
+        this.rerollCost = 1;
+        this.generateShopItems();
+
+        this.updateUI();
+        this.updateTables();
+        this.updateClearButton();
+        
+        this.ui.msgMain.textContent = `STAGE ${this.stage}`;
+        this.ui.msgMain.classList.remove('hifumi-text');
+        this.ui.msgSub.textContent = `目標: ${this.targetScore.toLocaleString()}pt`;
+        this.ui.btnShop.classList.remove('hidden-el');
+        this.ui.btnShop.disabled = false;
+        this.ui.btnRoll.disabled = false;
+        
+        this.ui.msgLog.innerHTML = "";
+
+        // ゲーム開始時（ステージ1）のみ自動でショップを開く
+        if (this.stage === 1) {
+            this.openShop();
+        } else {
+            this.closeShop();
+        }
+    }
+
+    clearLogs() {
+        this.ui.msgLog.innerHTML = "";
+    }
+
+    addLog(text, type) {
+        const span = document.createElement('span');
+        span.className = `log-tag ${type || ''}`;
+        span.textContent = text;
+        this.ui.msgLog.appendChild(span);
+    }
+
+    checkProb(baseProb) {
+        let prob = baseProb;
+        const hasBoost = this.inventory.some(i => i.effectType === 'prob_boost');
+        if (hasBoost) prob *= 2;
+        return Math.random() < prob;
+    }
+
+    recalcStats() {
+        // 1. ウェイト計算
+        let w = [0, 5, 5, 5, 5, 5, 5];
+        this.inventory.forEach(item => {
+            if (item.effectType === 'weight_fixed') w[item.targetFace] += item.value;
+            if (item.effectType === 'weight_parity') {
+                for(let i=1; i<=6; i++) if (i % 2 === item.targetParity) w[i] += item.value;
+            }
+            if (item.effectType === 'weight_bless') {
+                let minVal = Infinity;
+                for(let i=1; i<=6; i++) if(this.faceValues[i] < minVal) minVal = this.faceValues[i];
+                let targets = [];
+                for(let i=1; i<=6; i++) if(this.faceValues[i] === minVal) targets.push(i);
+                targets.forEach(t => w[t] += item.value);
+            }
+            if (item.effectType === 'weight_nerf_low') {
+                for(let i=1; i<=3; i++) w[i] -= item.value;
+            }
+            if (item.effectType === 'weight_nerf_high') {
+                for(let i=4; i<=6; i++) w[i] -= item.value;
+            }
+        });
+        
+        // プレステージ効果（ウェイト）を加算
+        for(let i=1; i<=6; i++) {
+            w[i] += this.prestigeState.weights[i];
+        }
+
+        for(let i=1; i<=6; i++) if(w[i] < 0) w[i] = 0;
+
+        this.inventory.forEach(item => {
+            if (item.effectType === 'weight_curse') {
+                let maxVal = -Infinity;
+                for(let i=1; i<=6; i++) if(this.faceValues[i] > maxVal) maxVal = this.faceValues[i];
+                let targets = [];
+                for(let i=1; i<=6; i++) if(this.faceValues[i] === maxVal) targets.push(i);
+                targets.forEach(t => w[t] = 0);
+            }
+        });
+        this.diceWeights = w;
+
+        // 2. 基本Luck計算
+        let l = 50;
+        this.inventory.forEach(item => {
+            if (item.effectType === 'luck_static') l += item.value;
+        });
+        this.baseLuck = l;
+        this.currentLuck = l; 
+
+        // 3. インベントリ最大数
+        let maxInv = 7 + this.prestigeState.extraInv; // プレステージ分を加算
+        this.inventory.forEach(item => {
+            if (item.effectType === 'inv_expand') maxInv += item.value;
+        });
+        this.maxInventory = maxInv;
+
+        // 4. 全体倍率計算
+        let rate = 1.0;
+        this.inventory.forEach(item => {
+            if (item.effectType === 'rate_ticket') {
+                rate += Math.floor(this.tickets / 10) * item.value;
+            }
+            if (item.effectType === 'rate_streak') {
+                rate += this.streakWin * item.value;
+            }
+        });
+        rate += this.tempRateBoost; 
+        this.globalMultiplier = rate;
+
+        this.updateTables();
+    }
+
+    roll() {
+        if (this.rollCount <= 0) return;
+        
+        this.resetGains();
+        this.recalcStats();
+        this.updateTables();
+        this.clearLogs();
+
+        // 確定出目の判定
+        this.forcedDice = null;
+        
+        if (this.rollCount === this.initialRollCount) {
+            const starter = this.inventory.find(i => i.effectType === 'start_fixed_hifumi');
+            if (starter) {
+                this.forcedDice = [1, 2, 3];
+                this.addLog(`📜${starter.name}`, 'log-hifumi');
+            }
+        }
+        
+        if (!this.forcedDice && this.nextRollFixedDice) {
+            this.forcedDice = [...this.nextRollFixedDice];
+            this.nextRollFixedDice = null;
+            this.addLog(`🔥確定演出`, 'log-buff');
+        }
+
+        // 一時LUCK計算
+        let rollLuck = this.baseLuck + this.tempLuckBoost;
+        this.tempLuckBoost = 0; 
+
+        this.inventory.forEach(item => {
+            if (item.effectType === 'luck_chance') {
+                if (this.checkProb(item.prob)) { 
+                    rollLuck += item.value;
+                    this.addLog(`✨${item.name}`, 'log-luck');
+                }
+            }
+        });
+        this.currentLuck = rollLuck;
+
+        this.ui.btnRoll.disabled = true;
+        this.ui.btnShop.classList.add('hidden-el');
+        this.ui.btnClear.classList.remove('visible'); 
+        document.getElementById('pool-box').classList.remove('shock-effect');
+
+        // 演出用
+        let count = 0;
+        const interval = setInterval(() => {
+            const dummyDice = [this.rand(), this.rand(), this.rand()];
+            this.renderDice(dummyDice);
+            count++;
+            if (count > 8) {
+                clearInterval(interval);
+                this.resolveRoll();
+            }
+        }, 60);
+    }
+
+    resetGains() {
+        this.roundGains = { faces: [0,0,0,0,0,0,0], yakus: {} };
+    }
+
+    rand() { return Math.floor(Math.random()*6)+1; }
+
+    getWeightedRandom() {
+        const total = this.diceWeights.reduce((a, b) => a + b, 0);
+        if (total <= 0) return Math.floor(Math.random()*6)+1;
+
+        let r = Math.random() * total;
+        for (let i = 1; i <= 6; i++) {
+            if (r < this.diceWeights[i]) return i;
+            r -= this.diceWeights[i];
+        }
+        return 6;
+    }
+
+    resolveRoll() {
+        let dice, res;
+        let rollAttempts = [];
+        
+        if (this.forcedDice) {
+            dice = this.forcedDice;
+            res = this.calc(dice);
+            rollAttempts.push({ dice, res });
+            this.forcedDice = null;
+        } else {
+            // Luckによる複数回ロールとベスト選択
+            let activeLuck = this.currentLuck;
+            
+            do {
+                let d = [this.getWeightedRandom(), this.getWeightedRandom(), this.getWeightedRandom()];
+                let r = this.calc(d);
+                rollAttempts.push({ dice: d, res: r });
+
+                if (Math.random() * 100 < activeLuck) {
+                    activeLuck /= 2;
+                } else {
+                    break;
+                }
+            } while (true);
+        }
+
+        rollAttempts.sort((a, b) => b.res.score - a.res.score);
+        const best = rollAttempts[0];
+        dice = best.dice;
+        res = best.res;
+
+        const luckTriggerCount = rollAttempts.length - 1;
+        if (luckTriggerCount > 0) {
+             this.addLog(`LUCK発動 x${luckTriggerCount}`, 'log-luck');
+        }
+
+        if (res.yakuKey === 'menashi') {
+            this.streakMenashi++;
+            this.streakWin = 0;
+        } else if (res.yakuKey !== 'hifumi') { 
+            this.streakWin++;
+            this.streakMenashi = 0;
+        } else {
+            this.streakMenashi = 0;
+            this.streakWin = 0;
+        }
+
+        this.inventory.forEach(item => {
+            if (item.effectType === 'luck_cond_menashi') {
+                if (this.streakMenashi >= 2) this.tempLuckBoost += item.value;
+            }
+        });
+
+        if (this.streakWin >= 3) {
+            let dragonFired = false;
+            this.inventory.forEach(item => {
+                if (item.effectType === 'buff_streak_win') {
+                    for(let i=1; i<=6; i++) {
+                        this.faceValues[i] += i; 
+                        this.roundGains.faces[i] += i;
+                    }
+                    dragonFired = true;
+                    this.addLog(`🐲${item.name}`, 'log-buff');
+                }
+            });
+            if(dragonFired) {
+                this.recalcStats();
+                res = this.calc(dice);
+            }
+        }
+
+        this.renderDice(dice);
+        this.checkPreCalcEffects(dice);
+        
+        this.ui.msgMain.classList.remove('hifumi-text');
+        
+        if (res.isHifumi) {
+            this.ui.msgMain.textContent = "ヒフミ！！！";
+            this.ui.msgMain.classList.add('hifumi-text');
+            
+            const guardItem = this.inventory.find(i => i.effectType === 'hifumi_guard');
+            
+            if (guardItem) {
+                this.addLog(`🛡️${guardItem.name}`, 'log-buff');
+                this.ui.msgSub.innerHTML = "<span style='color:#2ecc71'>ペナルティ無効化！</span>";
+            } else {
+                this.pool = 0;
+                this.ui.msgSub.innerHTML = "<span style='color:#e74c3c; font-weight:bold;'>ペナルティ発動！プール没収！</span>";
+                document.getElementById('pool-box').classList.add('shock-effect');
+            }
+
+            this.triggerHifumiEffects();
+
+        } else {
+            this.pool += res.score;
+            this.ui.msgMain.textContent = res.yakuName;
+            this.ui.msgSub.textContent = `出目(${res.sum}) × 倍率(${res.mul}) = +${res.score.toLocaleString()}pt`;
+            this.checkPostCalcEffects(dice, res.yakuKey);
+        }
+
+        this.rollCount--;
+
+        this.inventory.forEach(item => {
+            if (item.effectType === 'roll_add') {
+                if (this.checkProb(item.prob)) {
+                    this.rollCount++;
+                    this.addLog(`🎵${item.name}`, 'log-luck');
+                }
+            }
+        });
+
+        this.currentLuck = this.baseLuck; 
+        
+        this.updateUI();
+        this.updateTables();
+
+        if (this.rollCount <= 0) {
+            this.ui.btnRoll.disabled = true;
+            setTimeout(() => this.endRound(), 1500);
+        } else {
+            this.ui.btnRoll.disabled = false;
+        }
+    }
+
+    triggerHifumiEffects() {
+        let recalcNeeded = false;
+
+        this.inventory.forEach(item => {
+            if (item.effectType === 'hifumi_act_roll') {
+                if (this.hifumiTriggerCount < 3) {
+                    this.rollCount += 3;
+                    this.hifumiTriggerCount++;
+                    this.addLog(`🥖${item.name}(+3 Roll)`, 'log-buff');
+                } else {
+                    this.addLog(`(上限)${item.name}`, 'log-bad');
+                }
+            }
+            if (item.effectType === 'hifumi_act_pin') {
+                this.nextRollFixedDice = [1, 1, 1];
+                this.addLog(`⚔️${item.name}`, 'log-buff');
+            }
+            if (item.effectType === 'hifumi_buff_rate') {
+                this.tempRateBoost += 4.0;
+                this.addLog(`😡${item.name}`, 'log-rate');
+                recalcNeeded = true;
+            }
+            if (item.effectType === 'hifumi_buff_face') {
+                for(let i=1; i<=6; i++) {
+                    this.faceValues[i] *= 2;
+                    this.roundGains.faces[i] += this.faceValues[i] / 2;
+                }
+                this.addLog(`🌀${item.name}`, 'log-buff');
+            }
+            if (item.effectType === 'hifumi_gain_ticket') {
+                this.tickets += 20;
+                this.addLog(`💰${item.name}`, 'log-ticket');
+            }
+        });
+        
+        if (recalcNeeded) this.recalcStats();
+    }
+
+    calc(dice) {
+        const sorted = [...dice].sort((a,b)=>a-b);
+        
+        let sum = 0;
+        dice.forEach(d => {
+            let val = this.faceValues[d];
+            let multiplier = 1.0;
+            const isOdd = (d % 2 !== 0);
+
+            this.inventory.forEach(item => {
+                if (item.effectType === 'score_odd' && isOdd) multiplier *= item.value;
+                if (item.effectType === 'score_even' && !isOdd) multiplier *= item.value;
+                if (item.effectType === 'score_focus_odd') {
+                    if (isOdd) multiplier *= 4; else multiplier *= 0.5;
+                }
+                if (item.effectType === 'score_focus_even') {
+                    if (!isOdd) multiplier *= 4; else multiplier *= 0.5;
+                }
+            });
+            sum += val * multiplier;
+        });
+        sum = Math.floor(sum);
+
+        let yakuKey = 'menashi';
+        let yakuName = "目なし";
+        let isHifumi = false;
+
+        if (sorted[0]===1 && sorted[1]===1 && sorted[2]===1) { yakuKey='pinzoro'; yakuName="ピンゾロ"; }
+        else if (sorted[0]===sorted[1] && sorted[1]===sorted[2]) { yakuKey='arashi'; yakuName="アラシ"; }
+        else if (sorted[0]===4 && sorted[1]===5 && sorted[2]===6) { yakuKey='456'; yakuName="シゴロ"; }
+        else if (sorted[0]===1 && sorted[1]===2 && sorted[2]===3) { yakuKey='hifumi'; yakuName="ヒフミ"; isHifumi=true; }
+        else if (sorted[0]===sorted[1] || sorted[1]===sorted[2] || sorted[0]===sorted[2]) { yakuKey='meari'; yakuName="目あり"; }
+
+        let mul = this.yakuMultipliers[yakuKey];
+        // プレステージ効果（役倍率変更）はBaseに統合されたため、ここでは単純取得
+
+        const finalScore = Math.floor(sum * mul * this.globalMultiplier);
+
+        return { sum, mul, score: finalScore, yakuName, yakuKey, isHifumi };
+    }
+
+    checkPreCalcEffects(dice) {
+        this.inventory.forEach(item => {
+            if (item.effectType === 'happy') {
+                const count = dice.filter(d => d === item.targetFace).length;
+                for(let i=0; i<count; i++) {
+                    if (Math.random() < item.prob) { 
+                        this.tickets++;
+                        this.addLog(`🎫${item.name}`, 'log-ticket');
+                    }
+                }
+            }
+        });
+    }
+
+    checkPostCalcEffects(dice, yakuKey) {
+        let changed = false;
+        this.inventory.forEach(item => {
+            if (item.effectType === 'gold') {
+                const count = dice.filter(d => d === item.targetFace).length;
+                for(let i=0; i<count; i++) {
+                    if (this.checkProb(item.prob)) { 
+                        this.faceValues[item.targetFace] += item.targetFace;
+                        this.roundGains.faces[item.targetFace] += item.targetFace;
+                        this.addLog(`💪${item.name}`, 'log-buff');
+                        changed = true;
+                    }
+                }
+            }
+        });
+        if(changed) this.recalcStats();
+    }
+
+    endRound() {
+        this.totalScore += this.pool;
+        const earned = this.pool;
+        this.pool = 0;
+        
+        // 一時効果リセット
+        this.tempRateBoost = 0;
+        this.hifumiTriggerCount = 0;
+
+        // ラウンド終了時の無料再入荷付与
+        this.inventory.forEach(item => {
+            if (item.effectType === 'reroll_round') {
+                this.freeRerolls += item.value;
+            }
+        });
+        
+        this.ui.btnClear.classList.remove('visible'); 
+
+        this.ui.msgMain.textContent = "ROUND FINISH";
+        this.ui.msgMain.classList.remove('hifumi-text');
+        this.ui.msgSub.textContent = `獲得: ${earned.toLocaleString()}pt / 合計: ${this.totalScore.toLocaleString()}pt`;
+        document.getElementById('pool-box').classList.remove('shock-effect');
+        
+        this.updateUI();
+        
+        this.round++;
+        this.rollCount = this.initialRollCount;
+
+        if (this.round > 3) {
+            setTimeout(() => this.checkStageClear(), 1500);
+        } else {
+            setTimeout(() => {
+                this.ui.msgMain.textContent = `ROUND ${this.round}`;
+                this.ui.msgSub.textContent = "ショップ利用可能";
+                this.ui.btnRoll.disabled = false;
+                this.ui.btnShop.classList.remove('hidden-el');
+                this.ui.btnShop.disabled = false;
+                this.clearLogs(); 
+                this.recalcStats(); // レートリセット反映のため
+                this.updateUI();
+                this.updateClearButton(); 
+            }, 1500);
+        }
+    }
+
+    calculateReward() {
+        let roundsLeft = Math.max(0, 4 - this.round);
+        let bonus = 0;
+        this.inventory.forEach(item => {
+            if (item.effectType === 'ticket_interest') {
+                bonus += Math.floor(this.tickets / 5) * item.value;
+            }
+        });
+        
+        return 2 + (roundsLeft * 2) + bonus;
+    }
+
+    updateClearButton() {
+        if (this.totalScore >= this.targetScore && this.round <= 3) {
+            const reward = this.calculateReward();
+            this.ui.clearSub.textContent = `(+${reward} 🎫)`;
+            this.ui.btnClear.classList.add('visible');
+        } else {
+            this.ui.btnClear.classList.remove('visible');
+        }
+    }
+
+    stageWin() {
+        const reward = this.calculateReward();
+        const roundsLeft = Math.max(0, 4 - this.round);
+        
+        this.tickets += reward;
+        // スコア支払い処理
+        const paid = this.targetScore;
+        this.totalScore -= this.targetScore;
+        this.updateUI();
+
+        this.showModal("STAGE CLEAR! 🎉", 
+            `目標スコア達成！<br>
+             支払い: -${paid.toLocaleString()}pt<br>
+             残りスコア: ${this.totalScore.toLocaleString()}pt<br>
+             <div style="margin-top:10px; font-size:0.9em; background:#eee; padding:10px; border-radius:5px; color:#333;">
+                獲得: ${reward}枚<br>
+                (基本2 + 残R${roundsLeft}x2 + アイテム等)
+             </div>`, 
+            true);
+    }
+
+    checkStageClear() {
+        if (this.totalScore >= this.targetScore) {
+            const reward = this.calculateReward(); 
+            this.tickets += reward;
+            // スコア支払い処理
+            const paid = this.targetScore;
+            this.totalScore -= this.targetScore;
+            this.updateUI();
+
+            this.showModal("STAGE CLEAR! 🎉", 
+            `目標スコア達成！<br>
+             支払い: -${paid.toLocaleString()}pt<br>
+             残りスコア: ${this.totalScore.toLocaleString()}pt<br>
+             <div style="margin-top:10px; font-size:0.9em; background:#eee; padding:10px; border-radius:5px; color:#333;">
+                獲得: ${reward}枚
+             </div>`, 
+            true);
+        } else {
+            this.showModal("GAME OVER", `SCORE: ${this.totalScore.toLocaleString()}<br>目標(${this.targetScore.toLocaleString()})に届かず...`, false);
+        }
+    }
+
+    updateTables() {
+        let htmlFaces = `<tr><th>出目</th><th>点数</th><th>確率</th></tr>`;
+        const totalWeight = this.diceWeights.reduce((a,b)=>a+b,0);
+        
+        for(let i=1; i<=6; i++) {
+            const w = this.diceWeights[i];
+            const prob = totalWeight > 0 ? (w / totalWeight) : 0;
+            const standardProb = 1/6;
+            const val = this.faceValues[i];
+            
+            const gain = this.roundGains.faces[i];
+            const gainHtml = gain > 0 ? `<span class="val-gain">(+${gain})</span>` : '';
+
+            let probClass = 'prob-col';
+            if (Math.abs(prob - standardProb) < 0.0001) {
+            } else if (prob > standardProb) {
+                probClass += ' prob-high';
+            } else {
+                probClass += ' prob-low';
+            }
+
+            htmlFaces += `<tr>
+                <td>${i}</td>
+                <td>${val}点 ${gainHtml}</td>
+                <td class="${probClass}">${(prob*100).toFixed(1)}%</td>
+            </tr>`;
+        }
+        this.ui.tableFaces.innerHTML = htmlFaces;
+
+        let htmlYaku = `<tr><th>役名</th><th>倍率</th></tr>`;
+        const yakus = [
+            {k:'pinzoro', n:'ピンゾロ'}, {k:'arashi', n:'アラシ'}, 
+            {k:'456', n:'シゴロ'}, {k:'meari', n:'目あり'}, {k:'menashi', n:'目なし'}
+        ];
+        yakus.forEach(y => {
+            let curr = this.yakuMultipliers[y.k];
+            const gain = this.roundGains.yakus[y.k] || 0;
+            const gainHtml = gain > 0 ? `<span class="val-gain">(+${gain})</span>` : '';
+
+            htmlYaku += `<tr>
+                <td>${y.n}</td>
+                <td>x${curr} ${gainHtml}</td>
+            </tr>`;
+        });
+        this.ui.tableYaku.innerHTML = htmlYaku;
+    }
+
+    renderDice(dice) {
+        this.ui.diceCont.innerHTML = '';
+        dice.forEach(v => {
+            const d = document.createElement('div');
+            d.className = 'die';
+            d.textContent = this.diceChars[v];
+            if (v === 1) d.dataset.value = "1";
+            this.ui.diceCont.appendChild(d);
+        });
+    }
+
+    updateUI() {
+        this.ui.stage.textContent = this.stage;
+        this.ui.round.textContent = Math.min(this.round, 3);
+        this.ui.roll.textContent = Math.max(0, this.rollCount);
+        this.ui.pool.textContent = this.pool.toLocaleString();
+        this.ui.target.textContent = this.targetScore.toLocaleString();
+        this.ui.total.textContent = this.totalScore.toLocaleString();
+        this.ui.tickets.textContent = this.tickets;
+        this.ui.luck.textContent = this.currentLuck; 
+        this.ui.rate.textContent = 'x' + this.globalMultiplier.toFixed(1);
+
+        this.ui.invCount.textContent = `${this.inventory.length}/${this.maxInventory}`;
+        this.ui.invList.innerHTML = '';
+        if (this.inventory.length === 0) {
+            this.ui.invList.innerHTML = '<div style="opacity:0.5; text-align:center; padding:10px;">Empty</div>';
+        } else {
+            this.inventory.forEach(item => {
+                const div = document.createElement('div');
+                div.className = `inv-item inv-${item.rarity}`;
+                div.innerHTML = `<span>${item.name}</span>`;
+                div.title = item.desc;
+                
+                let actionHtml = '';
+                if (this.isShopOpen) {
+                    const sellPrice = Math.floor(item.price / 2);
+                    actionHtml = `<button class="btn-inv-sell" onclick="game.sellItem(${this.inventory.indexOf(item)})">売却(${sellPrice})</button>`;
+                }
+                div.innerHTML += actionHtml;
+                this.ui.invList.appendChild(div);
+            });
+        }
+    }
+
+    openShop() {
+        this.ui.gameView.classList.add('hidden');
+        this.ui.shopView.classList.add('active');
+        this.isShopOpen = true;
+        this.updateUI();
+        this.updateShopUI();
+    }
+
+    closeShop() {
+        this.ui.shopView.classList.remove('active');
+        this.ui.gameView.classList.remove('hidden');
+        this.isShopOpen = false;
+        this.updateUI();
+    }
+
+    generateShopItems() {
+        this.shopItems = [];
+        const ownedIds = this.inventory.map(i => i.id);
+        
+        let candidates = ITEM_DATA.filter(it => !ownedIds.includes(it.id));
+
+        for(let i=0; i<4; i++) {
+            if (candidates.length === 0) {
+                this.shopItems.push(null);
+                continue;
+            }
+
+            const weightedCandidates = candidates.map(it => {
+                const rInfo = Object.values(RARITY).find(r => r.id === it.rarity);
+                return { item: it, weight: rInfo.weight };
+            });
+
+            const totalWeight = weightedCandidates.reduce((sum, c) => sum + c.weight, 0);
+            let r = Math.random() * totalWeight;
+            let selected = null;
+            
+            for (let c of weightedCandidates) {
+                if (r < c.weight) {
+                    selected = c.item;
+                    break;
+                }
+                r -= c.weight;
+            }
+            
+            if (!selected) selected = weightedCandidates[weightedCandidates.length - 1].item;
+
+            this.shopItems.push({ item: selected, sold: false });
+            candidates = candidates.filter(c => c.id !== selected.id);
+        }
+        this.updateShopUI();
+    }
+
+    isStartupFreeReroll() {
+        return this.stage === 1 && this.round === 1 && this.rollCount === this.initialRollCount;
+    }
+
+    rerollShop() {
+        if (this.isStartupFreeReroll()) {
+            this.generateShopItems();
+            this.updateUI(); 
+            return;
+        }
+        if (this.freeRerolls > 0) {
+            this.freeRerolls--;
+            this.generateShopItems();
+            this.updateUI(); 
+        } else if (this.tickets >= this.rerollCost) {
+            this.tickets -= this.rerollCost;
+            this.rerollCost *= 2;
+            this.generateShopItems();
+            this.updateUI();
+        }
+    }
+
+    buyItem(shopIndex) {
+        const slot = this.shopItems[shopIndex];
+        if (!slot || slot.sold) return;
+
+        if (this.inventory.length >= this.maxInventory) {
+            alert("アイテムがいっぱいです！");
+            return;
+        }
+
+        if (this.tickets >= slot.item.price) {
+            this.tickets -= slot.item.price;
+            this.inventory.push(slot.item);
+            slot.sold = true;
+
+            this.inventory.forEach(invItem => {
+                if (invItem.effectType === 'reroll_buy_chance') {
+                    if (this.checkProb(invItem.prob)) {
+                        this.freeRerolls += invItem.value;
+                    }
+                }
+            });
+
+            this.recalcStats(); 
+            this.updateUI();
+            this.updateShopUI();
+        } else {
+            alert("チケットが足りません");
+        }
+    }
+    
+    sellItem(index) {
+        const item = this.inventory[index];
+        const sellPrice = Math.floor(item.price / 2);
+        if(confirm(`${item.name} をチケット ${sellPrice} 枚で売却しますか？`)) {
+            this.tickets += sellPrice;
+            this.inventory.splice(index, 1);
+            this.recalcStats();
+            this.updateUI();
+            this.updateShopUI();
+        }
+    }
+
+    updateShopUI() {
+        this.ui.shopShelves.innerHTML = '';
+        
+        for(let i=0; i<4; i++) {
+            const slot = this.shopItems[i];
+            const div = document.createElement('div');
+            
+            if (slot) {
+                const item = slot.item;
+                div.className = `shop-item rarity-${item.rarity} ${slot.sold ? 'sold-out' : ''}`;
+                div.innerHTML = `
+                    <div class="item-name">${item.name}</div>
+                    <div class="item-desc">${item.desc}</div>
+                    <div class="item-price">価格: ${item.price}枚</div>
+                    <button class="btn-buy" onclick="game.buyItem(${i})">
+                        ${slot.sold ? 'SOLD' : '購入'}
+                    </button>
+                `;
+            } else {
+                div.className = 'shop-item sold-out';
+                div.innerHTML = `<div class="item-name">Empty</div><div class="item-desc">在庫なし</div>`;
+            }
+            this.ui.shopShelves.appendChild(div);
+        }
+
+        const btn = this.ui.btnReroll;
+        
+        if (this.isStartupFreeReroll()) {
+            btn.textContent = `再入荷 (無料: スタートボーナス)`;
+            btn.style.background = '#2ecc71'; 
+            btn.style.boxShadow = '0 4px 0 #27ae60';
+            btn.disabled = false;
+        } else if (this.freeRerolls > 0) {
+            btn.textContent = `再入荷 (無料: ${this.freeRerolls}回)`;
+            btn.style.background = '#2ecc71'; 
+            btn.style.boxShadow = '0 4px 0 #27ae60';
+            btn.disabled = false;
+        } else {
+            btn.textContent = `再入荷 (Cost: ${this.rerollCost})`;
+            btn.style.background = ''; // デフォルトに戻す
+            btn.style.boxShadow = '';
+            btn.disabled = (this.tickets < this.rerollCost);
+        }
+    }
+
+    showModal(title, msg, isClear) {
+        this.ui.mTitle.textContent = title;
+        this.ui.mMsg.innerHTML = msg;
+        this.ui.modal.classList.add('show');
+        this.ui.modal.dataset.isClear = isClear;
+    }
+
+    nextPhase() {
+        this.ui.modal.classList.remove('show');
+        const isClear = this.ui.modal.dataset.isClear === "true";
+        
+        if (isClear) {
+            this.openPrestige();
+        } else {
+            this.stage = 1;
+            this.totalScore = 0;
+            this.inventory = [];
+            this.tickets = 4;
+            this.freeRerolls = 0; // リセット
+            this.streakMenashi = 0; 
+            this.streakWin = 0;
+            this.faceValues = [0,1,2,3,4,5,6];
+            this.yakuMultipliers = { ...this.baseMultipliers };
+            this.prestigeState.weights = [0,0,0,0,0,0,0];
+            this.prestigeState.extraInv = 0;
+            this.initStage();
+        }
+    }
+
+    // --- プレステージ処理 ---
+    openPrestige() {
+        this.ui.gameView.classList.add('hidden');
+        this.ui.shopView.classList.remove('active');
+        this.ui.prestigeView.classList.add('active');
+        this.prestigeRerollCost = 1;
+        this.generatePrestigeOptions();
+    }
+
+    generatePrestigeOptions() {
+        this.ui.prestigeCont.innerHTML = '';
+        this.ui.btnPrestigeReroll.textContent = `選択肢変更 (Cost: ${this.prestigeRerollCost})`;
+        this.ui.btnPrestigeReroll.disabled = (this.tickets < this.prestigeRerollCost);
+
+        this.currentPrestigeOptions = [];
+        let pool = [...PRESTIGE_OPTIONS];
+        
+        for(let i=0; i<3; i++) {
+            if(pool.length === 0) break;
+            const idx = Math.floor(Math.random() * pool.length);
+            const opt = pool[idx];
+            pool.splice(idx, 1);
+            this.currentPrestigeOptions.push(opt);
+
+            const div = document.createElement('div');
+            div.className = 'prestige-card';
+            div.innerHTML = `
+                <div class="p-icon">${opt.icon}</div>
+                <div class="p-desc">${opt.text}</div>
+            `;
+            div.onclick = () => this.selectPrestige(i);
+            this.ui.prestigeCont.appendChild(div);
+        }
+    }
+
+    rerollPrestige() {
+        if(this.tickets >= this.prestigeRerollCost) {
+            this.tickets -= this.prestigeRerollCost;
+            this.prestigeRerollCost *= 2;
+            this.updateUI();
+            this.generatePrestigeOptions();
+        }
+    }
+
+    selectPrestige(index) {
+        const opt = this.currentPrestigeOptions[index];
+        
+        if (opt.type === 'weight') {
+            this.prestigeState.weights[opt.target] += 3;
+        } else if (opt.type === 'multi') {
+            // 乗算ではなく基礎値を倍にする
+            this.baseMultipliers[opt.target] *= 2;
+        } else if (opt.type === 'ticket') {
+            this.tickets += opt.val;
+        } else if (opt.type === 'inv_max') {
+            this.prestigeState.extraInv += 1;
+        }
+
+        this.ui.prestigeView.classList.remove('active');
+        this.ui.gameView.classList.remove('hidden');
+        this.stage++;
+        this.initStage();
+    }
+}
+
+const game = new Game();
 </script>
 </body>
 </html>
