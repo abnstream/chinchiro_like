@@ -124,9 +124,11 @@
             padding: 15px 40px;
             border-radius: 50px;
             border: 2px solid rgba(255,255,255,0.1);
+            max-width: 90%;
+            word-break: keep-all; 
         }
         .pool-label { font-size: 0.9rem; opacity: 0.8; }
-        .pool-value { font-size: 3rem; font-weight: bold; color: var(--accent-gold); line-height: 1; }
+        .pool-value { font-size: 2.2rem; font-weight: bold; color: var(--accent-gold); line-height: 1.2; }
 
         .dice-area {
             display: flex;
@@ -162,8 +164,8 @@
             align-items: center;
             width: 90%;
         }
-        .main-msg { font-size: 2rem; font-weight: bold; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); line-height: 1.2; }
-        .sub-msg { font-size: 1.1rem; opacity: 0.9; margin-bottom: 5px; }
+        .main-msg { font-size: 2rem; font-weight: bold; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); line-height: 1.2; word-break: break-all; }
+        .sub-msg { font-size: 1.1rem; opacity: 0.9; margin-bottom: 5px; word-break: break-all; }
         
         .effect-log { 
             font-size: 0.85rem; 
@@ -390,9 +392,10 @@
             background: rgba(0,0,0,0.3);
             padding: 15px;
             border-radius: 10px;
+            word-break: keep-all;
         }
         .score-label { display: block; font-size: 0.8rem; opacity: 0.8; margin-bottom: 3px; }
-        .score-num { font-size: 1.8rem; font-weight: bold; }
+        .score-num { font-size: 1.6rem; font-weight: bold; line-height: 1.1; }
         .target-num { color: #f39c12; }
         
         .stat-row { display: flex; gap: 10px; }
@@ -452,7 +455,9 @@
         .modal-overlay.show { visibility: visible; opacity: 1; }
         .modal-box {
             background: #fff; color: #333; padding: 40px;
-            border-radius: 20px; text-align: center; width: 500px;
+            border-radius: 20px; text-align: center; width: 600px;
+            max-width: 90vw;
+            word-break: keep-all;
         }
         .modal-btn {
             background: #27ae60; color: #fff; border: none;
@@ -507,12 +512,12 @@
             </div>
 
             <div class="action-buttons">
-                <button class="btn-roll" id="btn-roll" onclick="game.roll()">ROLL</button>
-                <button class="btn-clear" id="btn-clear" onclick="game.stageWin()">
+                <button class="btn-roll" id="btn-roll" onclick="window.game.roll()">ROLL</button>
+                <button class="btn-clear" id="btn-clear" onclick="window.game.stageWin()">
                     STAGE CLEAR
                     <span class="clear-sub" id="clear-sub">(+2 🎫)</span>
                 </button>
-                <button class="btn-shop" id="btn-shop" onclick="game.openShop()">SHOP</button>
+                <button class="btn-shop" id="btn-shop" onclick="window.game.openShop()">SHOP</button>
             </div>
         </div>
 
@@ -521,8 +526,8 @@
             <div class="shop-shelves" id="shop-shelves">
                 </div>
             <div class="shop-controls">
-                <button class="btn-reroll" id="btn-reroll" onclick="game.rerollShop()">再入荷 (Cost: 1)</button>
-                <button class="btn-back" onclick="game.closeShop()">戻る</button>
+                <button class="btn-reroll" id="btn-reroll" onclick="window.game.rerollShop()">再入荷 (Cost: 1)</button>
+                <button class="btn-back" onclick="window.game.closeShop()">戻る</button>
             </div>
         </div>
 
@@ -531,7 +536,7 @@
             <div class="prestige-sub">次ステージへの永続強化を選択してください</div>
             <div class="prestige-container" id="prestige-container">
             </div>
-            <button class="btn-reroll" id="btn-prestige-reroll" onclick="game.rerollPrestige()">選択肢変更 (Cost: 1)</button>
+            <button class="btn-reroll" id="btn-prestige-reroll" onclick="window.game.rerollPrestige()">選択肢変更 (Cost: 1)</button>
         </div>
 
     </div>
@@ -584,11 +589,60 @@
     <div class="modal-box">
         <h2 id="modal-title">TITLE</h2>
         <p id="modal-msg">Message</p>
-        <button class="modal-btn" onclick="game.nextPhase()">NEXT</button>
+        <button class="modal-btn" onclick="window.game.nextPhase()">NEXT</button>
     </div>
 </div>
 
 <script>
+// --- エラーハンドリング ---
+window.onerror = function(msg, url, line, col, error) {
+    alert("エラーが発生しました。\n" + msg + "\n行: " + line + ":" + col);
+    return false;
+};
+
+// --- 数値フォーマット ---
+const JP_UNITS = ['', '万', '億', '兆', '京', '垓', '𥝱', '穣', '溝', '澗', '正', '載', '極', '恒河沙', '阿僧祇', '那由多', '不可思議', '無量大数'];
+const MURYO_LIMIT = 10n ** 68n; 
+const INITIAL_ROLL_COUNT = 7;
+
+function formatBigInt(val) {
+    if (val === 0n) return "0";
+    let isNeg = false;
+    if (val < 0n) { isNeg = true; val = -val; }
+
+    let muryoPower = 0;
+    let currentVal = val;
+    if (currentVal >= MURYO_LIMIT) {
+        while (currentVal >= MURYO_LIMIT) {
+            currentVal /= MURYO_LIMIT;
+            muryoPower++;
+        }
+    }
+    let suffix = "";
+    if (muryoPower > 0) {
+        suffix = "<" + Array(muryoPower).fill("無量大数").join("・") + ">";
+    }
+
+    let str = currentVal.toString();
+    let len = str.length;
+    let unitIndex = Math.floor((len - 1) / 4);
+    
+    let topLen = (len % 4 === 0) ? 4 : len % 4;
+    let topNumStr = str.substring(0, topLen);
+    let result = topNumStr + JP_UNITS[unitIndex];
+
+    if (unitIndex > 0) {
+        let secondBlockStr = str.substring(topLen, topLen + 4);
+        if (secondBlockStr.length > 0) {
+            let secondVal = parseInt(secondBlockStr);
+            if (secondVal > 0) {
+                result += secondVal + JP_UNITS[unitIndex - 1];
+            }
+        }
+    }
+    return (isNeg ? "-" : "") + result + suffix;
+}
+
 // --- 定数定義 ---
 
 const RARITY = {
@@ -599,15 +653,13 @@ const RARITY = {
     LEGENDARY: { id: 'legendary', name: 'レジェンダリー', color: 'var(--rarity-legendary)', price: 16, weight: 0.5 }
 };
 
-// 初期倍率定数 (覚醒などで使用)
 const CONST_BASE_MULTIPLIERS = {
-    'pinzoro': 500, 'arashi': 100, '456': 20, 'meari': 5, 'menashi': 1, 'hifumi': 0
+    'pinzoro': 500n, 'arashi': 100n, '456': 20n, 'meari': 5n, 'menashi': 1n, 'hifumi': 0n
 };
 
-// アイテムデータの生成
 const ITEM_DATA = [];
 
-// 金の〇〇 (Common)
+// 金の〇〇
 const GOLD_PROBS = [0.50, 0.45, 0.40, 0.35, 0.30, 0.25];
 ['壱','弐','参','肆','伍','陸'].forEach((kanji, idx) => {
     const face = idx + 1;
@@ -624,7 +676,7 @@ const GOLD_PROBS = [0.50, 0.45, 0.40, 0.35, 0.30, 0.25];
     });
 });
 
-// 覚醒の〇〇 (Uncommon) - 新規追加
+// 覚醒の〇〇
 const AWAKENING_PROBS = [0.20, 0.17, 0.14, 0.11, 0.08, 0.05];
 ['壱','弐','参','肆','伍','陸'].forEach((kanji, idx) => {
     const face = idx + 1;
@@ -633,7 +685,7 @@ const AWAKENING_PROBS = [0.20, 0.17, 0.14, 0.11, 0.08, 0.05];
         id: `awakening_${face}`,
         name: `覚醒の${kanji}`,
         rarity: 'uncommon',
-        desc: `${kanji}の目が出た時、${Math.floor(prob*100)}%の確率で、成立した役の倍率に初期値分を加算し、永続的に強化する`,
+        desc: `${kanji}の目が出た時、${Math.floor(prob*100)}%の確率で、成立した役の倍率に初期値(+${CONST_BASE_MULTIPLIERS.meari.toString()})分を加算し、永続的に強化する`,
         price: RARITY.UNCOMMON.price,
         effectType: 'awakening',
         targetFace: face,
@@ -641,7 +693,7 @@ const AWAKENING_PROBS = [0.20, 0.17, 0.14, 0.11, 0.08, 0.05];
     });
 });
 
-// 幸福の〇〇 (Uncommon)
+// 幸福の〇〇
 const HAPPY_PROBS = [0.30, 0.25, 0.20, 0.15, 0.10, 0.05];
 ['壱','弐','参','肆','伍','陸'].forEach((kanji, idx) => {
     const face = idx + 1;
@@ -658,7 +710,7 @@ const HAPPY_PROBS = [0.30, 0.25, 0.20, 0.15, 0.10, 0.05];
     });
 });
 
-// 確率操作系アイテム (Uncommon)
+// お守り
 ['壱','弐','参','肆','伍','陸'].forEach((kanji, idx) => {
     const face = idx + 1;
     ITEM_DATA.push({
@@ -672,21 +724,21 @@ const HAPPY_PROBS = [0.30, 0.25, 0.20, 0.15, 0.10, 0.05];
         value: 5
     });
 });
-
 ITEM_DATA.push({ id: 'charm_odd', name: '奇数のお守り', rarity: 'uncommon', desc: '奇数(1,3,5)の目の出やすさが、全て上昇(+3)する', price: RARITY.UNCOMMON.price, effectType: 'weight_parity', targetParity: 1, value: 3 });
 ITEM_DATA.push({ id: 'charm_even', name: '偶数のお守り', rarity: 'uncommon', desc: '偶数(2,4,6)の目の出やすさが、全て上昇(+3)する', price: RARITY.UNCOMMON.price, effectType: 'weight_parity', targetParity: 0, value: 3 });
 ITEM_DATA.push({ id: 'charm_cursed', name: '呪われたお守り', rarity: 'uncommon', desc: '最も点数の高い目が出現しなくなる（重みが0になる）', price: RARITY.UNCOMMON.price, effectType: 'weight_curse' });
 
-// LUCK系
+// LUCK系 (Updated)
 ITEM_DATA.push({ id: 'luck_1', name: '星の欠片', rarity: 'common', desc: '幸運ステータスが50上昇する', price: 1, effectType: 'luck_static', value: 50 });
-ITEM_DATA.push({ id: 'luck_2', name: '月光の指輪', rarity: 'uncommon', desc: '幸運ステータスが100上昇する', price: 2, effectType: 'luck_static', value: 100 });
-ITEM_DATA.push({ id: 'luck_3', name: '太陽のタリスマン', rarity: 'rare', desc: '幸運ステータスが200上昇する', price: 4, effectType: 'luck_static', value: 200 });
-ITEM_DATA.push({ id: 'luck_4', name: '運命の歯車', rarity: 'sr', desc: '幸運ステータスが400上昇する', price: 8, effectType: 'luck_static', value: 400 });
-ITEM_DATA.push({ id: 'luck_5', name: '奇跡の聖杯', rarity: 'legendary', desc: '幸運ステータスが1000上昇する', price: 16, effectType: 'luck_static', value: 1000 });
+ITEM_DATA.push({ id: 'luck_2', name: '月光の指輪', rarity: 'uncommon', desc: '幸運ステータスが125上昇する', price: 2, effectType: 'luck_static', value: 125 }); // 100 -> 125
+ITEM_DATA.push({ id: 'luck_3', name: '太陽のタリスマン', rarity: 'rare', desc: '幸運ステータスが300上昇する', price: 4, effectType: 'luck_static', value: 300 }); // 200 -> 300
+ITEM_DATA.push({ id: 'luck_4', name: '運命の歯車', rarity: 'sr', desc: '幸運ステータスが750上昇する', price: 8, effectType: 'luck_static', value: 750 }); // 400 -> 750
+ITEM_DATA.push({ id: 'luck_5', name: '奇跡の聖杯', rarity: 'legendary', desc: '幸運ステータスが2000上昇する', price: 16, effectType: 'luck_static', value: 2000 }); // 1000 -> 2000
 
-ITEM_DATA.push({ id: 'luck_cond_menashi', name: '泥沼からの光', rarity: 'common', desc: '目なしが2回連続で発生した時、次のロールで幸運が一時的に+200される', price: 1, effectType: 'luck_cond_menashi', value: 200 });
-ITEM_DATA.push({ id: 'luck_chance_50', name: 'コインの表裏', rarity: 'common', desc: 'ロール開始時、50%の確率でそのロール中の幸運が+100される', price: 1, effectType: 'luck_chance', prob: 0.5, value: 100 });
-ITEM_DATA.push({ id: 'luck_chance_25', name: '四分の一の賭け', rarity: 'common', desc: 'ロール開始時、25%の確率でそのロール中の幸運が+400される', price: 1, effectType: 'luck_chance', prob: 0.25, value: 400 });
+ITEM_DATA.push({ id: 'luck_cond_menashi', name: '泥沼からの光', rarity: 'common', desc: '目なしが2回連続で発生した時、次のロールで幸運が一時的に+300される', price: 1, effectType: 'luck_cond_menashi', value: 300 }); // 200 -> 300
+ITEM_DATA.push({ id: 'luck_chance_50', name: 'コインの表裏', rarity: 'common', desc: 'ロール開始時、50%の確率でそのロール中の幸運が+250される', price: 1, effectType: 'luck_chance', prob: 0.5, value: 250 }); // 100 -> 250
+ITEM_DATA.push({ id: 'luck_chance_25', name: '四分の一の賭け', rarity: 'common', desc: 'ロール開始時、25%の確率でそのロール中の幸運が+500される', price: 1, effectType: 'luck_chance', prob: 0.25, value: 500 }); // 400 -> 500
+
 ITEM_DATA.push({ id: 'inv_expand', name: '魔法の鞄', rarity: 'uncommon', desc: 'アイテムの最大所持数が2つ増加する', price: 2, effectType: 'inv_expand', value: 2 });
 ITEM_DATA.push({ id: 'buff_streak_win', name: '昇り龍の像', rarity: 'uncommon', desc: '「目あり」以上の役が3連続で続いた時、全てのサイコロの出目点が初期値分だけ永続的に強化される', price: 2, effectType: 'buff_streak_win' });
 
@@ -712,51 +764,40 @@ ITEM_DATA.push({ id: 'hifumi_buff_face', name: '混沌の力', rarity: 'rare', d
 ITEM_DATA.push({ id: 'hifumi_gain_ticket', name: '保険金', rarity: 'rare', desc: '役「ヒフミ」が成立した時、保険金としてチケットを20枚獲得する', price: 4, effectType: 'hifumi_gain_ticket' });
 ITEM_DATA.push({ id: 'start_fixed_hifumi', name: '破滅の契約書', rarity: 'sr', desc: '各ラウンドの最初のロール結果が、回避不能な確定の「ヒフミ」になる', price: 8, effectType: 'start_fixed_hifumi' });
 
-// === 新規追加アイテム (無料再入荷系) ===
+// リロール系
 ITEM_DATA.push({ id: 'reroll_c_1', name: '商人の会員証', rarity: 'common', desc: '新しいステージが開始されるたび、ショップの無料再入荷回数が2回分追加される', price: 1, effectType: 'reroll_stage', value: 2 });
 ITEM_DATA.push({ id: 'reroll_r_1', name: '貴族の紹介状', rarity: 'rare', desc: '各ラウンドが終了するたび、ショップの無料再入荷回数が1回分追加される', price: 4, effectType: 'reroll_round', value: 1 });
 
-// --- プレステージデータ定義 ---
+// プレステージオプション
 const PRESTIGE_OPTIONS = [
-    // 出目確率アップ
     { type: 'weight', target: 1, text: '壱の目の出る確率の重みが+3永続的に増加する', icon: '⚀' },
     { type: 'weight', target: 2, text: '弐の目の出る確率の重みが+3永続的に増加する', icon: '⚁' },
     { type: 'weight', target: 3, text: '参の目の出る確率の重みが+3永続的に増加する', icon: '⚂' },
     { type: 'weight', target: 4, text: '肆の目の出る確率の重みが+3永続的に増加する', icon: '⚃' },
     { type: 'weight', target: 5, text: '伍の目の出る確率の重みが+3永続的に増加する', icon: '⚄' },
     { type: 'weight', target: 6, text: '陸の目の出る確率の重みが+3永続的に増加する', icon: '⚅' },
-    // 役倍率2倍 (Base更新)
     { type: 'multi', target: 'pinzoro', text: '役「ピンゾロ」の現在の倍率が2倍になる（基礎点更新）', icon: '👑' },
     { type: 'multi', target: 'arashi', text: '役「アラシ」の現在の倍率が2倍になる（基礎点更新）', icon: '🌀' },
     { type: 'multi', target: '456', text: '役「シゴロ」の現在の倍率が2倍になる（基礎点更新）', icon: '🔥' },
     { type: 'multi', target: 'meari', text: '役「目あり」の現在の倍率が2倍になる（基礎点更新）', icon: '👀' },
     { type: 'multi', target: 'menashi', text: '役「目なし」の現在の倍率が2倍になる（基礎点更新）', icon: '☠️' },
-    // チケット獲得
     { type: 'ticket', val: 5, text: 'チケットを5枚獲得する', icon: '🎫' },
-    // インベントリ最大数
     { type: 'inv_max', text: 'インベントリの最大数が永続的に1つ増加する', icon: '🎒' }
 ];
-
-
-// --- ゲームクラス ---
 
 class Game {
     constructor() {
         this.diceChars = ['?', '⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
         this.stage = 1;
         this.round = 1;
-        this.rollCount = 7;
-        this.initialRollCount = 7; // 初期ロール数（判定用）
-        this.pool = 0;
-        this.totalScore = 0;
-        this.targetScore = 1500;
+        this.rollCount = INITIAL_ROLL_COUNT;
+        this.pool = 0n;
+        this.totalScore = 0n;
+        this.targetScore = 1500n;
         
-        // 状態変数
         this.diceWeights = [0, 5, 5, 5, 5, 5, 5];
-        this.faceValues = [0, 1, 2, 3, 4, 5, 6]; 
-        // プレステージで変動するベース倍率
+        this.faceValues = [0n, 1n, 2n, 3n, 4n, 5n, 6n]; 
         this.baseMultipliers = { ...CONST_BASE_MULTIPLIERS };
-        // ラウンド内の一時的な倍率（覚醒などで加算）
         this.yakuMultipliers = { ...this.baseMultipliers };
 
         this.tickets = 4;
@@ -769,90 +810,97 @@ class Game {
         this.rerollCost = 1;
         this.maxInventory = 7;
 
-        // 連鎖・一時効果管理
         this.streakMenashi = 0;
         this.streakWin = 0;
         this.tempLuckBoost = 0;
         
-        // 新規追加状態
-        this.tempRateBoost = 0; // ヒフミRate+4.0用
-        this.hifumiTriggerCount = 0; // ヒフミRoll回復の回数制限用
-        this.nextRollFixedDice = null; // 次回確定出目 (配列)
-        this.forcedDice = null; // roll内で使用する一時変数
+        this.tempRateBoost = 0.0;
+        this.hifumiTriggerCount = 0; 
+        this.nextRollFixedDice = null; 
+        this.forcedDice = null; 
+        this.roundExecCount = 0; // そのラウンドで実際にロールを行った回数（アンコール対策）
         
-        // プレステージ関連状態
         this.prestigeState = {
-            weights: [0, 0, 0, 0, 0, 0, 0], // 各出目の追加ウェイト
-            extraInv: 0 // インベントリ追加分
+            weights: [0, 0, 0, 0, 0, 0, 0], 
+            extraInv: 0
         };
         this.prestigeRerollCost = 1;
         this.currentPrestigeOptions = [];
 
-        // ショップ開閉フラグ
         this.isShopOpen = false;
+        this.roundGains = { faces: [0n,0n,0n,0n,0n,0n,0n], yakus: {} };
 
-        this.roundGains = { faces: [0,0,0,0,0,0,0], yakus: {} };
-
-        // UI参照
-        this.ui = {
-            stage: document.getElementById('ui-stage'),
-            round: document.getElementById('ui-round'),
-            roll: document.getElementById('ui-roll'),
-            pool: document.getElementById('ui-pool'),
-            target: document.getElementById('ui-target'),
-            total: document.getElementById('ui-total'),
-            tickets: document.getElementById('ui-tickets'),
-            luck: document.getElementById('ui-luck'),
-            rate: document.getElementById('ui-rate'), 
-            invList: document.getElementById('ui-inventory'),
-            invCount: document.getElementById('ui-inv-count'),
-            diceCont: document.getElementById('dice-container'),
-            msgMain: document.getElementById('msg-main'),
-            msgSub: document.getElementById('msg-sub'),
-            msgLog: document.getElementById('msg-log'),
-            btnRoll: document.getElementById('btn-roll'),
-            btnShop: document.getElementById('btn-shop'),
-            btnClear: document.getElementById('btn-clear'),
-            clearSub: document.getElementById('clear-sub'),
-            mainPanel: document.getElementById('main-panel'),
-            gameView: document.getElementById('game-view'),
-            shopView: document.getElementById('shop-view'),
-            shopShelves: document.getElementById('shop-shelves'),
-            btnReroll: document.getElementById('btn-reroll'),
-            
-            prestigeView: document.getElementById('prestige-view'),
-            prestigeCont: document.getElementById('prestige-container'),
-            btnPrestigeReroll: document.getElementById('btn-prestige-reroll'),
-
-            modal: document.getElementById('modal'),
-            mTitle: document.getElementById('modal-title'),
-            mMsg: document.getElementById('modal-msg'),
-            tableFaces: document.getElementById('table-faces'),
-            tableYaku: document.getElementById('table-yaku')
-        };
-        
-        this.initStage();
+        // UI init
+        try {
+            this.ui = {
+                stage: document.getElementById('ui-stage'),
+                round: document.getElementById('ui-round'),
+                roll: document.getElementById('ui-roll'),
+                pool: document.getElementById('ui-pool'),
+                target: document.getElementById('ui-target'),
+                total: document.getElementById('ui-total'),
+                tickets: document.getElementById('ui-tickets'),
+                luck: document.getElementById('ui-luck'),
+                rate: document.getElementById('ui-rate'), 
+                invList: document.getElementById('ui-inventory'),
+                invCount: document.getElementById('ui-inv-count'),
+                diceCont: document.getElementById('dice-container'),
+                msgMain: document.getElementById('msg-main'),
+                msgSub: document.getElementById('msg-sub'),
+                msgLog: document.getElementById('msg-log'),
+                btnRoll: document.getElementById('btn-roll'),
+                btnShop: document.getElementById('btn-shop'),
+                btnClear: document.getElementById('btn-clear'),
+                clearSub: document.getElementById('clear-sub'),
+                mainPanel: document.getElementById('main-panel'),
+                gameView: document.getElementById('game-view'),
+                shopView: document.getElementById('shop-view'),
+                shopShelves: document.getElementById('shop-shelves'),
+                btnReroll: document.getElementById('btn-reroll'),
+                prestigeView: document.getElementById('prestige-view'),
+                prestigeCont: document.getElementById('prestige-container'),
+                btnPrestigeReroll: document.getElementById('btn-prestige-reroll'),
+                modal: document.getElementById('modal'),
+                mTitle: document.getElementById('modal-title'),
+                mMsg: document.getElementById('modal-msg'),
+                tableFaces: document.getElementById('table-faces'),
+                tableYaku: document.getElementById('table-yaku')
+            };
+            this.initStage();
+        } catch(e) {
+            console.error(e);
+            alert("初期化エラー: " + e.message);
+        }
     }
 
     initStage() {
         this.round = 1;
-        this.pool = 0;
-        this.rollCount = this.initialRollCount;
-        // バランス調整: 3.0倍 -> 2.2倍に緩和
-        this.targetScore = Math.floor(1000 * Math.pow(2.2, this.stage - 1));
+        this.pool = 0n;
+        this.rollCount = INITIAL_ROLL_COUNT;
+        this.roundExecCount = 0;
+        
+        let t = 1000n;
+        if (this.stage > 1) {
+            let num = 1n;
+            let den = 1n;
+            for(let i=0; i<this.stage-1; i++) {
+                num *= 22n;
+                den *= 10n;
+            }
+            t = t * num / den;
+        }
+        this.targetScore = t;
         
         this.nextRollFixedDice = null;
-        this.tempRateBoost = 0;
+        this.tempRateBoost = 0.0;
         this.hifumiTriggerCount = 0;
 
-        // ステージ開始時の無料再入荷付与
         this.inventory.forEach(item => {
             if (item.effectType === 'reroll_stage') {
                 this.freeRerolls += item.value;
             }
         });
 
-        // プレステージで変動したベース倍率を、現在の倍率に反映
         this.yakuMultipliers = { ...this.baseMultipliers };
 
         this.recalcStats();
@@ -865,14 +913,13 @@ class Game {
         
         this.ui.msgMain.textContent = `STAGE ${this.stage}`;
         this.ui.msgMain.classList.remove('hifumi-text');
-        this.ui.msgSub.textContent = `目標: ${this.targetScore.toLocaleString()}pt`;
+        this.ui.msgSub.textContent = `目標: ${formatBigInt(this.targetScore)}pt`;
         this.ui.btnShop.classList.remove('hidden-el');
         this.ui.btnShop.disabled = false;
         this.ui.btnRoll.disabled = false;
         
         this.ui.msgLog.innerHTML = "";
 
-        // ゲーム開始時（ステージ1）のみ自動でショップを開く
         if (this.stage === 1) {
             this.openShop();
         } else {
@@ -880,17 +927,13 @@ class Game {
         }
     }
 
-    clearLogs() {
-        this.ui.msgLog.innerHTML = "";
-    }
-
+    clearLogs() { this.ui.msgLog.innerHTML = ""; }
     addLog(text, type) {
         const span = document.createElement('span');
         span.className = `log-tag ${type || ''}`;
         span.textContent = text;
         this.ui.msgLog.appendChild(span);
     }
-
     checkProb(baseProb) {
         let prob = baseProb;
         const hasBoost = this.inventory.some(i => i.effectType === 'prob_boost');
@@ -899,7 +942,6 @@ class Game {
     }
 
     recalcStats() {
-        // 1. ウェイト計算
         let w = [0, 5, 5, 5, 5, 5, 5];
         this.inventory.forEach(item => {
             if (item.effectType === 'weight_fixed') w[item.targetFace] += item.value;
@@ -907,10 +949,12 @@ class Game {
                 for(let i=1; i<=6; i++) if (i % 2 === item.targetParity) w[i] += item.value;
             }
             if (item.effectType === 'weight_bless') {
-                let minVal = Infinity;
-                for(let i=1; i<=6; i++) if(this.faceValues[i] < minVal) minVal = this.faceValues[i];
+                let currentMin = this.faceValues[1];
+                for(let i=2; i<=6; i++) {
+                    if(this.faceValues[i] < currentMin) currentMin = this.faceValues[i];
+                }
                 let targets = [];
-                for(let i=1; i<=6; i++) if(this.faceValues[i] === minVal) targets.push(i);
+                for(let i=1; i<=6; i++) if(this.faceValues[i] === currentMin) targets.push(i);
                 targets.forEach(t => w[t] += item.value);
             }
             if (item.effectType === 'weight_nerf_low') {
@@ -921,25 +965,24 @@ class Game {
             }
         });
         
-        // プレステージ効果（ウェイト）を加算
         for(let i=1; i<=6; i++) {
             w[i] += this.prestigeState.weights[i];
         }
-
         for(let i=1; i<=6; i++) if(w[i] < 0) w[i] = 0;
 
         this.inventory.forEach(item => {
             if (item.effectType === 'weight_curse') {
-                let maxVal = -Infinity;
-                for(let i=1; i<=6; i++) if(this.faceValues[i] > maxVal) maxVal = this.faceValues[i];
+                let currentMax = this.faceValues[1];
+                for(let i=2; i<=6; i++) {
+                    if(this.faceValues[i] > currentMax) currentMax = this.faceValues[i];
+                }
                 let targets = [];
-                for(let i=1; i<=6; i++) if(this.faceValues[i] === maxVal) targets.push(i);
+                for(let i=1; i<=6; i++) if(this.faceValues[i] === currentMax) targets.push(i);
                 targets.forEach(t => w[t] = 0);
             }
         });
         this.diceWeights = w;
 
-        // 2. 基本Luck計算
         let l = 50;
         this.inventory.forEach(item => {
             if (item.effectType === 'luck_static') l += item.value;
@@ -947,14 +990,12 @@ class Game {
         this.baseLuck = l;
         this.currentLuck = l; 
 
-        // 3. インベントリ最大数
-        let maxInv = 7 + this.prestigeState.extraInv; // プレステージ分を加算
+        let maxInv = 7 + this.prestigeState.extraInv; 
         this.inventory.forEach(item => {
             if (item.effectType === 'inv_expand') maxInv += item.value;
         });
         this.maxInventory = maxInv;
 
-        // 4. 全体倍率計算
         let rate = 1.0;
         this.inventory.forEach(item => {
             if (item.effectType === 'rate_ticket') {
@@ -966,39 +1007,37 @@ class Game {
         });
         rate += this.tempRateBoost; 
         this.globalMultiplier = rate;
-
         this.updateTables();
     }
 
     roll() {
         if (this.rollCount <= 0) return;
-        
         this.resetGains();
         this.recalcStats();
         this.updateTables();
         this.clearLogs();
 
-        // 確定出目の判定
         this.forcedDice = null;
         
-        if (this.rollCount === this.initialRollCount) {
+        // 修正: アンコール対策のため、単純なrollCountではなく実行回数(roundExecCount)で判定
+        if (this.roundExecCount === 0) {
             const starter = this.inventory.find(i => i.effectType === 'start_fixed_hifumi');
             if (starter) {
                 this.forcedDice = [1, 2, 3];
                 this.addLog(`📜${starter.name}`, 'log-hifumi');
             }
         }
-        
         if (!this.forcedDice && this.nextRollFixedDice) {
             this.forcedDice = [...this.nextRollFixedDice];
             this.nextRollFixedDice = null;
             this.addLog(`🔥確定演出`, 'log-buff');
         }
 
-        // 一時LUCK計算
+        // ロール実行回数をカウント（確定）
+        this.roundExecCount++;
+
         let rollLuck = this.baseLuck + this.tempLuckBoost;
         this.tempLuckBoost = 0; 
-
         this.inventory.forEach(item => {
             if (item.effectType === 'luck_chance') {
                 if (this.checkProb(item.prob)) { 
@@ -1014,7 +1053,6 @@ class Game {
         this.ui.btnClear.classList.remove('visible'); 
         document.getElementById('pool-box').classList.remove('shock-effect');
 
-        // 演出用
         let count = 0;
         const interval = setInterval(() => {
             const dummyDice = [this.rand(), this.rand(), this.rand()];
@@ -1027,16 +1065,12 @@ class Game {
         }, 60);
     }
 
-    resetGains() {
-        this.roundGains = { faces: [0,0,0,0,0,0,0], yakus: {} };
-    }
-
+    resetGains() { this.roundGains = { faces: [0n,0n,0n,0n,0n,0n,0n], yakus: {} }; }
     rand() { return Math.floor(Math.random()*6)+1; }
-
+    
     getWeightedRandom() {
         const total = this.diceWeights.reduce((a, b) => a + b, 0);
         if (total <= 0) return Math.floor(Math.random()*6)+1;
-
         let r = Math.random() * total;
         for (let i = 1; i <= 6; i++) {
             if (r < this.diceWeights[i]) return i;
@@ -1055,14 +1089,11 @@ class Game {
             rollAttempts.push({ dice, res });
             this.forcedDice = null;
         } else {
-            // Luckによる複数回ロールとベスト選択
             let activeLuck = this.currentLuck;
-            
             do {
                 let d = [this.getWeightedRandom(), this.getWeightedRandom(), this.getWeightedRandom()];
                 let r = this.calc(d);
                 rollAttempts.push({ dice: d, res: r });
-
                 if (Math.random() * 100 < activeLuck) {
                     activeLuck /= 2;
                 } else {
@@ -1071,15 +1102,17 @@ class Game {
             } while (true);
         }
 
-        rollAttempts.sort((a, b) => b.res.score - a.res.score);
+        rollAttempts.sort((a, b) => {
+            if (b.res.score > a.res.score) return 1;
+            if (b.res.score < a.res.score) return -1;
+            return 0;
+        });
         const best = rollAttempts[0];
         dice = best.dice;
         res = best.res;
 
         const luckTriggerCount = rollAttempts.length - 1;
-        if (luckTriggerCount > 0) {
-             this.addLog(`LUCK発動 x${luckTriggerCount}`, 'log-luck');
-        }
+        if (luckTriggerCount > 0) this.addLog(`LUCK発動 x${luckTriggerCount}`, 'log-luck');
 
         if (res.yakuKey === 'menashi') {
             this.streakMenashi++;
@@ -1103,8 +1136,8 @@ class Game {
             this.inventory.forEach(item => {
                 if (item.effectType === 'buff_streak_win') {
                     for(let i=1; i<=6; i++) {
-                        this.faceValues[i] += i; 
-                        this.roundGains.faces[i] += i;
+                        this.faceValues[i] += BigInt(i); 
+                        this.roundGains.faces[i] += BigInt(i);
                     }
                     dragonFired = true;
                     this.addLog(`🐲${item.name}`, 'log-buff');
@@ -1124,29 +1157,24 @@ class Game {
         if (res.isHifumi) {
             this.ui.msgMain.textContent = "ヒフミ！！！";
             this.ui.msgMain.classList.add('hifumi-text');
-            
             const guardItem = this.inventory.find(i => i.effectType === 'hifumi_guard');
-            
             if (guardItem) {
                 this.addLog(`🛡️${guardItem.name}`, 'log-buff');
                 this.ui.msgSub.innerHTML = "<span style='color:#2ecc71'>ペナルティ無効化！</span>";
             } else {
-                this.pool = 0;
+                this.pool = 0n;
                 this.ui.msgSub.innerHTML = "<span style='color:#e74c3c; font-weight:bold;'>ペナルティ発動！プール没収！</span>";
                 document.getElementById('pool-box').classList.add('shock-effect');
             }
-
             this.triggerHifumiEffects();
-
         } else {
             this.pool += res.score;
             this.ui.msgMain.textContent = res.yakuName;
-            this.ui.msgSub.textContent = `出目(${res.sum}) × 倍率(${res.mul}) = +${res.score.toLocaleString()}pt`;
+            this.ui.msgSub.textContent = `出目(${formatBigInt(res.sum)}) × 倍率(${formatBigInt(res.mul)}) = +${formatBigInt(res.score)}pt`;
             this.checkPostCalcEffects(dice, res.yakuKey);
         }
 
         this.rollCount--;
-
         this.inventory.forEach(item => {
             if (item.effectType === 'roll_add') {
                 if (this.checkProb(item.prob)) {
@@ -1157,7 +1185,6 @@ class Game {
         });
 
         this.currentLuck = this.baseLuck; 
-        
         this.updateUI();
         this.updateTables();
 
@@ -1171,7 +1198,6 @@ class Game {
 
     triggerHifumiEffects() {
         let recalcNeeded = false;
-
         this.inventory.forEach(item => {
             if (item.effectType === 'hifumi_act_roll') {
                 if (this.hifumiTriggerCount < 3) {
@@ -1193,8 +1219,8 @@ class Game {
             }
             if (item.effectType === 'hifumi_buff_face') {
                 for(let i=1; i<=6; i++) {
-                    this.faceValues[i] *= 2;
-                    this.roundGains.faces[i] += this.faceValues[i] / 2;
+                    this.faceValues[i] *= 2n;
+                    this.roundGains.faces[i] += this.faceValues[i] / 2n;
                 }
                 this.addLog(`🌀${item.name}`, 'log-buff');
             }
@@ -1203,48 +1229,42 @@ class Game {
                 this.addLog(`💰${item.name}`, 'log-ticket');
             }
         });
-        
         if (recalcNeeded) this.recalcStats();
     }
 
     calc(dice) {
         const sorted = [...dice].sort((a,b)=>a-b);
-        
-        let sum = 0;
+        let sum = 0n;
         dice.forEach(d => {
             let val = this.faceValues[d];
-            let multiplier = 1.0;
+            let mulNum = 100n; 
+            let mulDen = 100n; 
             const isOdd = (d % 2 !== 0);
-
             this.inventory.forEach(item => {
-                if (item.effectType === 'score_odd' && isOdd) multiplier *= item.value;
-                if (item.effectType === 'score_even' && !isOdd) multiplier *= item.value;
+                if (item.effectType === 'score_odd' && isOdd) mulNum *= BigInt(item.value);
+                if (item.effectType === 'score_even' && !isOdd) mulNum *= BigInt(item.value);
                 if (item.effectType === 'score_focus_odd') {
-                    if (isOdd) multiplier *= 4; else multiplier *= 0.5;
+                    if (isOdd) mulNum *= 4n; else mulDen *= 2n; 
                 }
                 if (item.effectType === 'score_focus_even') {
-                    if (!isOdd) multiplier *= 4; else multiplier *= 0.5;
+                    if (!isOdd) mulNum *= 4n; else mulDen *= 2n;
                 }
             });
-            sum += val * multiplier;
+            sum += (val * mulNum) / mulDen;
         });
-        sum = Math.floor(sum);
-
+        
         let yakuKey = 'menashi';
         let yakuName = "目なし";
         let isHifumi = false;
-
         if (sorted[0]===1 && sorted[1]===1 && sorted[2]===1) { yakuKey='pinzoro'; yakuName="ピンゾロ"; }
         else if (sorted[0]===sorted[1] && sorted[1]===sorted[2]) { yakuKey='arashi'; yakuName="アラシ"; }
         else if (sorted[0]===4 && sorted[1]===5 && sorted[2]===6) { yakuKey='456'; yakuName="シゴロ"; }
         else if (sorted[0]===1 && sorted[1]===2 && sorted[2]===3) { yakuKey='hifumi'; yakuName="ヒフミ"; isHifumi=true; }
         else if (sorted[0]===sorted[1] || sorted[1]===sorted[2] || sorted[0]===sorted[2]) { yakuKey='meari'; yakuName="目あり"; }
 
-        let mul = this.yakuMultipliers[yakuKey];
-        // yakuMultipliers は既に baseMultipliers（プレステージ反映済み）を元にしているため、ここで乗算は不要
-
-        const finalScore = Math.floor(sum * mul * this.globalMultiplier);
-
+        let mul = this.yakuMultipliers[yakuKey]; 
+        let globalRateInt = BigInt(Math.round(this.globalMultiplier * 100));
+        const finalScore = (sum * mul * globalRateInt) / 100n;
         return { sum, mul, score: finalScore, yakuName, yakuKey, isHifumi };
     }
 
@@ -1269,8 +1289,8 @@ class Game {
                 const count = dice.filter(d => d === item.targetFace).length;
                 for(let i=0; i<count; i++) {
                     if (this.checkProb(item.prob)) { 
-                        this.faceValues[item.targetFace] += item.targetFace;
-                        this.roundGains.faces[item.targetFace] += item.targetFace;
+                        this.faceValues[item.targetFace] += BigInt(item.targetFace);
+                        this.roundGains.faces[item.targetFace] += BigInt(item.targetFace);
                         this.addLog(`💪${item.name}`, 'log-buff');
                         changed = true;
                     }
@@ -1280,12 +1300,11 @@ class Game {
                 const count = dice.filter(d => d === item.targetFace).length;
                 for(let i=0; i<count; i++) {
                     if (this.checkProb(item.prob)) { 
-                        // 永続強化: 基礎点（Base）と現在点（Yaku）の両方を加算
                         const inc = CONST_BASE_MULTIPLIERS[yakuKey];
-                        if (inc > 0) {
+                        if (inc > 0n) {
                             this.baseMultipliers[yakuKey] += inc;
                             this.yakuMultipliers[yakuKey] += inc;
-                            this.roundGains.yakus[yakuKey] = (this.roundGains.yakus[yakuKey] || 0) + inc;
+                            this.roundGains.yakus[yakuKey] = (this.roundGains.yakus[yakuKey] || 0n) + inc;
                             this.addLog(`⚡${item.name}`, 'log-buff');
                             changed = true;
                         }
@@ -1299,31 +1318,24 @@ class Game {
     endRound() {
         this.totalScore += this.pool;
         const earned = this.pool;
-        this.pool = 0;
-        
-        // 一時効果リセット
+        this.pool = 0n;
         this.tempRateBoost = 0;
         this.hifumiTriggerCount = 0;
-
-        // ラウンド終了時の無料再入荷付与
         this.inventory.forEach(item => {
             if (item.effectType === 'reroll_round') {
                 this.freeRerolls += item.value;
             }
         });
-        
         this.ui.btnClear.classList.remove('visible'); 
-
         this.ui.msgMain.textContent = "ROUND FINISH";
         this.ui.msgMain.classList.remove('hifumi-text');
-        this.ui.msgSub.textContent = `獲得: ${earned.toLocaleString()}pt / 合計: ${this.totalScore.toLocaleString()}pt`;
+        this.ui.msgSub.textContent = `獲得: ${formatBigInt(earned)}pt / 合計: ${formatBigInt(this.totalScore)}pt`;
         document.getElementById('pool-box').classList.remove('shock-effect');
-        
         this.updateUI();
-        
         this.round++;
-        this.rollCount = this.initialRollCount;
-
+        this.rollCount = INITIAL_ROLL_COUNT;
+        this.roundExecCount = 0; // ラウンドが変わるのでリセット
+        
         if (this.round > 3) {
             setTimeout(() => this.checkStageClear(), 1500);
         } else {
@@ -1334,11 +1346,8 @@ class Game {
                 this.ui.btnShop.classList.remove('hidden-el');
                 this.ui.btnShop.disabled = false;
                 this.clearLogs(); 
-                
-                // 次のラウンド用に倍率をリセット（プレステージ倍率に戻す）
                 this.yakuMultipliers = { ...this.baseMultipliers };
-                this.roundGains.yakus = {}; // 表示用ゲインもリセット
-                
+                this.roundGains.yakus = {}; 
                 this.recalcStats(); 
                 this.updateUI();
                 this.updateClearButton(); 
@@ -1354,7 +1363,6 @@ class Game {
                 bonus += Math.floor(this.tickets / 5) * item.value;
             }
         });
-        
         return 2 + (roundsLeft * 2) + bonus;
     }
 
@@ -1371,17 +1379,14 @@ class Game {
     stageWin() {
         const reward = this.calculateReward();
         const roundsLeft = Math.max(0, 4 - this.round);
-        
         this.tickets += reward;
-        // スコア支払い処理
         const paid = this.targetScore;
         this.totalScore -= this.targetScore;
         this.updateUI();
-
         this.showModal("STAGE CLEAR! 🎉", 
             `目標スコア達成！<br>
-             支払い: -${paid.toLocaleString()}pt<br>
-             残りスコア: ${this.totalScore.toLocaleString()}pt<br>
+             支払い: -${formatBigInt(paid)}pt<br>
+             残りスコア: ${formatBigInt(this.totalScore)}pt<br>
              <div style="margin-top:10px; font-size:0.9em; background:#eee; padding:10px; border-radius:5px; color:#333;">
                 獲得: ${reward}枚<br>
                 (基本2 + 残R${roundsLeft}x2 + アイテム等)
@@ -1393,48 +1398,39 @@ class Game {
         if (this.totalScore >= this.targetScore) {
             const reward = this.calculateReward(); 
             this.tickets += reward;
-            // スコア支払い処理
             const paid = this.targetScore;
             this.totalScore -= this.targetScore;
             this.updateUI();
-
             this.showModal("STAGE CLEAR! 🎉", 
             `目標スコア達成！<br>
-             支払い: -${paid.toLocaleString()}pt<br>
-             残りスコア: ${this.totalScore.toLocaleString()}pt<br>
+             支払い: -${formatBigInt(paid)}pt<br>
+             残りスコア: ${formatBigInt(this.totalScore)}pt<br>
              <div style="margin-top:10px; font-size:0.9em; background:#eee; padding:10px; border-radius:5px; color:#333;">
                 獲得: ${reward}枚
              </div>`, 
             true);
         } else {
-            this.showModal("GAME OVER", `SCORE: ${this.totalScore.toLocaleString()}<br>目標(${this.targetScore.toLocaleString()})に届かず...`, false);
+            this.showModal("GAME OVER", `SCORE: ${formatBigInt(this.totalScore)}<br>目標(${formatBigInt(this.targetScore)})に届かず...`, false);
         }
     }
 
     updateTables() {
         let htmlFaces = `<tr><th>出目</th><th>点数</th><th>確率</th></tr>`;
         const totalWeight = this.diceWeights.reduce((a,b)=>a+b,0);
-        
         for(let i=1; i<=6; i++) {
             const w = this.diceWeights[i];
             const prob = totalWeight > 0 ? (w / totalWeight) : 0;
             const standardProb = 1/6;
             const val = this.faceValues[i];
-            
             const gain = this.roundGains.faces[i];
-            const gainHtml = gain > 0 ? `<span class="val-gain">(+${gain})</span>` : '';
-
+            const gainHtml = gain > 0n ? `<span class="val-gain">(+${formatBigInt(gain)})</span>` : '';
             let probClass = 'prob-col';
-            if (Math.abs(prob - standardProb) < 0.0001) {
-            } else if (prob > standardProb) {
-                probClass += ' prob-high';
-            } else {
-                probClass += ' prob-low';
-            }
-
+            if (Math.abs(prob - standardProb) < 0.0001) {} 
+            else if (prob > standardProb) { probClass += ' prob-high'; } 
+            else { probClass += ' prob-low'; }
             htmlFaces += `<tr>
                 <td>${i}</td>
-                <td>${val}点 ${gainHtml}</td>
+                <td>${formatBigInt(val)}点 ${gainHtml}</td>
                 <td class="${probClass}">${(prob*100).toFixed(1)}%</td>
             </tr>`;
         }
@@ -1447,12 +1443,11 @@ class Game {
         ];
         yakus.forEach(y => {
             let curr = this.yakuMultipliers[y.k];
-            const gain = this.roundGains.yakus[y.k] || 0;
-            const gainHtml = gain > 0 ? `<span class="val-gain">(+${gain})</span>` : '';
-
+            const gain = this.roundGains.yakus[y.k] || 0n;
+            const gainHtml = gain > 0n ? `<span class="val-gain">(+${formatBigInt(gain)})</span>` : '';
             htmlYaku += `<tr>
                 <td>${y.n}</td>
-                <td>x${curr} ${gainHtml}</td>
+                <td>x${formatBigInt(curr)} ${gainHtml}</td>
             </tr>`;
         });
         this.ui.tableYaku.innerHTML = htmlYaku;
@@ -1473,9 +1468,9 @@ class Game {
         this.ui.stage.textContent = this.stage;
         this.ui.round.textContent = Math.min(this.round, 3);
         this.ui.roll.textContent = Math.max(0, this.rollCount);
-        this.ui.pool.textContent = this.pool.toLocaleString();
-        this.ui.target.textContent = this.targetScore.toLocaleString();
-        this.ui.total.textContent = this.totalScore.toLocaleString();
+        this.ui.pool.textContent = formatBigInt(this.pool);
+        this.ui.target.textContent = formatBigInt(this.targetScore);
+        this.ui.total.textContent = formatBigInt(this.totalScore);
         this.ui.tickets.textContent = this.tickets;
         this.ui.luck.textContent = this.currentLuck; 
         this.ui.rate.textContent = 'x' + this.globalMultiplier.toFixed(1);
@@ -1494,7 +1489,7 @@ class Game {
                 let actionHtml = '';
                 if (this.isShopOpen) {
                     const sellPrice = Math.floor(item.price / 2);
-                    actionHtml = `<button class="btn-inv-sell" onclick="game.sellItem(${this.inventory.indexOf(item)})">売却(${sellPrice})</button>`;
+                    actionHtml = `<button class="btn-inv-sell" onclick="window.game.sellItem(${this.inventory.indexOf(item)})">売却(${sellPrice})</button>`;
                 }
                 div.innerHTML += actionHtml;
                 this.ui.invList.appendChild(div);
@@ -1520,24 +1515,19 @@ class Game {
     generateShopItems() {
         this.shopItems = [];
         const ownedIds = this.inventory.map(i => i.id);
-        
         let candidates = ITEM_DATA.filter(it => !ownedIds.includes(it.id));
-
         for(let i=0; i<4; i++) {
             if (candidates.length === 0) {
                 this.shopItems.push(null);
                 continue;
             }
-
             const weightedCandidates = candidates.map(it => {
                 const rInfo = Object.values(RARITY).find(r => r.id === it.rarity);
                 return { item: it, weight: rInfo.weight };
             });
-
             const totalWeight = weightedCandidates.reduce((sum, c) => sum + c.weight, 0);
             let r = Math.random() * totalWeight;
             let selected = null;
-            
             for (let c of weightedCandidates) {
                 if (r < c.weight) {
                     selected = c.item;
@@ -1545,23 +1535,16 @@ class Game {
                 }
                 r -= c.weight;
             }
-            
             if (!selected) selected = weightedCandidates[weightedCandidates.length - 1].item;
-
             this.shopItems.push({ item: selected, sold: false });
             candidates = candidates.filter(c => c.id !== selected.id);
         }
         this.updateShopUI();
     }
 
-    isStartupFreeReroll() {
-        return this.stage === 1 && this.round === 1 && this.rollCount === this.initialRollCount;
-    }
-
     rerollShop() {
-        if (this.isStartupFreeReroll()) {
+        if (this.stage === 1 && this.round === 1 && this.rollCount === INITIAL_ROLL_COUNT) {
             this.generateShopItems();
-            this.updateUI(); 
             return;
         }
         if (this.freeRerolls > 0) {
@@ -1579,17 +1562,14 @@ class Game {
     buyItem(shopIndex) {
         const slot = this.shopItems[shopIndex];
         if (!slot || slot.sold) return;
-
         if (this.inventory.length >= this.maxInventory) {
             alert("アイテムがいっぱいです！");
             return;
         }
-
         if (this.tickets >= slot.item.price) {
             this.tickets -= slot.item.price;
             this.inventory.push(slot.item);
             slot.sold = true;
-
             this.inventory.forEach(invItem => {
                 if (invItem.effectType === 'reroll_buy_chance') {
                     if (this.checkProb(invItem.prob)) {
@@ -1597,7 +1577,6 @@ class Game {
                     }
                 }
             });
-
             this.recalcStats(); 
             this.updateUI();
             this.updateShopUI();
@@ -1620,11 +1599,9 @@ class Game {
 
     updateShopUI() {
         this.ui.shopShelves.innerHTML = '';
-        
         for(let i=0; i<4; i++) {
             const slot = this.shopItems[i];
             const div = document.createElement('div');
-            
             if (slot) {
                 const item = slot.item;
                 div.className = `shop-item rarity-${item.rarity} ${slot.sold ? 'sold-out' : ''}`;
@@ -1632,7 +1609,7 @@ class Game {
                     <div class="item-name">${item.name}</div>
                     <div class="item-desc">${item.desc}</div>
                     <div class="item-price">価格: ${item.price}枚</div>
-                    <button class="btn-buy" onclick="game.buyItem(${i})">
+                    <button class="btn-buy" onclick="window.game.buyItem(${i})">
                         ${slot.sold ? 'SOLD' : '購入'}
                     </button>
                 `;
@@ -1642,10 +1619,9 @@ class Game {
             }
             this.ui.shopShelves.appendChild(div);
         }
-
         const btn = this.ui.btnReroll;
         
-        if (this.isStartupFreeReroll()) {
+        if (this.stage === 1 && this.round === 1 && this.rollCount === INITIAL_ROLL_COUNT) {
             btn.textContent = `再入荷 (無料: スタートボーナス)`;
             btn.style.background = '#2ecc71'; 
             btn.style.boxShadow = '0 4px 0 #27ae60';
@@ -1657,7 +1633,7 @@ class Game {
             btn.disabled = false;
         } else {
             btn.textContent = `再入荷 (Cost: ${this.rerollCost})`;
-            btn.style.background = ''; // デフォルトに戻す
+            btn.style.background = ''; 
             btn.style.boxShadow = '';
             btn.disabled = (this.tickets < this.rerollCost);
         }
@@ -1673,18 +1649,17 @@ class Game {
     nextPhase() {
         this.ui.modal.classList.remove('show');
         const isClear = this.ui.modal.dataset.isClear === "true";
-        
         if (isClear) {
             this.openPrestige();
         } else {
             this.stage = 1;
-            this.totalScore = 0;
+            this.totalScore = 0n;
             this.inventory = [];
             this.tickets = 4;
-            this.freeRerolls = 0; // リセット
+            this.freeRerolls = 0; 
             this.streakMenashi = 0; 
             this.streakWin = 0;
-            this.faceValues = [0,1,2,3,4,5,6];
+            this.faceValues = [0n,1n,2n,3n,4n,5n,6n];
             this.baseMultipliers = { ...CONST_BASE_MULTIPLIERS };
             this.yakuMultipliers = { ...this.baseMultipliers };
             this.prestigeState.weights = [0,0,0,0,0,0,0];
@@ -1693,7 +1668,6 @@ class Game {
         }
     }
 
-    // --- プレステージ処理 ---
     openPrestige() {
         this.ui.gameView.classList.add('hidden');
         this.ui.shopView.classList.remove('active');
@@ -1706,17 +1680,14 @@ class Game {
         this.ui.prestigeCont.innerHTML = '';
         this.ui.btnPrestigeReroll.textContent = `選択肢変更 (Cost: ${this.prestigeRerollCost})`;
         this.ui.btnPrestigeReroll.disabled = (this.tickets < this.prestigeRerollCost);
-
         this.currentPrestigeOptions = [];
         let pool = [...PRESTIGE_OPTIONS];
-        
         for(let i=0; i<3; i++) {
             if(pool.length === 0) break;
             const idx = Math.floor(Math.random() * pool.length);
             const opt = pool[idx];
             pool.splice(idx, 1);
             this.currentPrestigeOptions.push(opt);
-
             const div = document.createElement('div');
             div.className = 'prestige-card';
             div.innerHTML = `
@@ -1739,18 +1710,15 @@ class Game {
 
     selectPrestige(index) {
         const opt = this.currentPrestigeOptions[index];
-        
         if (opt.type === 'weight') {
             this.prestigeState.weights[opt.target] += 3;
         } else if (opt.type === 'multi') {
-            // 乗算ではなく基礎値を倍にする
-            this.baseMultipliers[opt.target] *= 2;
+            this.baseMultipliers[opt.target] *= 2n;
         } else if (opt.type === 'ticket') {
             this.tickets += opt.val;
         } else if (opt.type === 'inv_max') {
             this.prestigeState.extraInv += 1;
         }
-
         this.ui.prestigeView.classList.remove('active');
         this.ui.gameView.classList.remove('hidden');
         this.stage++;
@@ -1758,7 +1726,15 @@ class Game {
     }
 }
 
-const game = new Game();
+// 起動処理の安全化
+window.addEventListener('DOMContentLoaded', () => {
+    try {
+        window.game = new Game();
+    } catch(e) {
+        console.error("Critical Init Error:", e);
+        alert("ゲームの起動に失敗しました。\n" + e.message);
+    }
+});
 </script>
 </body>
 </html>
