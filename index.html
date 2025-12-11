@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=1280">
-    <title>チンチロ・PIT</title>
+    <title>チンチロ・インフレ</title>
     <style>
         :root {
             --bg-color: #1a472a;
@@ -67,6 +67,17 @@
         }
         h1 { margin: 0; color: var(--accent-gold); font-size: 2rem; }
         .stage-info { font-size: 1.5rem; font-weight: bold; }
+        
+        .header-controls { display: flex; align-items: center; gap: 15px; }
+        .btn-toggle-format {
+            background: rgba(255,255,255,0.2);
+            font-size: 0.9rem; padding: 5px 15px;
+            border: 1px solid rgba(255,255,255,0.4);
+            border-radius: 5px;
+            color: #fff;
+            cursor: pointer;
+        }
+        .btn-toggle-format:hover { background: rgba(255,255,255,0.3); }
 
         /* 左サイド：ルール表 */
         .left-panel {
@@ -125,7 +136,7 @@
             border-radius: 50px;
             border: 2px solid rgba(255,255,255,0.1);
             max-width: 90%;
-            word-break: keep-all; 
+            word-break: break-all; 
         }
         .pool-label { font-size: 0.9rem; opacity: 0.8; }
         .pool-value { font-size: 2.2rem; font-weight: bold; color: var(--accent-gold); line-height: 1.2; }
@@ -191,6 +202,9 @@
         .log-rate { border-color: #e74c3c; color: #ec7063; background: rgba(231, 76, 60, 0.2); }
         .log-bad  { border-color: #7f8c8d; color: #95a5a6; background: rgba(0,0,0,0.5); }
         .log-hifumi { border-color: #e74c3c; color: #e74c3c; background: rgba(231, 76, 60, 0.1); font-weight: bold; }
+        .log-arashi { border-color: #3498db; color: #3498db; background: rgba(52, 152, 219, 0.1); font-weight: bold; }
+        .log-shigoro { border-color: #e67e22; color: #e67e22; background: rgba(230, 126, 34, 0.1); font-weight: bold; }
+        .log-pinzoro { border-color: #f1c40f; color: #f1c40f; background: rgba(241, 196, 15, 0.15); font-weight: bold; box-shadow: 0 0 5px rgba(241, 196, 15, 0.3); }
 
         @keyframes fadeIn { from { opacity:0; transform:translateY(5px); } to { opacity:1; transform:translateY(0); } }
 
@@ -384,22 +398,25 @@
             display: flex;
             flex-direction: column;
             gap: 20px;
-            overflow: hidden; /* レイアウト崩れ防止 */
-            min-height: 0;    /* Grid内でのサイズ爆発防止 */
+            overflow: hidden; 
+            min-height: 0;
         }
         .score-box {
             text-align: center;
             background: rgba(0,0,0,0.3);
             padding: 15px;
             border-radius: 10px;
-            word-break: keep-all;
+            word-break: break-all;
+            overflow-wrap: anywhere;
         }
         .score-label { display: block; font-size: 0.8rem; opacity: 0.8; margin-bottom: 3px; }
         .score-num { font-size: 1.6rem; font-weight: bold; line-height: 1.1; }
         .target-num { color: #f39c12; }
         
         .stat-row { display: flex; gap: 10px; }
-        .stat-item { flex: 1; }
+        .stat-item { flex: 1; min-width: 0; } /* min-width:0 でFlex内縮小を許可 */
+        .stat-item .score-num { font-size: 1.1rem; } /* インフレ対応でフォントサイズ縮小 */
+
         .ticket-box { background: var(--stat-ticket-bg); border: 1px solid var(--stat-ticket-border); color: var(--stat-ticket-border); }
         .luck-box { background: var(--stat-luck-bg); border: 1px solid var(--stat-luck-border); color: var(--stat-luck-text); }
         .rate-box { background: var(--stat-rate-bg); border: 1px solid var(--stat-rate-border); color: var(--stat-rate-text); }
@@ -411,7 +428,7 @@
             background: rgba(0,0,0,0.3);
             border-radius: 10px;
             padding: 15px;
-            overflow-y: auto; /* スクロール有効化 */
+            overflow-y: auto; 
             min-height: 0;
         }
         .inventory-header {
@@ -471,8 +488,11 @@
 
 <div class="game-wrapper">
     <div class="header-area">
-        <h1>🎲 チンチロ・スコアアタック</h1>
-        <div class="stage-info">STAGE <span id="ui-stage">1</span></div>
+        <h1>🎲 チンチロ・インフレ</h1>
+        <div class="header-controls">
+            <div class="stage-info">STAGE <span id="ui-stage">1</span></div>
+            <button class="btn-toggle-format" onclick="window.game.toggleNotation()">表記切替</button>
+        </div>
     </div>
 
     <div class="left-panel">
@@ -605,6 +625,155 @@ const JP_UNITS = ['', '万', '億', '兆', '京', '垓', '𥝱', '穣', '溝', '
 const MURYO_LIMIT = 10n ** 68n; 
 const INITIAL_ROLL_COUNT = 7;
 
+// --- 定数定義 ---
+
+const RARITY = {
+    COMMON:    { id: 'common',    name: 'コモン',       color: 'var(--rarity-common)',    price: 1,  weight: 60 },
+    UNCOMMON:  { id: 'uncommon',  name: 'アンコモン',     color: 'var(--rarity-uncommon)',  price: 2,  weight: 30 },
+    RARE:      { id: 'rare',      name: 'レア',        color: 'var(--rarity-rare)',      price: 4,  weight: 7 },
+    SR:        { id: 'sr',        name: 'スーパーレア',   color: 'var(--rarity-sr)',        price: 8,  weight: 2.5 },
+    LEGENDARY: { id: 'legendary', name: 'レジェンダリー', color: 'var(--rarity-legendary)', price: 16, weight: 0.5 }
+};
+
+const CONST_BASE_MULTIPLIERS = {
+    'pinzoro': 500n, 'arashi': 100n, '456': 20n, 'meari': 5n, 'menashi': 1n, 'hifumi': 0n
+};
+
+const ITEM_DATA = [];
+
+// 金の〇〇
+const GOLD_PROBS = [0.50, 0.45, 0.40, 0.35, 0.30, 0.25];
+['壱','弐','参','肆','伍','陸'].forEach((kanji, idx) => {
+    const face = idx + 1;
+    const prob = GOLD_PROBS[idx];
+    ITEM_DATA.push({
+        id: `gold_${face}`,
+        name: `金の${kanji}`,
+        rarity: 'common',
+        desc: `${kanji}の目が出た時、${Math.floor(prob*100)}%の確率で、${kanji}の出目点が現在の2倍になる`,
+        price: RARITY.COMMON.price,
+        effectType: 'gold_mul',
+        targetFace: face,
+        prob: prob
+    });
+});
+
+// 覚醒の〇〇
+const AWAKENING_PROBS = [0.20, 0.17, 0.14, 0.11, 0.08, 0.05];
+['壱','弐','参','肆','伍','陸'].forEach((kanji, idx) => {
+    const face = idx + 1;
+    const prob = AWAKENING_PROBS[idx];
+    ITEM_DATA.push({
+        id: `awakening_${face}`,
+        name: `覚醒の${kanji}`,
+        rarity: 'uncommon',
+        desc: `${kanji}の目が出た時、${Math.floor(prob*100)}%の確率で、成立した役の倍率が現在の2倍になる`,
+        price: RARITY.UNCOMMON.price,
+        effectType: 'awakening_mul',
+        targetFace: face,
+        prob: prob
+    });
+});
+
+// 幸福の〇〇
+const HAPPY_PROBS = [0.50, 0.46, 0.42, 0.38, 0.34, 0.30];
+['壱','弐','参','肆','伍','陸'].forEach((kanji, idx) => {
+    const face = idx + 1;
+    const prob = HAPPY_PROBS[idx];
+    ITEM_DATA.push({
+        id: `happy_${face}`,
+        name: `幸福の${kanji}`,
+        rarity: 'uncommon',
+        desc: `${kanji}の目が出た時、${Math.floor(prob*100)}%の確率でチケットを1枚獲得する`,
+        price: RARITY.UNCOMMON.price,
+        effectType: 'happy',
+        targetFace: face,
+        prob: prob
+    });
+});
+
+// LUCK系
+ITEM_DATA.push({ id: 'luck_1', name: '星の欠片', rarity: 'common', desc: '幸運ステータスが50上昇する', price: 1, effectType: 'luck_static', value: 50 });
+ITEM_DATA.push({ id: 'luck_2', name: '月光の指輪', rarity: 'uncommon', desc: '幸運ステータスが125上昇する', price: 2, effectType: 'luck_static', value: 125 }); 
+ITEM_DATA.push({ id: 'luck_3', name: '太陽のタリスマン', rarity: 'rare', desc: '幸運ステータスが300上昇する', price: 4, effectType: 'luck_static', value: 300 }); 
+ITEM_DATA.push({ id: 'luck_4', name: '運命の歯車', rarity: 'sr', desc: '幸運ステータスが750上昇する', price: 8, effectType: 'luck_static', value: 750 }); 
+ITEM_DATA.push({ id: 'luck_5', name: '奇跡の聖杯', rarity: 'legendary', desc: '幸運ステータスが2000上昇する', price: 16, effectType: 'luck_static', value: 2000 }); 
+
+ITEM_DATA.push({ id: 'luck_cond_menashi', name: '泥沼からの光', rarity: 'common', desc: '目なしが2回連続で発生した時、次のロールで幸運が一時的に+300される', price: 1, effectType: 'luck_cond_menashi', value: 300 }); 
+ITEM_DATA.push({ id: 'luck_chance_50', name: 'コインの表裏', rarity: 'common', desc: 'ロール開始時、50%の確率でそのロール中の幸運が+250される', price: 1, effectType: 'luck_chance', prob: 0.5, value: 250 }); 
+ITEM_DATA.push({ id: 'luck_chance_25', name: '四分の一の賭け', rarity: 'common', desc: 'ロール開始時、25%の確率でそのロール中の幸運が+500される', price: 1, effectType: 'luck_chance', prob: 0.25, value: 500 }); 
+
+ITEM_DATA.push({ id: 'inv_expand', name: '魔法の鞄', rarity: 'uncommon', desc: 'アイテムの最大所持数が2つ増加する', price: 2, effectType: 'inv_expand', value: 2 });
+ITEM_DATA.push({ id: 'buff_streak_win', name: '昇り龍の像', rarity: 'uncommon', desc: '「目あり」以上の役が3連続で続いた時、全ての役の倍率が現在の2倍になる', price: 2, effectType: 'buff_streak_win' });
+
+// 特殊効果
+ITEM_DATA.push({ id: 'rate_ticket', name: 'チケット・タックス', rarity: 'uncommon', desc: '所持しているチケット10枚ごとに、スコア計算時の全体倍率が+1.0加算される', price: 2, effectType: 'rate_ticket', value: 1.0 });
+ITEM_DATA.push({ id: 'ticket_interest', name: '利子', rarity: 'uncommon', desc: 'ステージクリア時、所持チケット5枚につき+1枚のチケットを追加で獲得する', price: 2, effectType: 'ticket_interest', value: 1 });
+ITEM_DATA.push({ id: 'rate_streak', name: 'コンボボーナス', rarity: 'common', desc: '「目あり」以上の役が続く限り、連勝数に応じて全体倍率が+0.2ずつ加算される（目なし・ヒフミでリセット）', price: 1, effectType: 'rate_streak', value: 0.2 });
+ITEM_DATA.push({ id: 'roll_add', name: 'アンコール', rarity: 'common', desc: 'ロールを行った際、15%の確率でロール回数が1回分回復する', price: 1, effectType: 'roll_add', prob: 0.15 });
+ITEM_DATA.push({ id: 'prob_boost', name: '幸運のクローバー', rarity: 'common', desc: '確率で発動するアイテムの判定成功率が2倍になる', price: 1, effectType: 'prob_boost' });
+
+// 極意・呪縛
+ITEM_DATA.push({ id: 'score_odd_2x', name: '奇数の極意', rarity: 'common', desc: '3つのダイスの合計が奇数の場合、そのロールの全体倍率が2倍になる', price: 1, effectType: 'score_sum_odd', value: 2 });
+ITEM_DATA.push({ id: 'score_even_2x', name: '偶数の極意', rarity: 'common', desc: '3つのダイスの合計が偶数の場合、そのロールの全体倍率が2倍になる', price: 1, effectType: 'score_sum_even', value: 2 });
+ITEM_DATA.push({ id: 'score_odd_focus', name: '奇数の呪縛', rarity: 'uncommon', desc: '3つのダイスの合計が奇数なら全体倍率4倍、偶数なら0.5倍になる', price: 2, effectType: 'score_sum_focus_odd' });
+ITEM_DATA.push({ id: 'score_even_focus', name: '偶数の呪縛', rarity: 'uncommon', desc: '3つのダイスの合計が偶数なら全体倍率4倍、奇数なら0.5倍になる', price: 2, effectType: 'score_sum_focus_even' });
+
+// ヒフミ系
+ITEM_DATA.push({ id: 'hifumi_act_roll', name: '逆境の糧', rarity: 'uncommon', desc: '役「ヒフミ」が成立した時、ロール回数が3回分回復する（1ラウンドにつき3回まで発動）', price: 2, effectType: 'hifumi_act_roll' });
+ITEM_DATA.push({ id: 'hifumi_act_pin', name: '起死回生', rarity: 'uncommon', desc: '役「ヒフミ」が成立した時、次回のロール結果が確定で「ピンゾロ」になる', price: 2, effectType: 'hifumi_act_pin' });
+ITEM_DATA.push({ id: 'hifumi_guard', name: '身代わりの人形', rarity: 'uncommon', desc: '役「ヒフミ」が成立した際に発生する、プールスコア没収のペナルティを無効化する', price: 2, effectType: 'hifumi_guard' });
+ITEM_DATA.push({ id: 'hifumi_buff_rate', name: '狂戦士の魂', rarity: 'rare', desc: '役「ヒフミ」が成立した時、そのラウンドが終了するまで全体倍率を2倍にする', price: 4, effectType: 'hifumi_mul_rate' });
+ITEM_DATA.push({ id: 'hifumi_buff_face', name: '混沌の力', rarity: 'rare', desc: '役「ヒフミ」が成立した時、全てのサイコロの出目点が永続的に4倍になる', price: 4, effectType: 'hifumi_buff_face' });
+ITEM_DATA.push({ id: 'hifumi_gain_ticket', name: '保険金', rarity: 'rare', desc: '役「ヒフミ」が成立した時、所持チケット5枚につき1枚のチケットを獲得する', price: 4, effectType: 'hifumi_ticket_pct' });
+ITEM_DATA.push({ id: 'start_fixed_hifumi', name: '破滅の契約書', rarity: 'sr', desc: '幸運での判定時、ヒフミが出ていたら他の役より優先してヒフミを選択する（1ラウンド3回まで）', price: 8, effectType: 'hifumi_priority' });
+
+// アラシ系
+ITEM_DATA.push({ id: 'arashi_act_roll', name: '疾風のブーツ', rarity: 'uncommon', desc: '役「アラシ」が成立した時、ロール回数が1回分回復する（1ラウンドにつき5回まで発動）', price: 2, effectType: 'arashi_act_roll' });
+ITEM_DATA.push({ id: 'arashi_luck_next', name: '雷鳴の指輪', rarity: 'uncommon', desc: '役「アラシ」が成立した時、次のロールの幸運ステータスが+200される', price: 2, effectType: 'arashi_luck_next' });
+ITEM_DATA.push({ id: 'arashi_mul_rate', name: '暴風の王冠', rarity: 'rare', desc: '役「アラシ」が成立した時、そのラウンドが終了するまで全体倍率を1.5倍にする', price: 4, effectType: 'arashi_mul_rate' });
+ITEM_DATA.push({ id: 'arashi_buff_face', name: '天地鳴動', rarity: 'rare', desc: '役「アラシ」が成立した時、全てのサイコロの出目点が永続的に1.5倍になる', price: 4, effectType: 'arashi_buff_face' });
+ITEM_DATA.push({ id: 'arashi_gain_ticket', name: '海賊の宝箱', rarity: 'rare', desc: '役「アラシ」が成立した時、チケットを20枚獲得する', price: 4, effectType: 'arashi_gain_ticket' });
+
+// シゴロ系
+ITEM_DATA.push({ id: 'shigoro_act_roll', name: '疾走の翼', rarity: 'uncommon', desc: '役「シゴロ」が成立した時、ロール回数が1回分回復する（1ラウンドにつき4回まで発動）', price: 2, effectType: 'shigoro_act_roll' });
+ITEM_DATA.push({ id: 'shigoro_luck_next', name: '星空の導き', rarity: 'uncommon', desc: '役「シゴロ」が成立した時、次のロールの幸運ステータスが+150される', price: 2, effectType: 'shigoro_luck_next' });
+ITEM_DATA.push({ id: 'shigoro_mul_rate', name: '烈火の王冠', rarity: 'rare', desc: '役「シゴロ」が成立した時、そのラウンドが終了するまで全体倍率を1.5倍にする', price: 4, effectType: 'shigoro_mul_rate' });
+ITEM_DATA.push({ id: 'shigoro_buff_face', name: '大地鳴動', rarity: 'rare', desc: '役「シゴロ」が成立した時、全てのサイコロの出目点が永続的に1.5倍になる', price: 4, effectType: 'shigoro_buff_face' });
+ITEM_DATA.push({ id: 'shigoro_gain_ticket', name: '盗賊の金貨', rarity: 'rare', desc: '役「シゴロ」が成立した時、チケットを15枚獲得する', price: 4, effectType: 'shigoro_gain_ticket' });
+
+// ピンゾロ系 (新規)
+ITEM_DATA.push({ id: 'pinzoro_act_roll', name: '天帝の凱旋', rarity: 'rare', desc: '役「ピンゾロ」が成立した時、ロール回数が2回分回復する（1ラウンドにつき3回まで発動）', price: 4, effectType: 'pinzoro_act_roll' });
+ITEM_DATA.push({ id: 'pinzoro_luck_next', name: '天運の指輪', rarity: 'rare', desc: '役「ピンゾロ」が成立した時、次のロールの幸運ステータスが+250される', price: 4, effectType: 'pinzoro_luck_next' });
+ITEM_DATA.push({ id: 'pinzoro_mul_rate', name: '覇王の冠', rarity: 'sr', desc: '役「ピンゾロ」が成立した時、そのラウンドが終了するまで全体倍率を2倍にする', price: 8, effectType: 'pinzoro_mul_rate' });
+ITEM_DATA.push({ id: 'pinzoro_buff_face', name: '天地創造', rarity: 'sr', desc: '役「ピンゾロ」が成立した時、全てのサイコロの出目点が永続的に2倍になる', price: 8, effectType: 'pinzoro_buff_face' });
+ITEM_DATA.push({ id: 'pinzoro_gain_ticket', name: '王の財宝', rarity: 'sr', desc: '役「ピンゾロ」が成立した時、チケットを30枚獲得する', price: 8, effectType: 'pinzoro_gain_ticket' });
+
+
+// リロール系
+ITEM_DATA.push({ id: 'reroll_c_1', name: '商人の会員証', rarity: 'common', desc: '新しいステージが開始されるたび、ショップの無料再入荷回数が2回分追加される', price: 1, effectType: 'reroll_stage', value: 2 });
+ITEM_DATA.push({ id: 'reroll_r_1', name: '貴族の紹介状', rarity: 'rare', desc: '各ラウンドが終了するたび、ショップの無料再入荷回数が1回分追加される', price: 4, effectType: 'reroll_round', value: 1 });
+ITEM_DATA.push({ id: 'rate_reroll', name: '準備万端', rarity: 'uncommon', desc: '所持しているリロール無料回数1回につき、全体倍率に+1.0倍を加算する', price: 2, effectType: 'rate_reroll', value: 1.0 });
+
+// プレステージオプション
+const PRESTIGE_OPTIONS = [
+    { type: 'weight', target: 1, text: '壱の目の出る確率の重みが+3永続的に増加する', icon: '⚀' },
+    { type: 'weight', target: 2, text: '弐の目の出る確率の重みが+3永続的に増加する', icon: '⚁' },
+    { type: 'weight', target: 3, text: '参の目の出る確率の重みが+3永続的に増加する', icon: '⚂' },
+    { type: 'weight', target: 4, text: '肆の目の出る確率の重みが+3永続的に増加する', icon: '⚃' },
+    { type: 'weight', target: 5, text: '伍の目の出る確率の重みが+3永続的に増加する', icon: '⚄' },
+    { type: 'weight', target: 6, text: '陸の目の出る確率の重みが+3永続的に増加する', icon: '⚅' },
+    { type: 'weight_group', targets: [1, 2, 3], val: -1, text: '1, 2, 3の目の出る確率の重みが-1永続的に減少する', icon: '🔻' },
+    { type: 'weight_group', targets: [4, 5, 6], val: -1, text: '4, 5, 6の目の出る確率の重みが-1永続的に減少する', icon: '🔽' },
+    { type: 'multi', target: 'pinzoro', text: '役「ピンゾロ」の現在の倍率が5倍になる（基礎点更新）', icon: '👑' },
+    { type: 'multi', target: 'arashi', text: '役「アラシ」の現在の倍率が5倍になる（基礎点更新）', icon: '🌀' },
+    { type: 'multi', target: '456', text: '役「シゴロ」の現在の倍率が5倍になる（基礎点更新）', icon: '🔥' },
+    { type: 'multi', target: 'meari', text: '役「目あり」の現在の倍率が5倍になる（基礎点更新）', icon: '👀' },
+    { type: 'multi', target: 'menashi', text: '役「目なし」の現在の倍率が5倍になる（基礎点更新）', icon: '☠️' },
+    { type: 'ticket', val: 5, text: 'チケットを5枚獲得する', icon: '🎫' },
+    { type: 'inv_max', text: 'インベントリの最大数が永続的に1つ増加する', icon: '🎒' }
+];
+
 function formatBigInt(val) {
     if (val === 0n) return "0";
     let isNeg = false;
@@ -643,148 +812,6 @@ function formatBigInt(val) {
     return (isNeg ? "-" : "") + result + suffix;
 }
 
-// --- 定数定義 ---
-
-const RARITY = {
-    COMMON:    { id: 'common',    name: 'コモン',       color: 'var(--rarity-common)',    price: 1,  weight: 60 },
-    UNCOMMON:  { id: 'uncommon',  name: 'アンコモン',     color: 'var(--rarity-uncommon)',  price: 2,  weight: 30 },
-    RARE:      { id: 'rare',      name: 'レア',        color: 'var(--rarity-rare)',      price: 4,  weight: 7 },
-    SR:        { id: 'sr',        name: 'スーパーレア',   color: 'var(--rarity-sr)',        price: 8,  weight: 2.5 },
-    LEGENDARY: { id: 'legendary', name: 'レジェンダリー', color: 'var(--rarity-legendary)', price: 16, weight: 0.5 }
-};
-
-const CONST_BASE_MULTIPLIERS = {
-    'pinzoro': 500n, 'arashi': 100n, '456': 20n, 'meari': 5n, 'menashi': 1n, 'hifumi': 0n
-};
-
-const ITEM_DATA = [];
-
-// 金の〇〇
-const GOLD_PROBS = [0.50, 0.45, 0.40, 0.35, 0.30, 0.25];
-['壱','弐','参','肆','伍','陸'].forEach((kanji, idx) => {
-    const face = idx + 1;
-    const prob = GOLD_PROBS[idx];
-    ITEM_DATA.push({
-        id: `gold_${face}`,
-        name: `金の${kanji}`,
-        rarity: 'common',
-        desc: `${kanji}の目が出た時、${Math.floor(prob*100)}%の確率で、${kanji}の出目点が${face}点分、永続的に強化される`,
-        price: RARITY.COMMON.price,
-        effectType: 'gold',
-        targetFace: face,
-        prob: prob
-    });
-});
-
-// 覚醒の〇〇
-const AWAKENING_PROBS = [0.20, 0.17, 0.14, 0.11, 0.08, 0.05];
-['壱','弐','参','肆','伍','陸'].forEach((kanji, idx) => {
-    const face = idx + 1;
-    const prob = AWAKENING_PROBS[idx];
-    ITEM_DATA.push({
-        id: `awakening_${face}`,
-        name: `覚醒の${kanji}`,
-        rarity: 'uncommon',
-        desc: `${kanji}の目が出た時、${Math.floor(prob*100)}%の確率で、成立した役の倍率に初期値(+${CONST_BASE_MULTIPLIERS.meari.toString()})分を加算し、永続的に強化する`,
-        price: RARITY.UNCOMMON.price,
-        effectType: 'awakening',
-        targetFace: face,
-        prob: prob
-    });
-});
-
-// 幸福の〇〇
-const HAPPY_PROBS = [0.30, 0.25, 0.20, 0.15, 0.10, 0.05];
-['壱','弐','参','肆','伍','陸'].forEach((kanji, idx) => {
-    const face = idx + 1;
-    const prob = HAPPY_PROBS[idx];
-    ITEM_DATA.push({
-        id: `happy_${face}`,
-        name: `幸福の${kanji}`,
-        rarity: 'uncommon',
-        desc: `${kanji}の目が出た時、${Math.floor(prob*100)}%の確率でチケットを1枚獲得する`,
-        price: RARITY.UNCOMMON.price,
-        effectType: 'happy',
-        targetFace: face,
-        prob: prob
-    });
-});
-
-// お守り
-['壱','弐','参','肆','伍','陸'].forEach((kanji, idx) => {
-    const face = idx + 1;
-    ITEM_DATA.push({
-        id: `charm_fixed_${face}`,
-        name: `${kanji}のお守り`,
-        rarity: 'uncommon',
-        desc: `常に${kanji}の目が出る確率の重みが増加(+5)し、出やすくなる`,
-        price: RARITY.UNCOMMON.price,
-        effectType: 'weight_fixed',
-        targetFace: face,
-        value: 5
-    });
-});
-ITEM_DATA.push({ id: 'charm_odd', name: '奇数のお守り', rarity: 'uncommon', desc: '奇数(1,3,5)の目の出やすさが、全て上昇(+3)する', price: RARITY.UNCOMMON.price, effectType: 'weight_parity', targetParity: 1, value: 3 });
-ITEM_DATA.push({ id: 'charm_even', name: '偶数のお守り', rarity: 'uncommon', desc: '偶数(2,4,6)の目の出やすさが、全て上昇(+3)する', price: RARITY.UNCOMMON.price, effectType: 'weight_parity', targetParity: 0, value: 3 });
-ITEM_DATA.push({ id: 'charm_cursed', name: '呪われたお守り', rarity: 'uncommon', desc: '最も点数の高い目が出現しなくなる（重みが0になる）', price: RARITY.UNCOMMON.price, effectType: 'weight_curse' });
-
-// LUCK系 (Updated)
-ITEM_DATA.push({ id: 'luck_1', name: '星の欠片', rarity: 'common', desc: '幸運ステータスが50上昇する', price: 1, effectType: 'luck_static', value: 50 });
-ITEM_DATA.push({ id: 'luck_2', name: '月光の指輪', rarity: 'uncommon', desc: '幸運ステータスが125上昇する', price: 2, effectType: 'luck_static', value: 125 }); // 100 -> 125
-ITEM_DATA.push({ id: 'luck_3', name: '太陽のタリスマン', rarity: 'rare', desc: '幸運ステータスが300上昇する', price: 4, effectType: 'luck_static', value: 300 }); // 200 -> 300
-ITEM_DATA.push({ id: 'luck_4', name: '運命の歯車', rarity: 'sr', desc: '幸運ステータスが750上昇する', price: 8, effectType: 'luck_static', value: 750 }); // 400 -> 750
-ITEM_DATA.push({ id: 'luck_5', name: '奇跡の聖杯', rarity: 'legendary', desc: '幸運ステータスが2000上昇する', price: 16, effectType: 'luck_static', value: 2000 }); // 1000 -> 2000
-
-ITEM_DATA.push({ id: 'luck_cond_menashi', name: '泥沼からの光', rarity: 'common', desc: '目なしが2回連続で発生した時、次のロールで幸運が一時的に+300される', price: 1, effectType: 'luck_cond_menashi', value: 300 }); // 200 -> 300
-ITEM_DATA.push({ id: 'luck_chance_50', name: 'コインの表裏', rarity: 'common', desc: 'ロール開始時、50%の確率でそのロール中の幸運が+250される', price: 1, effectType: 'luck_chance', prob: 0.5, value: 250 }); // 100 -> 250
-ITEM_DATA.push({ id: 'luck_chance_25', name: '四分の一の賭け', rarity: 'common', desc: 'ロール開始時、25%の確率でそのロール中の幸運が+500される', price: 1, effectType: 'luck_chance', prob: 0.25, value: 500 }); // 400 -> 500
-
-ITEM_DATA.push({ id: 'inv_expand', name: '魔法の鞄', rarity: 'uncommon', desc: 'アイテムの最大所持数が2つ増加する', price: 2, effectType: 'inv_expand', value: 2 });
-ITEM_DATA.push({ id: 'buff_streak_win', name: '昇り龍の像', rarity: 'uncommon', desc: '「目あり」以上の役が3連続で続いた時、全てのサイコロの出目点が初期値分だけ永続的に強化される', price: 2, effectType: 'buff_streak_win' });
-
-// 特殊効果
-ITEM_DATA.push({ id: 'rate_ticket', name: 'チケット・タックス', rarity: 'uncommon', desc: '所持しているチケット10枚ごとに、スコア計算時の全体倍率が+0.3加算される', price: 2, effectType: 'rate_ticket', value: 0.3 });
-ITEM_DATA.push({ id: 'nerf_low', name: '重り', rarity: 'uncommon', desc: '1～3の目の出やすさが減少(-2)する', price: 2, effectType: 'weight_nerf_low', value: 2 });
-ITEM_DATA.push({ id: 'nerf_high', name: '軽石', rarity: 'uncommon', desc: '4～6の目の出やすさが減少(-3)する', price: 2, effectType: 'weight_nerf_high', value: 3 });
-ITEM_DATA.push({ id: 'ticket_interest', name: '利子', rarity: 'uncommon', desc: 'ステージクリア時、所持チケット5枚につき+1枚のチケットを追加で獲得する', price: 2, effectType: 'ticket_interest', value: 1 });
-ITEM_DATA.push({ id: 'rate_streak', name: 'コンボボーナス', rarity: 'common', desc: '「目あり」以上の役が続く限り、連勝数に応じて全体倍率が+0.2ずつ加算される（目なし・ヒフミでリセット）', price: 1, effectType: 'rate_streak', value: 0.2 });
-ITEM_DATA.push({ id: 'roll_add', name: 'アンコール', rarity: 'common', desc: 'ロールを行った際、15%の確率でロール回数が1回分回復する', price: 1, effectType: 'roll_add', prob: 0.15 });
-ITEM_DATA.push({ id: 'prob_boost', name: '幸運のクローバー', rarity: 'common', desc: '確率で発動するアイテムの判定成功率が2倍になる', price: 1, effectType: 'prob_boost' });
-ITEM_DATA.push({ id: 'score_odd_2x', name: '奇数の極意', rarity: 'common', desc: 'サイコロの出目が奇数の場合、その出目にかかる計算上のスコアが2倍になる', price: 1, effectType: 'score_odd', value: 2 });
-ITEM_DATA.push({ id: 'score_even_2x', name: '偶数の極意', rarity: 'common', desc: 'サイコロの出目が偶数の場合、その出目にかかる計算上のスコアが2倍になる', price: 1, effectType: 'score_even', value: 2 });
-ITEM_DATA.push({ id: 'score_odd_focus', name: '奇数の呪縛', rarity: 'uncommon', desc: 'サイコロの出目が奇数の場合スコアが4倍になるが、偶数の場合は0.5倍になる', price: 2, effectType: 'score_focus_odd' });
-ITEM_DATA.push({ id: 'score_even_focus', name: '偶数の呪縛', rarity: 'uncommon', desc: 'サイコロの出目が偶数の場合スコアが4倍になるが、奇数の場合は0.5倍になる', price: 2, effectType: 'score_focus_even' });
-
-// ヒフミ系
-ITEM_DATA.push({ id: 'hifumi_act_roll', name: '逆境の糧', rarity: 'uncommon', desc: '役「ヒフミ」が成立した時、ロール回数が3回分回復する（1ラウンドにつき3回まで発動）', price: 2, effectType: 'hifumi_act_roll' });
-ITEM_DATA.push({ id: 'hifumi_act_pin', name: '起死回生', rarity: 'uncommon', desc: '役「ヒフミ」が成立した時、次回のロール結果が確定で「ピンゾロ」になる', price: 2, effectType: 'hifumi_act_pin' });
-ITEM_DATA.push({ id: 'hifumi_guard', name: '身代わりの人形', rarity: 'uncommon', desc: '役「ヒフミ」が成立した際に発生する、プールスコア没収のペナルティを無効化する', price: 2, effectType: 'hifumi_guard' });
-ITEM_DATA.push({ id: 'hifumi_buff_rate', name: '狂戦士の魂', rarity: 'rare', desc: '役「ヒフミ」が成立した時、そのラウンドが終了するまで全体倍率に+4.0を加算する', price: 4, effectType: 'hifumi_buff_rate' });
-ITEM_DATA.push({ id: 'hifumi_buff_face', name: '混沌の力', rarity: 'rare', desc: '役「ヒフミ」が成立した時、全てのサイコロの出目点が永続的に2倍になる', price: 4, effectType: 'hifumi_buff_face' });
-ITEM_DATA.push({ id: 'hifumi_gain_ticket', name: '保険金', rarity: 'rare', desc: '役「ヒフミ」が成立した時、保険金としてチケットを20枚獲得する', price: 4, effectType: 'hifumi_gain_ticket' });
-ITEM_DATA.push({ id: 'start_fixed_hifumi', name: '破滅の契約書', rarity: 'sr', desc: '各ラウンドの最初のロール結果が、回避不能な確定の「ヒフミ」になる', price: 8, effectType: 'start_fixed_hifumi' });
-
-// リロール系
-ITEM_DATA.push({ id: 'reroll_c_1', name: '商人の会員証', rarity: 'common', desc: '新しいステージが開始されるたび、ショップの無料再入荷回数が2回分追加される', price: 1, effectType: 'reroll_stage', value: 2 });
-ITEM_DATA.push({ id: 'reroll_r_1', name: '貴族の紹介状', rarity: 'rare', desc: '各ラウンドが終了するたび、ショップの無料再入荷回数が1回分追加される', price: 4, effectType: 'reroll_round', value: 1 });
-
-// プレステージオプション
-const PRESTIGE_OPTIONS = [
-    { type: 'weight', target: 1, text: '壱の目の出る確率の重みが+3永続的に増加する', icon: '⚀' },
-    { type: 'weight', target: 2, text: '弐の目の出る確率の重みが+3永続的に増加する', icon: '⚁' },
-    { type: 'weight', target: 3, text: '参の目の出る確率の重みが+3永続的に増加する', icon: '⚂' },
-    { type: 'weight', target: 4, text: '肆の目の出る確率の重みが+3永続的に増加する', icon: '⚃' },
-    { type: 'weight', target: 5, text: '伍の目の出る確率の重みが+3永続的に増加する', icon: '⚄' },
-    { type: 'weight', target: 6, text: '陸の目の出る確率の重みが+3永続的に増加する', icon: '⚅' },
-    { type: 'multi', target: 'pinzoro', text: '役「ピンゾロ」の現在の倍率が2倍になる（基礎点更新）', icon: '👑' },
-    { type: 'multi', target: 'arashi', text: '役「アラシ」の現在の倍率が2倍になる（基礎点更新）', icon: '🌀' },
-    { type: 'multi', target: '456', text: '役「シゴロ」の現在の倍率が2倍になる（基礎点更新）', icon: '🔥' },
-    { type: 'multi', target: 'meari', text: '役「目あり」の現在の倍率が2倍になる（基礎点更新）', icon: '👀' },
-    { type: 'multi', target: 'menashi', text: '役「目なし」の現在の倍率が2倍になる（基礎点更新）', icon: '☠️' },
-    { type: 'ticket', val: 5, text: 'チケットを5枚獲得する', icon: '🎫' },
-    { type: 'inv_max', text: 'インベントリの最大数が永続的に1つ増加する', icon: '🎒' }
-];
-
 class Game {
     constructor() {
         this.diceChars = ['?', '⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
@@ -809,16 +836,25 @@ class Game {
         this.shopItems = []; 
         this.rerollCost = 1;
         this.maxInventory = 7;
+        
+        this.isScientific = false; // 表記モード
 
         this.streakMenashi = 0;
         this.streakWin = 0;
         this.tempLuckBoost = 0;
         
-        this.tempRateBoost = 0.0;
+        this.tempRateBoost = 0.0; // 加算バフ
+        this.roundMultiplierBoost = 1.0; // 乗算バフ
+        
         this.hifumiTriggerCount = 0; 
+        this.hifumiPriorityCount = 0; 
+        this.arashiRollCount = 0; 
+        this.shigoroRollCount = 0;
+        this.pinzoroRollCount = 0; // ピンゾロ用
+
         this.nextRollFixedDice = null; 
         this.forcedDice = null; 
-        this.roundExecCount = 0; // そのラウンドで実際にロールを行った回数（アンコール対策）
+        this.roundExecCount = 0; 
         
         this.prestigeState = {
             weights: [0, 0, 0, 0, 0, 0, 0], 
@@ -873,27 +909,44 @@ class Game {
         }
     }
 
+    toggleNotation() {
+        this.isScientific = !this.isScientific;
+        this.updateUI();
+        this.updateTables();
+    }
+
+    formatVal(val) {
+        if (this.isScientific) {
+            if (val === 0n) return "0";
+            let str = val.toString();
+            if (str.length <= 6) return str;
+            let exponent = str.length - 1;
+            let mantissa = str.substring(0, 4); 
+            return mantissa.charAt(0) + "." + mantissa.substring(1) + "e+" + exponent;
+        } else {
+            return formatBigInt(val);
+        }
+    }
+
     initStage() {
         this.round = 1;
         this.pool = 0n;
         this.rollCount = INITIAL_ROLL_COUNT;
         this.roundExecCount = 0;
         
-        let t = 1000n;
-        if (this.stage > 1) {
-            let num = 1n;
-            let den = 1n;
-            for(let i=0; i<this.stage-1; i++) {
-                num *= 22n;
-                den *= 10n;
-            }
-            t = t * num / den;
-        }
-        this.targetScore = t;
-        
+        // Target = 1500 * 4 ^ (経過ステージ数 * 経過ステージ数)
+        const elapsedStages = this.stage - 1;
+        const exponent = BigInt(elapsedStages * elapsedStages);
+        this.targetScore = 1500n * (4n ** exponent);
+
         this.nextRollFixedDice = null;
         this.tempRateBoost = 0.0;
+        this.roundMultiplierBoost = 1.0;
         this.hifumiTriggerCount = 0;
+        this.hifumiPriorityCount = 0;
+        this.arashiRollCount = 0;
+        this.shigoroRollCount = 0;
+        this.pinzoroRollCount = 0;
 
         this.inventory.forEach(item => {
             if (item.effectType === 'reroll_stage') {
@@ -913,7 +966,7 @@ class Game {
         
         this.ui.msgMain.textContent = `STAGE ${this.stage}`;
         this.ui.msgMain.classList.remove('hifumi-text');
-        this.ui.msgSub.textContent = `目標: ${formatBigInt(this.targetScore)}pt`;
+        this.ui.msgSub.textContent = `目標: ${this.formatVal(this.targetScore)}pt`;
         this.ui.btnShop.classList.remove('hidden-el');
         this.ui.btnShop.disabled = false;
         this.ui.btnRoll.disabled = false;
@@ -943,44 +996,11 @@ class Game {
 
     recalcStats() {
         let w = [0, 5, 5, 5, 5, 5, 5];
-        this.inventory.forEach(item => {
-            if (item.effectType === 'weight_fixed') w[item.targetFace] += item.value;
-            if (item.effectType === 'weight_parity') {
-                for(let i=1; i<=6; i++) if (i % 2 === item.targetParity) w[i] += item.value;
-            }
-            if (item.effectType === 'weight_bless') {
-                let currentMin = this.faceValues[1];
-                for(let i=2; i<=6; i++) {
-                    if(this.faceValues[i] < currentMin) currentMin = this.faceValues[i];
-                }
-                let targets = [];
-                for(let i=1; i<=6; i++) if(this.faceValues[i] === currentMin) targets.push(i);
-                targets.forEach(t => w[t] += item.value);
-            }
-            if (item.effectType === 'weight_nerf_low') {
-                for(let i=1; i<=3; i++) w[i] -= item.value;
-            }
-            if (item.effectType === 'weight_nerf_high') {
-                for(let i=4; i<=6; i++) w[i] -= item.value;
-            }
-        });
         
         for(let i=1; i<=6; i++) {
             w[i] += this.prestigeState.weights[i];
         }
         for(let i=1; i<=6; i++) if(w[i] < 0) w[i] = 0;
-
-        this.inventory.forEach(item => {
-            if (item.effectType === 'weight_curse') {
-                let currentMax = this.faceValues[1];
-                for(let i=2; i<=6; i++) {
-                    if(this.faceValues[i] > currentMax) currentMax = this.faceValues[i];
-                }
-                let targets = [];
-                for(let i=1; i<=6; i++) if(this.faceValues[i] === currentMax) targets.push(i);
-                targets.forEach(t => w[t] = 0);
-            }
-        });
         this.diceWeights = w;
 
         let l = 50;
@@ -1004,8 +1024,13 @@ class Game {
             if (item.effectType === 'rate_streak') {
                 rate += this.streakWin * item.value;
             }
+            if (item.effectType === 'rate_reroll') {
+                rate += this.freeRerolls * item.value;
+            }
         });
         rate += this.tempRateBoost; 
+        rate *= this.roundMultiplierBoost;
+
         this.globalMultiplier = rate;
         this.updateTables();
     }
@@ -1019,21 +1044,12 @@ class Game {
 
         this.forcedDice = null;
         
-        // 修正: アンコール対策のため、単純なrollCountではなく実行回数(roundExecCount)で判定
-        if (this.roundExecCount === 0) {
-            const starter = this.inventory.find(i => i.effectType === 'start_fixed_hifumi');
-            if (starter) {
-                this.forcedDice = [1, 2, 3];
-                this.addLog(`📜${starter.name}`, 'log-hifumi');
-            }
-        }
-        if (!this.forcedDice && this.nextRollFixedDice) {
+        if (this.nextRollFixedDice) {
             this.forcedDice = [...this.nextRollFixedDice];
             this.nextRollFixedDice = null;
             this.addLog(`🔥確定演出`, 'log-buff');
         }
 
-        // ロール実行回数をカウント（確定）
         this.roundExecCount++;
 
         let rollLuck = this.baseLuck + this.tempLuckBoost;
@@ -1102,14 +1118,44 @@ class Game {
             } while (true);
         }
 
-        rollAttempts.sort((a, b) => {
-            if (b.res.score > a.res.score) return 1;
-            if (b.res.score < a.res.score) return -1;
-            return 0;
-        });
-        const best = rollAttempts[0];
-        dice = best.dice;
-        res = best.res;
+        let picked = null;
+        const ruinContract = this.inventory.find(i => i.effectType === 'hifumi_priority');
+        if (ruinContract && this.hifumiPriorityCount < 3) {
+            const hifumiRoll = rollAttempts.find(a => a.res.isHifumi);
+            if (hifumiRoll) {
+                picked = hifumiRoll;
+                this.hifumiPriorityCount++;
+                this.addLog(`📜${ruinContract.name}`, 'log-hifumi');
+            }
+        }
+
+        if (!picked) {
+            const YAKU_RANK = {
+                'pinzoro': 5,
+                'arashi': 4,
+                '456': 3,
+                'meari': 2,
+                'menashi': 1,
+                'hifumi': 0
+            };
+
+            rollAttempts.sort((a, b) => {
+                const rankA = YAKU_RANK[a.res.yakuKey] || 0;
+                const rankB = YAKU_RANK[b.res.yakuKey] || 0;
+                
+                if (rankB !== rankA) {
+                    return rankB - rankA; 
+                }
+                
+                if (b.res.score > a.res.score) return 1;
+                if (b.res.score < a.res.score) return -1;
+                return 0;
+            });
+            picked = rollAttempts[0];
+        }
+        
+        dice = picked.dice;
+        res = picked.res;
 
         const luckTriggerCount = rollAttempts.length - 1;
         if (luckTriggerCount > 0) this.addLog(`LUCK発動 x${luckTriggerCount}`, 'log-luck');
@@ -1135,9 +1181,11 @@ class Game {
             let dragonFired = false;
             this.inventory.forEach(item => {
                 if (item.effectType === 'buff_streak_win') {
-                    for(let i=1; i<=6; i++) {
-                        this.faceValues[i] += BigInt(i); 
-                        this.roundGains.faces[i] += BigInt(i);
+                    for(let key in this.baseMultipliers) {
+                        const added = this.baseMultipliers[key]; 
+                        this.baseMultipliers[key] *= 2n;
+                        this.yakuMultipliers[key] *= 2n;
+                        this.roundGains.yakus[key] = (this.roundGains.yakus[key] || 0n) + added;
                     }
                     dragonFired = true;
                     this.addLog(`🐲${item.name}`, 'log-buff');
@@ -1170,8 +1218,18 @@ class Game {
         } else {
             this.pool += res.score;
             this.ui.msgMain.textContent = res.yakuName;
-            this.ui.msgSub.textContent = `出目(${formatBigInt(res.sum)}) × 倍率(${formatBigInt(res.mul)}) = +${formatBigInt(res.score)}pt`;
+            this.ui.msgSub.textContent = `出目(${this.formatVal(res.sum)}) × 倍率(${this.formatVal(res.mul)}) = +${this.formatVal(res.score)}pt`;
             this.checkPostCalcEffects(dice, res.yakuKey);
+        }
+
+        if (res.yakuKey === 'arashi') {
+            this.triggerArashiEffects();
+        }
+        if (res.yakuKey === '456') {
+            this.triggerShigoroEffects();
+        }
+        if (res.yakuKey === 'pinzoro') {
+            this.triggerPinzoroEffects();
         }
 
         this.rollCount--;
@@ -1196,6 +1254,117 @@ class Game {
         }
     }
 
+    triggerArashiEffects() {
+        let recalcNeeded = false;
+        this.inventory.forEach(item => {
+            if (item.effectType === 'arashi_act_roll') {
+                if (this.arashiRollCount < 5) {
+                    this.rollCount += 1;
+                    this.arashiRollCount++;
+                    this.addLog(`💨${item.name}(+1 Roll)`, 'log-arashi');
+                } else {
+                    this.addLog(`(上限)${item.name}`, 'log-bad');
+                }
+            }
+            if (item.effectType === 'arashi_luck_next') {
+                this.tempLuckBoost += 200;
+                this.addLog(`⚡${item.name}`, 'log-luck');
+            }
+            if (item.effectType === 'arashi_mul_rate') {
+                this.roundMultiplierBoost *= 1.5;
+                this.addLog(`🌪️${item.name}`, 'log-rate');
+                recalcNeeded = true;
+            }
+            if (item.effectType === 'arashi_buff_face') {
+                for(let i=1; i<=6; i++) {
+                    const gain = (this.faceValues[i] * 5n) / 10n; // +0.5x
+                    this.faceValues[i] = (this.faceValues[i] * 15n) / 10n;
+                    this.roundGains.faces[i] += gain;
+                }
+                this.addLog(`🌋${item.name}`, 'log-buff');
+            }
+            if (item.effectType === 'arashi_gain_ticket') {
+                this.tickets += 20;
+                this.addLog(`🏴‍☠️${item.name}`, 'log-ticket');
+            }
+        });
+        if (recalcNeeded) this.recalcStats();
+    }
+
+    triggerShigoroEffects() {
+        let recalcNeeded = false;
+        this.inventory.forEach(item => {
+            if (item.effectType === 'shigoro_act_roll') {
+                if (this.shigoroRollCount < 4) {
+                    this.rollCount += 1;
+                    this.shigoroRollCount++;
+                    this.addLog(`🦅${item.name}(+1 Roll)`, 'log-shigoro');
+                } else {
+                    this.addLog(`(上限)${item.name}`, 'log-bad');
+                }
+            }
+            if (item.effectType === 'shigoro_luck_next') {
+                this.tempLuckBoost += 150;
+                this.addLog(`🌠${item.name}`, 'log-luck');
+            }
+            if (item.effectType === 'shigoro_mul_rate') {
+                this.roundMultiplierBoost *= 1.5;
+                this.addLog(`🔥${item.name}`, 'log-rate');
+                recalcNeeded = true;
+            }
+            if (item.effectType === 'shigoro_buff_face') {
+                for(let i=1; i<=6; i++) {
+                    const gain = (this.faceValues[i] * 5n) / 10n; // +0.5x
+                    this.faceValues[i] = (this.faceValues[i] * 15n) / 10n;
+                    this.roundGains.faces[i] += gain;
+                }
+                this.addLog(`🌍${item.name}`, 'log-buff');
+            }
+            if (item.effectType === 'shigoro_gain_ticket') {
+                this.tickets += 15;
+                this.addLog(`💰${item.name}`, 'log-ticket');
+            }
+        });
+        if (recalcNeeded) this.recalcStats();
+    }
+
+    triggerPinzoroEffects() {
+        let recalcNeeded = false;
+        this.inventory.forEach(item => {
+            if (item.effectType === 'pinzoro_act_roll') {
+                if (this.pinzoroRollCount < 3) {
+                    this.rollCount += 2;
+                    this.pinzoroRollCount++;
+                    this.addLog(`👑${item.name}(+2 Roll)`, 'log-pinzoro');
+                } else {
+                    this.addLog(`(上限)${item.name}`, 'log-bad');
+                }
+            }
+            if (item.effectType === 'pinzoro_luck_next') {
+                this.tempLuckBoost += 250;
+                this.addLog(`✨${item.name}`, 'log-luck');
+            }
+            if (item.effectType === 'pinzoro_mul_rate') {
+                this.roundMultiplierBoost *= 2.0;
+                this.addLog(`⚔️${item.name}`, 'log-rate');
+                recalcNeeded = true;
+            }
+            if (item.effectType === 'pinzoro_buff_face') {
+                for(let i=1; i<=6; i++) {
+                    const gain = this.faceValues[i]; // +1.0x (total 2x)
+                    this.faceValues[i] *= 2n;
+                    this.roundGains.faces[i] += gain;
+                }
+                this.addLog(`🪐${item.name}`, 'log-buff');
+            }
+            if (item.effectType === 'pinzoro_gain_ticket') {
+                this.tickets += 30;
+                this.addLog(`💎${item.name}`, 'log-ticket');
+            }
+        });
+        if (recalcNeeded) this.recalcStats();
+    }
+
     triggerHifumiEffects() {
         let recalcNeeded = false;
         this.inventory.forEach(item => {
@@ -1212,21 +1381,25 @@ class Game {
                 this.nextRollFixedDice = [1, 1, 1];
                 this.addLog(`⚔️${item.name}`, 'log-buff');
             }
-            if (item.effectType === 'hifumi_buff_rate') {
-                this.tempRateBoost += 4.0;
+            if (item.effectType === 'hifumi_mul_rate') {
+                this.roundMultiplierBoost *= 2.0;
                 this.addLog(`😡${item.name}`, 'log-rate');
                 recalcNeeded = true;
             }
             if (item.effectType === 'hifumi_buff_face') {
                 for(let i=1; i<=6; i++) {
-                    this.faceValues[i] *= 2n;
-                    this.roundGains.faces[i] += this.faceValues[i] / 2n;
+                    const gain = this.faceValues[i] * 3n; 
+                    this.faceValues[i] *= 4n;
+                    this.roundGains.faces[i] += gain;
                 }
                 this.addLog(`🌀${item.name}`, 'log-buff');
             }
-            if (item.effectType === 'hifumi_gain_ticket') {
-                this.tickets += 20;
-                this.addLog(`💰${item.name}`, 'log-ticket');
+            if (item.effectType === 'hifumi_ticket_pct') {
+                const gain = Math.floor(this.tickets / 5);
+                if (gain > 0) {
+                    this.tickets += gain;
+                    this.addLog(`💰${item.name}(+${gain})`, 'log-ticket');
+                }
             }
         });
         if (recalcNeeded) this.recalcStats();
@@ -1237,20 +1410,23 @@ class Game {
         let sum = 0n;
         dice.forEach(d => {
             let val = this.faceValues[d];
-            let mulNum = 100n; 
-            let mulDen = 100n; 
-            const isOdd = (d % 2 !== 0);
-            this.inventory.forEach(item => {
-                if (item.effectType === 'score_odd' && isOdd) mulNum *= BigInt(item.value);
-                if (item.effectType === 'score_even' && !isOdd) mulNum *= BigInt(item.value);
-                if (item.effectType === 'score_focus_odd') {
-                    if (isOdd) mulNum *= 4n; else mulDen *= 2n; 
-                }
-                if (item.effectType === 'score_focus_even') {
-                    if (!isOdd) mulNum *= 4n; else mulDen *= 2n;
-                }
-            });
-            sum += (val * mulNum) / mulDen;
+            sum += val;
+        });
+
+        const diceSumTotal = dice.reduce((a,c) => a+c, 0);
+        const isSumOdd = (diceSumTotal % 2 !== 0);
+        
+        let tempRateMul = 1.0;
+        
+        this.inventory.forEach(item => {
+            if (item.effectType === 'score_sum_odd' && isSumOdd) tempRateMul *= item.value;
+            if (item.effectType === 'score_sum_even' && !isSumOdd) tempRateMul *= item.value;
+            if (item.effectType === 'score_sum_focus_odd') {
+                if (isSumOdd) tempRateMul *= 4.0; else tempRateMul *= 0.5;
+            }
+            if (item.effectType === 'score_sum_focus_even') {
+                if (!isSumOdd) tempRateMul *= 4.0; else tempRateMul *= 0.5;
+            }
         });
         
         let yakuKey = 'menashi';
@@ -1263,7 +1439,10 @@ class Game {
         else if (sorted[0]===sorted[1] || sorted[1]===sorted[2] || sorted[0]===sorted[2]) { yakuKey='meari'; yakuName="目あり"; }
 
         let mul = this.yakuMultipliers[yakuKey]; 
-        let globalRateInt = BigInt(Math.round(this.globalMultiplier * 100));
+        
+        const effectiveGlobalRate = this.globalMultiplier * tempRateMul;
+        let globalRateInt = BigInt(Math.round(effectiveGlobalRate * 100));
+        
         const finalScore = (sum * mul * globalRateInt) / 100n;
         return { sum, mul, score: finalScore, yakuName, yakuKey, isHifumi };
     }
@@ -1285,27 +1464,29 @@ class Game {
     checkPostCalcEffects(dice, yakuKey) {
         let changed = false;
         this.inventory.forEach(item => {
-            if (item.effectType === 'gold') {
+            if (item.effectType === 'gold_mul') {
                 const count = dice.filter(d => d === item.targetFace).length;
                 for(let i=0; i<count; i++) {
                     if (this.checkProb(item.prob)) { 
-                        this.faceValues[item.targetFace] += BigInt(item.targetFace);
-                        this.roundGains.faces[item.targetFace] += BigInt(item.targetFace);
-                        this.addLog(`💪${item.name}`, 'log-buff');
+                        const face = item.targetFace;
+                        const added = this.faceValues[face]; 
+                        this.faceValues[face] *= 2n;
+                        this.roundGains.faces[face] += added;
+                        this.addLog(`💪${item.name}(x2)`, 'log-buff');
                         changed = true;
                     }
                 }
             }
-            if (item.effectType === 'awakening') {
+            if (item.effectType === 'awakening_mul') {
                 const count = dice.filter(d => d === item.targetFace).length;
                 for(let i=0; i<count; i++) {
                     if (this.checkProb(item.prob)) { 
-                        const inc = CONST_BASE_MULTIPLIERS[yakuKey];
-                        if (inc > 0n) {
-                            this.baseMultipliers[yakuKey] += inc;
-                            this.yakuMultipliers[yakuKey] += inc;
-                            this.roundGains.yakus[yakuKey] = (this.roundGains.yakus[yakuKey] || 0n) + inc;
-                            this.addLog(`⚡${item.name}`, 'log-buff');
+                        const current = this.baseMultipliers[yakuKey];
+                        if (current > 0n) {
+                            this.baseMultipliers[yakuKey] *= 2n;
+                            this.yakuMultipliers[yakuKey] *= 2n;
+                            this.roundGains.yakus[yakuKey] = (this.roundGains.yakus[yakuKey] || 0n) + current;
+                            this.addLog(`⚡${item.name}(x2)`, 'log-buff');
                             changed = true;
                         }
                     }
@@ -1320,7 +1501,13 @@ class Game {
         const earned = this.pool;
         this.pool = 0n;
         this.tempRateBoost = 0;
+        this.roundMultiplierBoost = 1.0; 
         this.hifumiTriggerCount = 0;
+        this.hifumiPriorityCount = 0; 
+        this.arashiRollCount = 0; 
+        this.shigoroRollCount = 0;
+        this.pinzoroRollCount = 0;
+        
         this.inventory.forEach(item => {
             if (item.effectType === 'reroll_round') {
                 this.freeRerolls += item.value;
@@ -1329,12 +1516,12 @@ class Game {
         this.ui.btnClear.classList.remove('visible'); 
         this.ui.msgMain.textContent = "ROUND FINISH";
         this.ui.msgMain.classList.remove('hifumi-text');
-        this.ui.msgSub.textContent = `獲得: ${formatBigInt(earned)}pt / 合計: ${formatBigInt(this.totalScore)}pt`;
+        this.ui.msgSub.textContent = `獲得: ${this.formatVal(earned)}pt / 合計: ${this.formatVal(this.totalScore)}pt`;
         document.getElementById('pool-box').classList.remove('shock-effect');
         this.updateUI();
         this.round++;
         this.rollCount = INITIAL_ROLL_COUNT;
-        this.roundExecCount = 0; // ラウンドが変わるのでリセット
+        this.roundExecCount = 0; 
         
         if (this.round > 3) {
             setTimeout(() => this.checkStageClear(), 1500);
@@ -1385,8 +1572,8 @@ class Game {
         this.updateUI();
         this.showModal("STAGE CLEAR! 🎉", 
             `目標スコア達成！<br>
-             支払い: -${formatBigInt(paid)}pt<br>
-             残りスコア: ${formatBigInt(this.totalScore)}pt<br>
+             支払い: -${this.formatVal(paid)}pt<br>
+             残りスコア: ${this.formatVal(this.totalScore)}pt<br>
              <div style="margin-top:10px; font-size:0.9em; background:#eee; padding:10px; border-radius:5px; color:#333;">
                 獲得: ${reward}枚<br>
                 (基本2 + 残R${roundsLeft}x2 + アイテム等)
@@ -1403,14 +1590,14 @@ class Game {
             this.updateUI();
             this.showModal("STAGE CLEAR! 🎉", 
             `目標スコア達成！<br>
-             支払い: -${formatBigInt(paid)}pt<br>
-             残りスコア: ${formatBigInt(this.totalScore)}pt<br>
+             支払い: -${this.formatVal(paid)}pt<br>
+             残りスコア: ${this.formatVal(this.totalScore)}pt<br>
              <div style="margin-top:10px; font-size:0.9em; background:#eee; padding:10px; border-radius:5px; color:#333;">
                 獲得: ${reward}枚
              </div>`, 
             true);
         } else {
-            this.showModal("GAME OVER", `SCORE: ${formatBigInt(this.totalScore)}<br>目標(${formatBigInt(this.targetScore)})に届かず...`, false);
+            this.showModal("GAME OVER", `SCORE: ${this.formatVal(this.totalScore)}<br>目標(${this.formatVal(this.targetScore)})に届かず...`, false);
         }
     }
 
@@ -1423,31 +1610,69 @@ class Game {
             const standardProb = 1/6;
             const val = this.faceValues[i];
             const gain = this.roundGains.faces[i];
-            const gainHtml = gain > 0n ? `<span class="val-gain">(+${formatBigInt(gain)})</span>` : '';
+            const gainHtml = gain > 0n ? `<span class="val-gain">(+${this.formatVal(gain)})</span>` : '';
             let probClass = 'prob-col';
             if (Math.abs(prob - standardProb) < 0.0001) {} 
             else if (prob > standardProb) { probClass += ' prob-high'; } 
             else { probClass += ' prob-low'; }
             htmlFaces += `<tr>
                 <td>${i}</td>
-                <td>${formatBigInt(val)}点 ${gainHtml}</td>
+                <td>${this.formatVal(val)}点 ${gainHtml}</td>
                 <td class="${probClass}">${(prob*100).toFixed(1)}%</td>
             </tr>`;
         }
         this.ui.tableFaces.innerHTML = htmlFaces;
 
-        let htmlYaku = `<tr><th>役名</th><th>倍率</th></tr>`;
+        // --- 2. 役確率の計算ロジック ---
+        const probs = { 'pinzoro': 0, 'arashi': 0, '456': 0, 'hifumi': 0, 'meari': 0, 'menashi': 0 };
+        
+        if (totalWeight > 0) {
+            for (let i = 1; i <= 6; i++) {
+                for (let j = 1; j <= 6; j++) {
+                    for (let k = 1; k <= 6; k++) {
+                        const p = (this.diceWeights[i] / totalWeight) * (this.diceWeights[j] / totalWeight) * (this.diceWeights[k] / totalWeight);
+                        
+                        const sorted = [i, j, k].sort((a, b) => a - b);
+                        if (sorted[0] === 1 && sorted[1] === 1 && sorted[2] === 1) probs['pinzoro'] += p;
+                        else if (sorted[0] === sorted[1] && sorted[1] === sorted[2]) probs['arashi'] += p;
+                        else if (sorted[0] === 4 && sorted[1] === 5 && sorted[2] === 6) probs['456'] += p;
+                        else if (sorted[0] === 1 && sorted[1] === 2 && sorted[2] === 3) probs['hifumi'] += p;
+                        else if (sorted[0] === sorted[1] || sorted[1] === sorted[2] || sorted[0] === sorted[2]) probs['meari'] += p;
+                        else probs['menashi'] += p;
+                    }
+                }
+            }
+        }
+
+        // --- 3. 役倍率テーブルの更新 ---
+        let htmlYaku = `<tr><th>役名</th><th>倍率</th><th>確率</th></tr>`;
         const yakus = [
-            {k:'pinzoro', n:'ピンゾロ'}, {k:'arashi', n:'アラシ'}, 
-            {k:'456', n:'シゴロ'}, {k:'meari', n:'目あり'}, {k:'menashi', n:'目なし'}
+            {k:'pinzoro', n:'ピンゾロ'}, 
+            {k:'arashi', n:'アラシ'}, 
+            {k:'456', n:'シゴロ'}, 
+            {k:'meari', n:'目あり'}, 
+            {k:'menashi', n:'目なし'},
+            {k:'hifumi', n:'ヒフミ'} // 一番下に移動しました
         ];
+        
         yakus.forEach(y => {
             let curr = this.yakuMultipliers[y.k];
+            if (curr === undefined) curr = 0n; 
+
             const gain = this.roundGains.yakus[y.k] || 0n;
-            const gainHtml = gain > 0n ? `<span class="val-gain">(+${formatBigInt(gain)})</span>` : '';
+            const gainHtml = gain > 0n ? `<span class="val-gain">(+${this.formatVal(gain)})</span>` : '';
+            
+            const probVal = probs[y.k] * 100;
+            let probStr = probVal.toFixed(1) + '%';
+            
+            let probClass = 'prob-col';
+            if (y.k === 'hifumi' && probVal > 0) probClass = 'prob-low'; 
+            if (y.k === 'pinzoro' && probVal > 1) probClass = 'prob-high'; 
+
             htmlYaku += `<tr>
                 <td>${y.n}</td>
-                <td>x${formatBigInt(curr)} ${gainHtml}</td>
+                <td>x${this.formatVal(curr)} ${gainHtml}</td>
+                <td class="${probClass}">${probStr}</td>
             </tr>`;
         });
         this.ui.tableYaku.innerHTML = htmlYaku;
@@ -1468,9 +1693,9 @@ class Game {
         this.ui.stage.textContent = this.stage;
         this.ui.round.textContent = Math.min(this.round, 3);
         this.ui.roll.textContent = Math.max(0, this.rollCount);
-        this.ui.pool.textContent = formatBigInt(this.pool);
-        this.ui.target.textContent = formatBigInt(this.targetScore);
-        this.ui.total.textContent = formatBigInt(this.totalScore);
+        this.ui.pool.textContent = this.formatVal(this.pool);
+        this.ui.target.textContent = this.formatVal(this.targetScore);
+        this.ui.total.textContent = this.formatVal(this.totalScore);
         this.ui.tickets.textContent = this.tickets;
         this.ui.luck.textContent = this.currentLuck; 
         this.ui.rate.textContent = 'x' + this.globalMultiplier.toFixed(1);
@@ -1712,8 +1937,12 @@ class Game {
         const opt = this.currentPrestigeOptions[index];
         if (opt.type === 'weight') {
             this.prestigeState.weights[opt.target] += 3;
+        } else if (opt.type === 'weight_group') { // New logic
+            opt.targets.forEach(t => {
+                this.prestigeState.weights[t] += opt.val;
+            });
         } else if (opt.type === 'multi') {
-            this.baseMultipliers[opt.target] *= 2n;
+            this.baseMultipliers[opt.target] *= 5n; // インフレ対応 x5
         } else if (opt.type === 'ticket') {
             this.tickets += opt.val;
         } else if (opt.type === 'inv_max') {
