@@ -2,1968 +2,1603 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=1280">
-    <title>チンチロ・インフレ</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>チンチロ・探索クリッカー v6.4 (ロールバグ修正版)</title>
     <style>
         :root {
-            --bg-color: #1a472a;
-            --panel-bg: rgba(0, 0, 0, 0.6);
-            --text-main: #ffffff;
-            --accent-gold: #f1c40f;
-            --accent-red: #e74c3c;
-            --btn-blue: #3498db;
-            --btn-green: #2ecc71;
-            --dice-bg: #ecf0f1;
+            --bg-color: #121212;
+            --panel-bg: #1e1e1e;
+            --accent: #f1c40f;
+            --auto-color: #00d2d3;
+            --skill-line: #9b59b6;
+            --locked-color: #444;
+            --max-gold: #f39c12;
+            --total-color: #2ecc71;
+            /* モードカラー */
+            --mode-normal: #3498db;
+            --mode-ritual: #9b59b6;
+            --mode-fusion: #e74c3c;
             
-            --rarity-common: #ffffff;
-            --rarity-uncommon: #2ecc71;
-            --rarity-rare: #00d2ff;
-            --rarity-sr: #ffd700;
-            --rarity-legendary: #9b59b6;
+            /* レアリティカラー (基本) */
+            --rare-common: #ffffff;
+            --rare-uncommon: #2ecc71;
+            --rare-rare: #3498db;
+            --rare-super: #f1c40f;
+            --rare-ultra: #9b59b6;
+            /* 新レアリティ */
+            --rare-magic: #ff007f;
+            --rare-epic: #00d2d3;
+            --rare-legendary: #ff9f43;
+            --rare-eternal: #fab1a0;
 
-            --stat-ticket-bg: rgba(241, 196, 15, 0.2);
-            --stat-ticket-border: var(--accent-gold);
-            --stat-luck-bg: rgba(155, 89, 182, 0.2);
-            --stat-luck-border: #9b59b6;
-            --stat-luck-text: #d2b4de;
-            --stat-rate-bg: rgba(231, 76, 60, 0.2);
-            --stat-rate-border: #e74c3c;
-            --stat-rate-text: #ec7063;
+            /* 転生カラー */
+            --reinc-color: #e056fd;
+            --reinc-bg: #2d0f38;
         }
-
         body {
-            font-family: 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif;
+            font-family: 'Helvetica Neue', Arial, sans-serif;
             background-color: var(--bg-color);
-            color: var(--text-main);
+            color: white;
             margin: 0;
-            padding: 0;
             display: flex;
             justify-content: center;
-            align-items: center;
-            height: 100vh;
-            overflow: hidden;
-            user-select: none;
-        }
-
-        .game-wrapper {
-            display: grid;
-            grid-template-columns: 360px 1fr 320px;
-            grid-template-rows: auto 1fr;
-            gap: 20px;
-            width: 95%;
-            max-width: 1400px;
-            height: 90vh;
-        }
-
-        /* ヘッダーエリア */
-        .header-area {
-            grid-column: 1 / -1;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 2px solid var(--accent-gold);
-            padding-bottom: 10px;
-            margin-bottom: 10px;
-        }
-        h1 { margin: 0; color: var(--accent-gold); font-size: 2rem; }
-        .stage-info { font-size: 1.5rem; font-weight: bold; }
-        
-        .header-controls { display: flex; align-items: center; gap: 15px; }
-        .btn-toggle-format {
-            background: rgba(255,255,255,0.2);
-            font-size: 0.9rem; padding: 5px 15px;
-            border: 1px solid rgba(255,255,255,0.4);
-            border-radius: 5px;
-            color: #fff;
-            cursor: pointer;
-        }
-        .btn-toggle-format:hover { background: rgba(255,255,255,0.3); }
-
-        /* 左サイド：ルール表 */
-        .left-panel {
-            background: var(--panel-bg);
-            border-radius: 12px;
+            min-height: 100vh;
             padding: 20px;
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-            overflow-y: auto;
         }
-        .rule-card h3 {
-            margin-top: 0;
-            border-bottom: 1px solid rgba(255,255,255,0.3);
-            padding-bottom: 5px;
-            color: var(--accent-gold);
-            font-size: 1.1rem;
-        }
-        table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
-        th, td { padding: 8px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.1); }
-        th { background: rgba(0,0,0,0.3); }
+        .container { display: flex; gap: 20px; max-width: 1200px; width: 100%; position: relative; }
+        .sidebar { width: 220px; display: flex; flex-direction: column; gap: 20px; }
+        .panel { background: #1a1a1a; padding: 15px; border-radius: 10px; border: 1px solid #333; font-size: 0.8rem; }
+        .panel h3 { margin: 0 0 10px 0; color: var(--accent); text-align: center; border-bottom: 1px solid var(--accent); }
+        .panel table { width: 100%; border-collapse: collapse; }
+        .panel td { padding: 5px 0; border-bottom: 1px solid #222; }
+        .配当 { text-align: right; color: #2ecc71; font-weight: bold; }
+        #history-list { list-style: none; padding: 0; margin: 0; }
+        #history-list li { padding: 4px 0; border-bottom: 1px solid #222; display: flex; justify-content: space-between; }
+        .game-area { flex: 1; display: flex; flex-direction: column; align-items: center; }
+        .score-container { text-align: center; margin-bottom: 10px; }
+        .score-label { font-size: 0.9rem; color: #888; margin-bottom: -5px; }
+        #total-score-display { font-size: 1.5rem; color: var(--total-color); font-weight: bold; margin: 0; }
+        #score-board { font-size: 3.5rem; color: var(--accent); font-weight: bold; margin: 0; text-shadow: 0 0 10px rgba(241, 196, 15, 0.3); }
+        .multiplier-tag { background: var(--auto-color); color: #000; padding: 2px 12px; border-radius: 20px; font-weight: bold; font-size: 0.9rem; margin-bottom: 20px; }
+        #game-fields { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 15px; width: 100%; }
+        .field { background: var(--panel-bg); padding: 15px; border-radius: 15px; display: flex; flex-direction: column; align-items: center; position: relative; border: 1px solid #333; }
+        .timer-container { position: absolute; top: 10px; right: 10px; width: 35px; height: 35px; }
+        .timer-svg { transform: rotate(-90deg); width: 35px; height: 35px; }
+        .timer-progress { fill: none; stroke: var(--auto-color); stroke-width: 4; stroke-dasharray: 100; stroke-dashoffset: 100; }
+        .timer-bg { fill: none; stroke: #333; stroke-width: 4; }
+        .dice-row { display: flex; gap: 6px; margin: 10px 0; flex-wrap: wrap; justify-content: center; }
         
-        .prob-col { font-family: monospace; color: #fff; font-weight: bold; }
-        .prob-high { color: var(--btn-green); }
-        .prob-low { color: var(--accent-red); }
+        .die { 
+            width: 45px; height: 45px; background: white; border-radius: 8px; 
+            display: flex; justify-content: center; align-items: center; 
+            font-size: 1.8rem; color: #333; box-shadow: 0 4px 0 #999; 
+            transition: opacity 0.3s, transform 0.2s, color 0.3s, text-shadow 0.3s; 
+            font-family: 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif;
+        }
+        .die.is-number { font-size: 1.4rem; font-weight: bold; font-family: 'Arial', sans-serif; }
+
+        .rarity-common { color: #333; }
+        .rarity-uncommon { color: var(--rare-uncommon) !important; text-shadow: 0 0 2px rgba(46, 204, 113, 0.3); }
+        .rarity-rare { color: var(--rare-rare) !important; text-shadow: 0 0 3px rgba(52, 152, 219, 0.4); }
+        .rarity-super { color: var(--rare-super) !important; text-shadow: 0 0 5px rgba(241, 196, 15, 0.5); }
+        .rarity-ultra { color: var(--rare-ultra) !important; text-shadow: 0 0 8px rgba(155, 89, 182, 0.6); }
+        .rarity-magic { color: var(--rare-magic) !important; text-shadow: 0 0 10px var(--rare-magic); font-weight: bold; }
+        .rarity-epic { color: var(--rare-epic) !important; text-shadow: 0 0 12px var(--rare-epic); font-weight: bold; }
+        .rarity-legendary { color: var(--rare-legendary) !important; text-shadow: 0 0 15px var(--rare-legendary); font-weight: bold; border: 1px solid var(--rare-legendary); }
+        .rarity-eternal { 
+            color: #fff !important; 
+            background: linear-gradient(135deg, #000, #333);
+            text-shadow: 0 0 5px #fff, 0 0 10px #ff00de, 0 0 15px #00d2d3; 
+            border: 2px solid #fff;
+            animation: eternal-shine 2s infinite alternate;
+        }
+        @keyframes eternal-shine { from { box-shadow: 0 0 5px #fff; } to { box-shadow: 0 0 20px #fff; } }
+
+        .die.unused { opacity: 0.25; transform: scale(0.85); box-shadow: none; border: none; animation: none; }
+        .rolling { animation: shake 0.1s infinite; }
+        .roll-btn { background: #e67e22; color: white; border: none; padding: 8px 20px; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        .roll-btn:disabled { background: #444; cursor: not-allowed; }
         
-        .val-up { color: #2ecc71; font-weight: bold; animation: pulse 1s infinite; }
-        .val-gain { color: #2ecc71; font-weight: bold; animation: pop 0.3s ease-out; }
-        @keyframes pop { 0% { transform: scale(1); } 50% { transform: scale(1.2); } 100% { transform: scale(1); } }
+        /* 探索パネル */
+        #expedition-panel { width: 100%; background: #222; border: 2px solid #555; border-radius: 15px; padding: 15px; margin-bottom: 20px; display: none; text-align: center; position: relative; transition: border-color 0.3s; }
+        #expedition-panel.mode-normal { border-color: var(--mode-normal); }
+        #expedition-panel.mode-ritual { border-color: var(--mode-ritual); }
+        #expedition-panel.mode-fusion { border-color: var(--mode-fusion); }
+        
+        .exp-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .exp-title { margin: 0; font-weight: bold; font-size: 1.2rem; }
+        .exp-toggle-btn { background: #333; border: 1px solid #555; color: #aaa; padding: 4px 10px; border-radius: 5px; cursor: pointer; font-size: 0.7rem; }
+        .exp-toggle-btn:hover { background: #444; color: white; }
 
-        /* 中央：メインパネル */
-        .main-panel {
-            position: relative;
-            background: rgba(0,0,0,0.2);
-            border-radius: 12px;
-            overflow: hidden;
-        }
+        .exp-status { display: flex; align-items: center; justify-content: center; gap: 20px; }
+        .exp-btn { color: white; border: none; padding: 10px 25px; border-radius: 8px; cursor: pointer; font-weight: bold; transition: background 0.3s; }
+        .exp-btn:disabled { background: #444 !important; }
+        
+        /* モーダル */
+        #reward-modal, #pool-detail-modal, #upgrade-modal, #reinc-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); justify-content: center; align-items: center; z-index: 2000; }
+        #upgrade-modal, #reinc-modal { z-index: 1000; }
 
-        /* ゲームビュー */
-        .game-view {
-            width: 100%;
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            transition: opacity 0.3s;
-        }
-        .game-view.hidden { display: none; }
+        .reward-card { background: #222; border: 2px solid #444; padding: 20px; border-radius: 15px; width: 140px; cursor: pointer; transition: 0.3s; margin: 10px; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+        .reward-card:hover { border-color: var(--accent); transform: translateY(-5px); background: #333; }
+        .reward-card.remove-mode:hover { border-color: #e74c3c; background: #2c0b0b; }
+        .reward-card.fusion-mode:hover { border-color: var(--mode-fusion); background: #2c0b0b; }
+        .reward-card.selected { border-color: #2ecc71; background: #1b2e1b; transform: scale(0.95); opacity: 0.8; }
+        .reward-card.selected.remove-mode { border-color: #e74c3c; background: #2c0b0b; }
+        .reward-card.selected.fusion-mode { border-color: var(--mode-fusion); background: #3a1111; }
 
-        .pool-container {
-            text-align: center;
-            margin-bottom: 30px;
-            background: rgba(0,0,0,0.4);
-            padding: 15px 40px;
-            border-radius: 50px;
-            border: 2px solid rgba(255,255,255,0.1);
-            max-width: 90%;
-            word-break: break-all; 
+        #shop-trigger { position: fixed; bottom: 20px; right: 20px; background: #9b59b6; width: 60px; height: 60px; border-radius: 50%; font-size: 1.5rem; border: none; cursor: pointer; color: white; box-shadow: 0 4px 15px rgba(155, 89, 182, 0.4); z-index: 100; }
+        
+        /* 転生ボタン */
+        #reinc-btn {
+            position: absolute; top: 20px; right: 20px;
+            background: linear-gradient(135deg, #a723e7, #5f27cd);
+            color: white; padding: 8px 15px; border: 1px solid #e056fd; border-radius: 20px;
+            cursor: pointer; font-weight: bold; box-shadow: 0 0 10px rgba(224, 86, 253, 0.5);
+            display: none; z-index: 10; font-size: 0.9rem;
         }
-        .pool-label { font-size: 0.9rem; opacity: 0.8; }
-        .pool-value { font-size: 2.2rem; font-weight: bold; color: var(--accent-gold); line-height: 1.2; }
+        .reinc-available { animation: pulse-reinc 2s infinite; }
+        @keyframes pulse-reinc { 0% {box-shadow: 0 0 10px rgba(224, 86, 253, 0.5);} 50% {box-shadow: 0 0 20px rgba(224, 86, 253, 0.8);} 100% {box-shadow: 0 0 10px rgba(224, 86, 253, 0.5);} }
 
-        .dice-area {
-            display: flex;
-            gap: 20px;
-            margin-bottom: 30px;
-            height: 120px;
+        #shop-badge {
+            position: absolute;
+            top: -5px; right: -5px;
+            background: #e74c3c; color: white;
+            width: 24px; height: 24px;
+            border-radius: 50%;
+            display: none;
+            justify-content: center; align-items: center;
+            font-weight: bold; font-size: 0.9rem;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+            z-index: 101;
+            border: 2px solid #fff;
         }
-        .die {
-            width: 100px;
-            height: 100px;
-            background: var(--dice-bg);
-            border-radius: 15px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 4rem;
-            color: #333;
-            box-shadow: 0 8px 0 #bdc3c7;
-            font-weight: bold;
+        
+        .modal-content { 
+            background: #1a1a1a; padding: 30px; border-radius: 20px; width: 850px; text-align: center; 
+            border: 1px solid var(--skill-line); max-height: 90vh; overflow-y: auto; 
             position: relative;
         }
-        .die[data-value="1"] { color: #c0392b; }
-
-        /* ログエリア */
-        .message-area {
-            min-height: 90px;
-            height: auto;
-            text-align: center;
-            margin-bottom: 20px;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            width: 90%;
-        }
-        .main-msg { font-size: 2rem; font-weight: bold; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); line-height: 1.2; word-break: break-all; }
-        .sub-msg { font-size: 1.1rem; opacity: 0.9; margin-bottom: 5px; word-break: break-all; }
         
-        .effect-log { 
-            font-size: 0.85rem; 
-            margin-top: 5px;
-            width: 100%;
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 6px;
+        .close-modal-btn {
+            position: absolute; top: 20px; right: 20px;
+            background: transparent; border: none; color: #666; 
+            font-size: 2rem; cursor: pointer; line-height: 1; z-index: 10;
         }
-        .log-tag {
-            background: rgba(0,0,0,0.5);
-            border: 1px solid rgba(255,255,255,0.2);
-            padding: 3px 10px;
-            border-radius: 15px;
-            color: #fff;
-            animation: fadeIn 0.3s ease-out;
-            white-space: nowrap;
+        .close-modal-btn:hover { color: white; }
+
+        .tree-container { position: relative; display: flex; flex-direction: column; align-items: center; gap: 40px; margin-top: 40px; padding: 20px; }
+        .tree-row { display: flex; gap: 20px; position: relative; z-index: 2; justify-content: center; width: 100%; }
+        .svg-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none; }
+        .skill-line { stroke: #333; stroke-width: 3; fill: none; transition: 0.3s; }
+        .skill-line.active { stroke: var(--skill-line); }
+        .skill-node { width: 75px; height: 75px; background: #111; border-radius: 18px; display: flex; flex-direction: column; justify-content: center; align-items: center; position: relative; cursor: pointer; border: 3px solid #333; transition: 0.3s; }
+        .skill-node.available { border-color: #555; background: #222; }
+        .skill-node.unlocked { border-color: var(--skill-line); background: #2d1b33; }
+        .skill-node.is-max { border-color: var(--max-gold) !important; box-shadow: 0 0 10px rgba(243, 156, 18, 0.4); }
+        .skill-node.locked { background: #111; border-color: #333; cursor: default; }
+        .skill-node.locked .skill-icon, .skill-node.locked .lv-badge { opacity: 0.3; filter: grayscale(100%); }
+        .skill-node.can-buy::after {
+            content: "+"; position: absolute; top: -8px; right: -8px; background: #e74c3c; color: white; width: 22px; height: 22px;
+            border-radius: 50%; display: flex; justify-content: center; align-items: center; font-weight: bold; font-size: 1.1rem;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.5); z-index: 10; animation: pulse-badge 1.5s infinite alternate; border: 2px solid #222;
         }
-        .log-luck { border-color: #9b59b6; color: #d2b4de; background: rgba(155, 89, 182, 0.2); }
-        .log-ticket { border-color: #2ecc71; color: #a3e4d7; background: rgba(46, 204, 113, 0.2); }
-        .log-buff { border-color: #f39c12; color: #f9e79f; background: rgba(243, 156, 18, 0.2); }
-        .log-rate { border-color: #e74c3c; color: #ec7063; background: rgba(231, 76, 60, 0.2); }
-        .log-bad  { border-color: #7f8c8d; color: #95a5a6; background: rgba(0,0,0,0.5); }
-        .log-hifumi { border-color: #e74c3c; color: #e74c3c; background: rgba(231, 76, 60, 0.1); font-weight: bold; }
-        .log-arashi { border-color: #3498db; color: #3498db; background: rgba(52, 152, 219, 0.1); font-weight: bold; }
-        .log-shigoro { border-color: #e67e22; color: #e67e22; background: rgba(230, 126, 34, 0.1); font-weight: bold; }
-        .log-pinzoro { border-color: #f1c40f; color: #f1c40f; background: rgba(241, 196, 15, 0.15); font-weight: bold; box-shadow: 0 0 5px rgba(241, 196, 15, 0.3); }
+        @keyframes pulse-badge { from { transform: scale(1); } to { transform: scale(1.15); } }
 
-        @keyframes fadeIn { from { opacity:0; transform:translateY(5px); } to { opacity:1; transform:translateY(0); } }
+        /* 転生用スタイル */
+        .reinc-bg { background: var(--reinc-bg); border-color: var(--reinc-color); }
+        .reinc-node.unlocked { border-color: var(--reinc-color); background: #401550; }
+        .reinc-node.available { border-color: #7d3c98; background: #2d0f38; }
+        .skill-line.reinc-line.active { stroke: var(--reinc-color); }
 
-        .action-buttons {
-            display: flex;
-            gap: 15px;
-            justify-content: center;
-            align-items: center;
-            min-height: 70px;
-        }
-
-        button {
-            border: none;
-            border-radius: 50px;
-            cursor: pointer;
-            color: #fff;
-            font-weight: bold;
-            transition: transform 0.1s, box-shadow 0.1s;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            line-height: 1.1;
-        }
-        button:active { transform: translateY(4px); box-shadow: none !important; }
-        button:disabled { background: #7f8c8d !important; color: #bdc3c7 !important; box-shadow: none !important; cursor: not-allowed; }
-
-        .btn-roll {
-            background: var(--accent-gold);
-            color: #333;
-            padding: 15px 50px;
-            font-size: 1.5rem;
-            box-shadow: 0 6px 0 #d35400;
-            min-width: 180px;
-        }
-        .btn-roll:active { box-shadow: 0 2px 0 #d35400 !important; }
-
-        .btn-shop {
-            background: var(--btn-blue);
-            padding: 15px 30px;
-            font-size: 1.1rem;
-            box-shadow: 0 6px 0 #2980b9;
-        }
-        .btn-shop:active { box-shadow: 0 2px 0 #2980b9 !important; }
-
-        .btn-clear {
-            background: var(--btn-green);
-            padding: 10px 30px;
-            font-size: 1rem;
-            box-shadow: 0 6px 0 #27ae60;
-            display: none;
-        }
-        .btn-clear:active { box-shadow: 0 2px 0 #27ae60 !important; }
-        .btn-clear.visible { display: flex; animation: bounceIn 0.5s; }
-        .clear-sub { font-size: 0.8rem; opacity: 0.9; }
-
-        @keyframes bounceIn {
-            0% { transform: scale(0); opacity: 0; }
-            60% { transform: scale(1.1); opacity: 1; }
-            100% { transform: scale(1); }
-        }
-
-        .hidden-el { display: none !important; }
-
-        /* ショップビュー */
-        .shop-view {
-            width: 100%;
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 20px;
-            box-sizing: border-box;
-            display: none;
-        }
-        .shop-view.active { display: flex; }
-
-        .shop-header {
-            font-size: 2rem;
-            color: var(--accent-gold);
-            margin-bottom: 20px;
-            border-bottom: 2px solid var(--accent-gold);
-            width: 100%;
-            text-align: center;
-        }
-
-        .shop-shelves {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-            width: 100%;
-            margin-bottom: 20px;
-            flex-grow: 1;
-        }
-
-        .shop-item {
-            background: rgba(0,0,0,0.3);
-            border: 2px solid rgba(255,255,255,0.2);
-            border-radius: 10px;
-            padding: 15px;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            align-items: center;
-            text-align: center;
-            transition: transform 0.2s;
-            position: relative;
-        }
-        .shop-item:hover { transform: translateY(-2px); background: rgba(255,255,255,0.1); }
-        .shop-item.sold-out { opacity: 0.5; pointer-events: none; background: rgba(0,0,0,0.5); }
-
-        .rarity-common { border-color: var(--rarity-common); } .rarity-common .item-name { color: var(--rarity-common); }
-        .rarity-uncommon { border-color: var(--rarity-uncommon); } .rarity-uncommon .item-name { color: var(--rarity-uncommon); }
-        .rarity-rare { border-color: var(--rarity-rare); } .rarity-rare .item-name { color: var(--rarity-rare); }
-        .rarity-sr { border-color: var(--rarity-sr); } .rarity-sr .item-name { color: var(--rarity-sr); }
-        .rarity-legendary { border-color: var(--rarity-legendary); } .rarity-legendary .item-name { color: var(--rarity-legendary); }
-
-        .item-name { font-size: 1.1rem; font-weight: bold; margin-bottom: 5px; }
-        .item-desc { font-size: 0.8rem; height: 3.6em; display: flex; align-items: center; justify-content: center; line-height: 1.3; }
-        .item-price { margin-top: 10px; font-weight: bold; color: #fff; }
-
-        .btn-buy {
-            background: #fff;
-            color: #333;
-            border: none;
-            padding: 5px 20px;
-            border-radius: 20px;
-            margin-top: 10px;
-            cursor: pointer;
-            font-weight: bold;
-            box-shadow: none;
-        }
-        .btn-buy:hover { background: #ddd; }
-
-        .shop-controls {
-            display: flex;
-            gap: 20px;
-            margin-top: auto;
-        }
-        .btn-reroll {
-            background: var(--accent-red);
-            padding: 10px 30px;
-            font-size: 1rem;
-            box-shadow: 0 4px 0 #c0392b;
-        }
-        .btn-back {
-            background: #95a5a6;
-            color: #333;
-            padding: 10px 30px;
-            font-size: 1rem;
-            box-shadow: 0 4px 0 #7f8c8d;
-        }
-
-        /* プレステージビュー */
-        .prestige-view {
-            width: 100%; height: 100%;
-            display: none;
-            flex-direction: column; align-items: center; padding: 20px;
-            box-sizing: border-box;
-            background: linear-gradient(135deg, rgba(44, 62, 80, 0.9), rgba(0, 0, 0, 0.9));
-        }
-        .prestige-view.active { display: flex; }
+        .skill-icon { font-size: 1.8rem; z-index: 3; }
+        .lv-badge { font-size: 0.6rem; font-weight: bold; color: #888; z-index: 3; }
+        .skill-tooltip { visibility: hidden; width: 220px; background: #000; color: #fff; padding: 10px; position: absolute; bottom: 125%; border-radius: 8px; font-size: 0.8rem; opacity: 0; transition: 0.2s; z-index: 100; border: 1px solid #444; pointer-events: none; }
+        .skill-node:hover .skill-tooltip { visibility: visible; opacity: 1; }
         
-        .prestige-header {
-            font-size: 2.5rem; color: var(--accent-gold); margin-bottom: 10px;
-            text-shadow: 0 0 10px var(--accent-gold);
-        }
-        .prestige-sub { font-size: 1rem; margin-bottom: 30px; color: #bdc3c7; }
+        .pool-detail-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; margin-top: 20px; }
+        .pool-detail-item { background: #222; padding: 10px; border-radius: 8px; border: 1px solid #444; }
 
-        .prestige-container {
-            display: flex; gap: 20px; width: 100%; justify-content: center;
-            flex-wrap: wrap; margin-bottom: 30px;
-        }
-        .prestige-card {
-            background: rgba(255, 255, 255, 0.1);
-            border: 2px solid var(--accent-gold);
-            border-radius: 15px; padding: 20px;
-            width: 200px; text-align: center; cursor: pointer;
-            transition: transform 0.2s, background 0.2s;
-            display: flex; flex-direction: column; justify-content: center; height: 200px;
-        }
-        .prestige-card:hover { transform: scale(1.05); background: rgba(241, 196, 15, 0.15); }
-        .p-icon { font-size: 3rem; margin-bottom: 15px; display: block; }
-        .p-desc { font-size: 1rem; line-height: 1.4; font-weight: bold; }
-
-        /* 右サイド */
-        .right-panel {
-            background: var(--panel-bg);
-            border-radius: 12px;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-            overflow: hidden; 
-            min-height: 0;
-        }
-        .score-box {
-            text-align: center;
-            background: rgba(0,0,0,0.3);
-            padding: 15px;
-            border-radius: 10px;
-            word-break: break-all;
-            overflow-wrap: anywhere;
-        }
-        .score-label { display: block; font-size: 0.8rem; opacity: 0.8; margin-bottom: 3px; }
-        .score-num { font-size: 1.6rem; font-weight: bold; line-height: 1.1; }
-        .target-num { color: #f39c12; }
+        #save-notice { position: fixed; bottom: 20px; left: 20px; color: #888; font-size: 0.8rem; opacity: 0; transition: opacity 0.5s; }
+        #offline-notice { position: fixed; bottom: 60px; left: 20px; color: var(--accent); font-size: 0.8rem; opacity: 0; transition: opacity 1s; z-index: 1000; }
         
-        .stat-row { display: flex; gap: 10px; }
-        .stat-item { flex: 1; min-width: 0; } /* min-width:0 でFlex内縮小を許可 */
-        .stat-item .score-num { font-size: 1.1rem; } /* インフレ対応でフォントサイズ縮小 */
-
-        .ticket-box { background: var(--stat-ticket-bg); border: 1px solid var(--stat-ticket-border); color: var(--stat-ticket-border); }
-        .luck-box { background: var(--stat-luck-bg); border: 1px solid var(--stat-luck-border); color: var(--stat-luck-text); }
-        .rate-box { background: var(--stat-rate-bg); border: 1px solid var(--stat-rate-border); color: var(--stat-rate-text); }
-
-        .round-info { text-align: center; border-top: 1px solid rgba(255,255,255,0.2); padding-top: 15px; }
-
-        .inventory-section {
-            flex-grow: 1;
-            background: rgba(0,0,0,0.3);
-            border-radius: 10px;
-            padding: 15px;
-            overflow-y: auto; 
-            min-height: 0;
+        #rp-display-panel {
+            background: rgba(45, 15, 56, 0.8);
+            border: 1px solid var(--reinc-color);
+            padding: 10px; border-radius: 8px;
+            margin-bottom: 15px; display: none;
+            color: var(--reinc-color); font-weight: bold;
         }
-        .inventory-header {
-            font-size: 0.9rem; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 5px; margin-bottom: 10px; display: flex; justify-content: space-between;
-        }
-        .inventory-list { display: flex; flex-direction: column; gap: 8px; }
-        .inv-item {
-            padding: 8px; border-radius: 5px; font-size: 0.85rem; display: flex; justify-content: space-between; align-items: center; cursor: help;
-            border-left: 4px solid;
-            background: rgba(255,255,255,0.1);
-        }
-        /* 売却ボタン */
-        .btn-inv-sell {
-            background: #c0392b;
-            color: #fff;
-            border: none;
-            border-radius: 4px;
-            padding: 4px 8px;
-            font-size: 0.8rem;
-            cursor: pointer;
-            box-shadow: 0 2px 0 #96281b;
-            font-weight: bold;
-        }
-        .btn-inv-sell:active { transform: translateY(2px); box-shadow: none; }
-
-        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
-        @keyframes shock {
-            0% { transform: scale(1); background-color: rgba(231, 76, 60, 0); }
-            10% { transform: scale(1.1); background-color: rgba(231, 76, 60, 0.5); }
-            100% { transform: scale(1); background-color: rgba(231, 76, 60, 0); }
-        }
-        .shock-effect { animation: shock 0.6s ease-out; }
-        .hifumi-text { color: var(--accent-red); font-size: 3rem; }
-
-        .modal-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.9);
-            display: flex; justify-content: center; align-items: center;
-            visibility: hidden; opacity: 0; transition: 0.3s; z-index: 999;
-        }
-        .modal-overlay.show { visibility: visible; opacity: 1; }
-        .modal-box {
-            background: #fff; color: #333; padding: 40px;
-            border-radius: 20px; text-align: center; width: 600px;
-            max-width: 90vw;
-            word-break: keep-all;
-        }
-        .modal-btn {
-            background: #27ae60; color: #fff; border: none;
-            padding: 15px 40px; font-size: 1.2rem; border-radius: 10px;
-            cursor: pointer; margin-top: 20px;
-            box-shadow: 0 4px 0 #219150;
+        
+        #reinc-view-mode-msg {
+            color: #f39c12; font-size: 0.8rem; margin-bottom: 10px; display: none;
         }
     </style>
 </head>
 <body>
 
-<div class="game-wrapper">
-    <div class="header-area">
-        <h1>🎲 チンチロ・インフレ</h1>
-        <div class="header-controls">
-            <div class="stage-info">STAGE <span id="ui-stage">1</span></div>
-            <button class="btn-toggle-format" onclick="window.game.toggleNotation()">表記切替</button>
+<div class="container">
+    <button id="reinc-btn" onclick="openReincarnationModal()">✦ 転生メニュー</button>
+
+    <div class="sidebar">
+        <div class="panel">
+            <h3>配当表</h3>
+            <table id="payout-table">
+                <tr><td>ピンゾロ</td><td class="配当">1万</td></tr>
+                <tr><td>アラシ</td><td class="配当">2000*</td></tr>
+                <tr><td>シゴロ</td><td class="配当">1000*</td></tr>
+                <tr id="row-payout-s4" style="display:none;"><td>ストレート４</td><td class="配当">1万*</td></tr>
+                <tr id="row-payout-a4" style="display:none;"><td>アラシ４</td><td class="配当">2万*</td></tr>
+                <tr id="row-payout-s5" style="display:none;"><td>ストレート５</td><td class="配当">5万*</td></tr>
+                <tr id="row-payout-a5" style="display:none;"><td>アラシ５</td><td class="配当">10万*</td></tr>
+                <tr><td>通常目</td><td class="配当">目×50</td></tr>
+                <tr><td>目なし</td><td class="配当">10</td></tr>
+            </table>
+            <div style="font-size:0.6rem; color:#888; margin-top:5px;">*強化により変動</div>
+        </div>
+        <div class="panel" id="panel-history" style="display:none;">
+            <h3>家計簿 (TOP5)</h3>
+            <ul id="history-list"></ul>
+        </div>
+        <div class="panel">
+            <h3>プール情報</h3>
+            <div id="pool-stats" style="font-size: 0.7rem; line-height: 1.4; margin-bottom: 10px;"></div>
+            <button id="btn-pool-detail" style="display:none; width:100%; padding:5px; background:var(--skill-line); color:white; border:none; border-radius:4px; cursor:pointer; font-size:0.7rem;" onclick="openPoolDetail()">詳細を確認</button>
+        </div>
+        <div style="text-align:center;">
+            <button onclick="saveGame()" style="background:#444; color:white; border:none; padding:5px 10px; border-radius:5px; cursor:pointer; font-size:0.7rem;">手動セーブ</button>
+            <button onclick="resetGame()" style="background:#c0392b; color:white; border:none; padding:5px 10px; border-radius:5px; cursor:pointer; font-size:0.7rem; margin-left:5px;">リセット</button>
         </div>
     </div>
 
-    <div class="left-panel">
-        <div class="rule-card">
-            <h3>🧮 出目点 / 確率</h3>
-            <table id="table-faces">
-                </table>
+    <div class="game-area">
+        <div id="rp-display-panel">
+            転生ポイント: <span id="rp-val">0</span> Pt (倍率: x<span id="rp-mult">1.0</span>)
         </div>
-        <div class="rule-card">
-            <h3>🏆 役倍率 (乗算)</h3>
-            <table id="table-yaku">
-                </table>
-        </div>
-    </div>
 
-    <div class="main-panel" id="main-panel">
-        
-        <div class="game-view" id="game-view">
-            <div class="pool-container" id="pool-box">
-                <div class="pool-label">ROUND POOL</div>
-                <div>
-                    <span class="pool-value" id="ui-pool">0</span>
-                    <span style="font-size:1.5rem">pt</span>
+        <div id="expedition-panel" class="mode-normal">
+            <div class="exp-header">
+                <h3 id="exp-title" class="exp-title" style="color:var(--mode-normal);">🧭 通常探索</h3>
+                <button id="btn-mode-toggle" class="exp-toggle-btn" style="display:none;" onclick="toggleExpeditionMode()">モード切替</button>
+            </div>
+            <div class="exp-status">
+                <div style="position: relative; width: 60px; height: 60px;">
+                    <svg class="timer-svg" viewBox="0 0 36 36" style="width: 60px; height: 60px;">
+                        <circle class="timer-bg" cx="18" cy="18" r="16"></circle>
+                        <circle id="exp-prog" class="timer-progress" cx="18" cy="18" r="16"></circle>
+                    </svg>
+                    <div id="exp-timer-text" style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-size:0.7rem;">READY</div>
                 </div>
-            </div>
-
-            <div class="dice-area" id="dice-container">
-                <div class="die">?</div>
-                <div class="die">?</div>
-                <div class="die">?</div>
-            </div>
-
-            <div class="message-area">
-                <div class="main-msg" id="msg-main">GAME START</div>
-                <div class="sub-msg" id="msg-sub">ROLLボタンを押して開始</div>
-                <div class="effect-log" id="msg-log"></div>
-            </div>
-
-            <div class="action-buttons">
-                <button class="btn-roll" id="btn-roll" onclick="window.game.roll()">ROLL</button>
-                <button class="btn-clear" id="btn-clear" onclick="window.game.stageWin()">
-                    STAGE CLEAR
-                    <span class="clear-sub" id="clear-sub">(+2 🎫)</span>
-                </button>
-                <button class="btn-shop" id="btn-shop" onclick="window.game.openShop()">SHOP</button>
-            </div>
-        </div>
-
-        <div class="shop-view" id="shop-view">
-            <div class="shop-header">ITEM SHOP</div>
-            <div class="shop-shelves" id="shop-shelves">
+                <div id="exp-info" style="text-align: left;">
+                    <div id="exp-cost-display">コスト: 1万5000 pts</div>
+                    <div id="exp-msg" style="font-size: 0.8rem; color: #aaa;">新たな出目を求めて探索します</div>
                 </div>
-            <div class="shop-controls">
-                <button class="btn-reroll" id="btn-reroll" onclick="window.game.rerollShop()">再入荷 (Cost: 1)</button>
-                <button class="btn-back" onclick="window.game.closeShop()">戻る</button>
+                <button id="exp-action-btn" class="exp-btn" style="background:var(--mode-normal)" onclick="handleExpedition()">探索開始</button>
             </div>
         </div>
 
-        <div class="prestige-view" id="prestige-view">
-            <div class="prestige-header">✨ PRESTIGE ✨</div>
-            <div class="prestige-sub">次ステージへの永続強化を選択してください</div>
-            <div class="prestige-container" id="prestige-container">
-            </div>
-            <button class="btn-reroll" id="btn-prestige-reroll" onclick="window.game.rerollPrestige()">選択肢変更 (Cost: 1)</button>
+        <div class="score-container">
+            <p class="score-label">総獲得スコア</p>
+            <p id="total-score-display">0</p>
+            <p class="score-label" style="margin-top:10px;">所持スコア</p>
+            <p id="score-board">0</p>
         </div>
-
-    </div>
-
-    <div class="right-panel">
-        <div class="score-section">
-            <div class="score-box">
-                <span class="score-label">TARGET SCORE</span>
-                <div class="score-num target-num" id="ui-target">1,500</div>
-            </div>
-            <div class="score-box">
-                <span class="score-label">TOTAL SCORE</span>
-                <div class="score-num" id="ui-total">0</div>
-            </div>
-            
-            <div class="stat-row">
-                <div class="score-box ticket-box stat-item">
-                    <span class="score-label">TICKETS</span>
-                    <div class="score-num" id="ui-tickets">4</div>
-                </div>
-                <div class="score-box luck-box stat-item">
-                    <span class="score-label">LUCK</span>
-                    <div class="score-num" id="ui-luck">100</div>
-                </div>
-                <div class="score-box rate-box stat-item">
-                    <span class="score-label">RATE</span>
-                    <div class="score-num" id="ui-rate">x1.0</div>
-                </div>
-            </div>
-        </div>
-
-        <div class="round-info">
-            <div>ROUND: <span id="ui-round">1</span> / 3</div>
-            <div>ROLL: <span id="ui-roll">7</span> / 7</div>
-        </div>
-
-        <div class="inventory-section">
-            <div class="inventory-header">
-                <span>INVENTORY</span>
-                <span id="ui-inv-count">0/7</span>
-            </div>
-            <div class="inventory-list" id="ui-inventory">
-                <div style="opacity:0.5; text-align:center; padding:10px;">Empty</div>
-            </div>
-        </div>
+        <span class="multiplier-tag">倍率: x<span id="mult-val">1.0</span></span>
+        <div id="game-fields"></div>
     </div>
 </div>
 
-<div class="modal-overlay" id="modal">
-    <div class="modal-box">
-        <h2 id="modal-title">TITLE</h2>
-        <p id="modal-msg">Message</p>
-        <button class="modal-btn" onclick="window.game.nextPhase()">NEXT</button>
+<div id="save-notice">Game Saved</div>
+<div id="offline-notice">おかえりなさい！不在中の収益を獲得しました。</div>
+
+<div id="reward-modal" onclick="if(event.target===this) discardRewards()">
+    <div class="modal-content" style="width: 600px;">
+        <button class="close-modal-btn" onclick="discardRewards()">×</button>
+        <h2 id="reward-title" style="color:var(--accent);">探索から帰還！</h2>
+        <p id="reward-desc">持ち帰る出目を選択してください。</p>
+        <p id="reward-count-msg" style="color:var(--auto-color); font-weight:bold;"></p>
+        <div style="display:flex; justify-content:center; gap:15px; flex-wrap:wrap;" id="reward-list"></div>
+        <div id="fusion-action-area" style="display:none; margin-top:20px;">
+            <button id="btn-do-fuse" onclick="executeFusion()" disabled style="background:var(--mode-fusion); border:none; color:white; padding:10px 30px; border-radius:20px; font-weight:bold; font-size:1.1rem; cursor:not-allowed; opacity:0.5;">融合を実行</button>
+        </div>
+        <button id="reward-cancel-btn" onclick="discardRewards()" style="margin-top:20px; background:#444; border:none; color:white; padding:10px 20px; border-radius:5px; cursor:pointer;">終了</button>
+    </div>
+</div>
+
+<div id="pool-detail-modal" onclick="if(event.target===this) this.style.display='none'">
+    <div class="modal-content" style="width: 600px;">
+        <button class="close-modal-btn" onclick="document.getElementById('pool-detail-modal').style.display='none'">×</button>
+        <h2 style="color:var(--skill-line);">プールの詳細</h2>
+        <div id="pool-detail-content" class="pool-detail-grid"></div>
+        <button onclick="document.getElementById('pool-detail-modal').style.display='none'" style="margin-top:20px; background:#444; border:none; color:white; padding:10px 20px; border-radius:5px; cursor:pointer;">閉じる</button>
+    </div>
+</div>
+
+<button id="shop-trigger" onclick="toggleModal(true)">
+    🎓
+    <span id="shop-badge"></span>
+</button>
+
+<div id="upgrade-modal" onclick="if(event.target===this) toggleModal(false)">
+    <div class="modal-content">
+        <button class="close-modal-btn" onclick="toggleModal(false)">×</button>
+        <h2 style="color:var(--skill-line); margin:0;">SKILL TREE</h2>
+        <p style="color:var(--accent);">所持スコア: <span id="modal-score">0</span> pts</p>
+        
+        <div class="tree-container" id="tree-root">
+            <svg class="svg-overlay" id="tree-svg"></svg>
+            
+            <div class="tree-row">
+                <div id="node-finger" class="skill-node available" onclick="buyUpgrade('finger')"><span class="skill-icon">☝️</span><span id="lv-finger" class="lv-badge"></span><div class="skill-tooltip" id="tip-finger"></div></div>
+            </div>
+
+            <div class="tree-row" style="gap: 120px;">
+                <div id="node-auto" class="skill-node locked" onclick="buyUpgrade('auto')"><span class="skill-icon" id="icon-auto">🤖</span><span id="lv-auto" class="lv-badge"></span><div class="skill-tooltip" id="tip-auto"></div></div>
+                <div id="node-field" class="skill-node locked" onclick="buyUpgrade('field')"><span class="skill-icon" id="icon-field">🎲</span><span id="lv-field" class="lv-badge"></span><div class="skill-tooltip" id="tip-field"></div></div>
+            </div>
+
+            <div class="tree-row" style="gap: 20px;">
+                <div style="display:flex; gap:20px; margin-right: 60px;">
+                    <div id="node-expedition" class="skill-node locked" onclick="buyUpgrade('expedition')"><span class="skill-icon" id="icon-expedition">🧭</span><span id="lv-expedition" class="lv-badge"></span><div class="skill-tooltip" id="tip-expedition"></div></div>
+                    <div id="node-history" class="skill-node locked" onclick="buyUpgrade('history')"><span class="skill-icon" id="icon-history">📖</span><span id="lv-history" class="lv-badge"></span><div class="skill-tooltip" id="tip-history"></div></div>
+                    <div id="node-speed" class="skill-node locked" onclick="buyUpgrade('speed')"><span class="skill-icon" id="icon-speed">⚡</span><span id="lv-speed" class="lv-badge"></span><div class="skill-tooltip" id="tip-speed"></div></div>
+                    <div id="node-yaku_none" class="skill-node locked" onclick="buyUpgrade('yaku_none')"><span class="skill-icon" id="icon-yaku_none">❔</span><span id="lv-yaku_none" class="lv-badge"></span><div class="skill-tooltip" id="tip-yaku_none"></div></div>
+                </div>
+
+                <div id="node-potential" class="skill-node locked" onclick="buyUpgrade('potential')"><span class="skill-icon" id="icon-potential">💎</span><span id="lv-potential" class="lv-badge"></span><div class="skill-tooltip" id="tip-potential"></div></div>
+            </div>
+
+            <div class="tree-row" style="gap: 15px; justify-content: flex-start; padding-left: 20px;">
+                <div id="node-ritual_unlock" class="skill-node locked" onclick="buyUpgrade('ritual_unlock')"><span class="skill-icon" id="icon-ritual_unlock">🔮</span><span id="lv-ritual_unlock" class="lv-badge"></span><div class="skill-tooltip" id="tip-ritual_unlock"></div></div>
+                
+                <div id="node-exp_speed" class="skill-node locked" onclick="buyUpgrade('exp_speed')"><span class="skill-icon" id="icon-exp_speed">⏩</span><span id="lv-exp_speed" class="lv-badge"></span><div class="skill-tooltip" id="tip-exp_speed"></div></div>
+
+                <div id="node-exp_amount" class="skill-node locked" onclick="buyUpgrade('exp_amount')"><span class="skill-icon" id="icon-exp_amount">📦</span><span id="lv-exp_amount" class="lv-badge"></span><div class="skill-tooltip" id="tip-exp_amount"></div></div>
+
+                <div id="node-digital_history" class="skill-node locked" onclick="buyUpgrade('digital_history')"><span class="skill-icon" id="icon-digital_history">📱</span><span id="lv-digital_history" class="lv-badge"></span><div class="skill-tooltip" id="tip-digital_history"></div></div>
+
+                <div id="node-throw" class="skill-node locked" onclick="buyUpgrade('throw')"><span class="skill-icon" id="icon-throw">🎯</span><span id="lv-throw" class="lv-badge"></span><div class="skill-tooltip" id="tip-throw"></div></div>
+
+                <div id="node-yaku_normal" class="skill-node locked" onclick="buyUpgrade('yaku_normal')"><span class="skill-icon" id="icon-yaku_normal">⚂</span><span id="lv-yaku_normal" class="lv-badge"></span><div class="skill-tooltip" id="tip-yaku_normal"></div></div>
+            </div>
+
+            <div class="tree-row" style="gap: 15px; justify-content: flex-start; padding-left: 20px;">
+                <div id="node-ritual_amount" class="skill-node locked" onclick="buyUpgrade('ritual_amount')"><span class="skill-icon" id="icon-ritual_amount">🌑</span><span id="lv-ritual_amount" class="lv-badge"></span><div class="skill-tooltip" id="tip-ritual_amount"></div></div>
+                
+                <div style="width: 360px;"></div>
+                
+                <div id="node-yaku_456" class="skill-node locked" onclick="buyUpgrade('yaku_456')"><span class="skill-icon" id="icon-yaku_456">✨</span><span id="lv-yaku_456" class="lv-badge"></span><div class="skill-tooltip" id="tip-yaku_456"></div></div>
+            </div>
+
+            <div class="tree-row" style="gap: 15px; justify-content: flex-start; padding-left: 20px;">
+                <div id="node-fusion_exp" class="skill-node locked" onclick="buyUpgrade('fusion_exp')" style="display:none;"><span class="skill-icon" style="color:var(--mode-fusion)">🔥</span><span id="lv-fusion_exp" class="lv-badge"></span><div class="skill-tooltip" id="tip-fusion_exp"></div></div>
+                <div id="node-fusion_exp_amount" class="skill-node locked" onclick="buyUpgrade('fusion_exp_amount')" style="display:none;"><span class="skill-icon" style="color:var(--mode-fusion)">📦</span><span id="lv-fusion_exp_amount" class="lv-badge"></span><div class="skill-tooltip" id="tip-fusion_exp_amount"></div></div>
+
+                <div style="width: 290px;"></div>
+                <div id="node-yaku_arashi" class="skill-node locked" onclick="buyUpgrade('yaku_arashi')"><span class="skill-icon" id="icon-yaku_arashi">🌀</span><span id="lv-yaku_arashi" class="lv-badge"></span><div class="skill-tooltip" id="tip-yaku_arashi"></div></div>
+            </div>
+
+            <div class="tree-row" style="gap: 15px; justify-content: flex-start; padding-left: 20px;">
+                <div style="width: 450px;"></div>
+                <div id="node-yaku_pin" class="skill-node locked" onclick="buyUpgrade('yaku_pin')"><span class="skill-icon" id="icon-yaku_pin">🔥</span><span id="lv-yaku_pin" class="lv-badge"></span><div class="skill-tooltip" id="tip-yaku_pin"></div></div>
+            </div>
+
+            <div class="tree-row" id="row-yaku-s4" style="gap: 15px; justify-content: flex-start; padding-left: 20px; display:none;">
+                <div style="width: 450px;"></div>
+                <div id="node-yaku_straight4" class="skill-node locked" onclick="buyUpgrade('yaku_straight4')"><span class="skill-icon">4️⃣</span><span id="lv-yaku_straight4" class="lv-badge"></span><div class="skill-tooltip" id="tip-yaku_straight4"></div></div>
+            </div>
+
+            <div class="tree-row" id="row-yaku-a4" style="gap: 15px; justify-content: flex-start; padding-left: 20px; display:none;">
+                <div style="width: 450px;"></div>
+                <div id="node-yaku_arashi4" class="skill-node locked" onclick="buyUpgrade('yaku_arashi4')"><span class="skill-icon">🌪️</span><span id="lv-yaku_arashi4" class="lv-badge"></span><div class="skill-tooltip" id="tip-yaku_arashi4"></div></div>
+            </div>
+
+            <div class="tree-row" id="row-yaku-5" style="gap: 30px; justify-content: flex-start; padding-left: 20px; display:none;">
+                <div style="width: 420px;"></div>
+                <div id="node-yaku_straight5" class="skill-node locked" onclick="buyUpgrade('yaku_straight5')"><span class="skill-icon">5️⃣</span><span id="lv-yaku_straight5" class="lv-badge"></span><div class="skill-tooltip" id="tip-yaku_straight5"></div></div>
+                <div id="node-yaku_arashi5" class="skill-node locked" onclick="buyUpgrade('yaku_arashi5')"><span class="skill-icon">🌈</span><span id="lv-yaku_arashi5" class="lv-badge"></span><div class="skill-tooltip" id="tip-yaku_arashi5"></div></div>
+            </div>
+        </div>
+
+        <button onclick="toggleModal(false)" style="margin-top:30px; width:100%; padding:12px; background:#333; border:none; color:white; border-radius:8px; cursor:pointer;">閉じる</button>
+    </div>
+</div>
+
+<div id="reinc-modal" class="reinc-bg">
+    <div class="modal-content reinc-bg">
+        <h2 style="color:var(--reinc-color); margin:0;">REINCARNATION</h2>
+        <p style="color:var(--reinc-color); font-weight:bold; font-size:1.2rem;">所持ポイント: <span id="reinc-point-disp">0</span> Pt</p>
+        
+        <div id="reinc-action-area" style="background:rgba(0,0,0,0.3); padding:15px; border-radius:10px; margin-bottom:20px; border:1px solid #7d3c98;">
+            <p>現在のスコアに基づく獲得可能ポイント: <span id="pending-rp" style="color:white; font-weight:bold;">0</span></p>
+            <p style="font-size:0.8rem; color:#aaa;">(式: (log10(Score)*20)-180)</p>
+            <p id="reinc-gain-msg" style="color:#e056fd; font-weight:bold;"></p>
+            <div style="display:flex; justify-content:center; gap:10px;">
+                <button id="do-reinc-btn" onclick="doReincarnation()" style="background:linear-gradient(135deg, #a723e7, #5f27cd); color:white; border:none; padding:10px 30px; border-radius:20px; font-weight:bold; font-size:1.1rem; cursor:pointer; margin-top:10px;">転生を実行する</button>
+                <button onclick="toggleReincModal(false)" style="background:#555; color:white; border:none; padding:10px 20px; border-radius:20px; font-weight:bold; font-size:1rem; cursor:pointer; margin-top:10px;">閉じる</button>
+            </div>
+            <div style="font-size:0.7rem; color:#f39c12; margin-top:5px;">※実行すると即座にスコアがリセットされます</div>
+        </div>
+
+        <div id="reinc-finish-area" style="display:none; background:rgba(45, 15, 56, 0.8); padding:15px; border-radius:10px; margin-bottom:20px; border:2px solid #2ecc71;">
+             <p id="reinc-gain-msg-2" style="color:#2ecc71; font-weight:bold; font-size:1.2rem; margin:0;">転生完了！</p>
+             <p style="font-size:0.9rem;">ポイントを使ってアップグレードを取得してください。<br>準備ができたら下のボタンで出発しましょう。</p>
+             <button onclick="finishReincarnation()" style="background:linear-gradient(135deg, #2ecc71, #27ae60); color:white; border:none; padding:15px 40px; border-radius:30px; font-weight:bold; font-size:1.3rem; cursor:pointer; margin-top:10px; box-shadow:0 0 15px rgba(46, 204, 113, 0.5);">新しい世界へ旅立つ</button>
+        </div>
+
+        <h3 style="color:var(--reinc-color); border-bottom:1px solid var(--reinc-color);">転生アップグレード</h3>
+        <p id="reinc-view-mode-msg">※ランの途中のため、内容の確認のみ可能です</p>
+        
+        <div class="tree-container" id="reinc-tree-root" style="margin-top:20px;">
+            <svg class="svg-overlay" id="reinc-tree-svg"></svg>
+            
+            <div class="tree-row">
+                <div id="rnode-wallet" class="skill-node reinc-node available" onclick="buyReincUpgrade('wallet')"><span class="skill-icon">👛</span><span id="rlv-wallet" class="lv-badge"></span><div class="skill-tooltip" id="rtip-wallet"></div></div>
+            </div>
+            
+            <div class="tree-row" style="gap:50px;">
+                <div id="rnode-greedy_exp" class="skill-node reinc-node locked" onclick="buyReincUpgrade('greedy_exp')"><span class="skill-icon">🤩</span><span id="rlv-greedy_exp" class="lv-badge"></span><div class="skill-tooltip" id="rtip-greedy_exp"></div></div>
+                <div id="rnode-greedy_rit" class="skill-node reinc-node locked" onclick="buyReincUpgrade('greedy_rit')"><span class="skill-icon">😈</span><span id="rlv-greedy_rit" class="lv-badge"></span><div class="skill-tooltip" id="rtip-greedy_rit"></div></div>
+            </div>
+
+            <div class="tree-row">
+                <div id="rnode-privatize" class="skill-node reinc-node locked" onclick="buyReincUpgrade('privatize')"><span class="skill-icon">🔢</span><span id="rlv-privatize" class="lv-badge"></span><div class="skill-tooltip" id="rtip-privatize"></div></div>
+            </div>
+
+            <div class="tree-row">
+                <div id="rnode-straight" class="skill-node reinc-node locked" onclick="buyReincUpgrade('straight')"><span class="skill-icon">📏</span><span id="rlv-straight" class="lv-badge"></span><div class="skill-tooltip" id="rtip-straight"></div></div>
+            </div>
+
+            <div class="tree-row">
+                <div id="rnode-fusion_dim" class="skill-node reinc-node locked" onclick="buyReincUpgrade('fusion_dim')"><span class="skill-icon">🌌</span><span id="rlv-fusion_dim" class="lv-badge"></span><div class="skill-tooltip" id="rtip-fusion_dim"></div></div>
+                <div id="rnode-fusion_limit" class="skill-node reinc-node locked" onclick="buyReincUpgrade('fusion_limit')"><span class="skill-icon">🧱</span><span id="rlv-fusion_limit" class="lv-badge"></span><div class="skill-tooltip" id="rtip-fusion_limit"></div></div>
+            </div>
+
+            <div class="tree-row" style="gap:150px;">
+                <div id="rnode-straight4" class="skill-node reinc-node locked" onclick="buyReincUpgrade('straight4')"><span class="skill-icon">4️⃣</span><span id="rlv-straight4" class="lv-badge"></span><div class="skill-tooltip" id="rtip-straight4"></div></div>
+                <div id="rnode-rare_magic" class="skill-node reinc-node locked" onclick="buyReincUpgrade('rare_magic')"><span class="skill-icon" style="color:var(--rare-magic)">M</span><span id="rlv-rare_magic" class="lv-badge"></span><div class="skill-tooltip" id="rtip-rare_magic"></div></div>
+            </div>
+
+            <div class="tree-row" style="gap:150px;">
+                <div id="rnode-arashi4" class="skill-node reinc-node locked" onclick="buyReincUpgrade('arashi4')"><span class="skill-icon">🌪️</span><span id="rlv-arashi4" class="lv-badge"></span><div class="skill-tooltip" id="rtip-arashi4"></div></div>
+                <div id="rnode-rare_epic" class="skill-node reinc-node locked" onclick="buyReincUpgrade('rare_epic')"><span class="skill-icon" style="color:var(--rare-epic)">E</span><span id="rlv-rare_epic" class="lv-badge"></span><div class="skill-tooltip" id="rtip-rare_epic"></div></div>
+            </div>
+
+            <div class="tree-row" style="gap:150px;">
+                <div id="rnode-straight5" class="skill-node reinc-node locked" onclick="buyReincUpgrade('straight5')"><span class="skill-icon">5️⃣</span><span id="rlv-straight5" class="lv-badge"></span><div class="skill-tooltip" id="rtip-straight5"></div></div>
+                <div id="rnode-rare_legend" class="skill-node reinc-node locked" onclick="buyReincUpgrade('rare_legend')"><span class="skill-icon" style="color:var(--rare-legendary)">L</span><span id="rlv-rare_legend" class="lv-badge"></span><div class="skill-tooltip" id="rtip-rare_legend"></div></div>
+            </div>
+
+            <div class="tree-row" style="gap:150px;">
+                <div id="rnode-arashi5" class="skill-node reinc-node locked" onclick="buyReincUpgrade('arashi5')"><span class="skill-icon">🌈</span><span id="rlv-arashi5" class="lv-badge"></span><div class="skill-tooltip" id="rtip-arashi5"></div></div>
+                <div id="rnode-rare_eternal" class="skill-node reinc-node locked" onclick="buyReincUpgrade('rare_eternal')"><span class="skill-icon" style="color:#fff; text-shadow:0 0 5px #fff;">∞</span><span id="rlv-rare_eternal" class="lv-badge"></span><div class="skill-tooltip" id="rtip-rare_eternal"></div></div>
+            </div>
+        </div>
     </div>
 </div>
 
 <script>
-// --- エラーハンドリング ---
-window.onerror = function(msg, url, line, col, error) {
-    alert("エラーが発生しました。\n" + msg + "\n行: " + line + ":" + col);
-    return false;
-};
+    // --- データ定義 ---
+    let score = 0;
+    let totalScore = 0;
+    let multiplier = 1;
+    let hasAutoRoll = false;
+    let fieldCount = 1;
+    let fieldTimers = [];
+    let scoreHistory = [];
+    let dicePool = [];
+    const AUTO_BASE_TIME = 6000;
+    let isResetting = false;
+    let isReincarnationPhase = false;
 
-// --- 数値フォーマット ---
-const JP_UNITS = ['', '万', '億', '兆', '京', '垓', '𥝱', '穣', '溝', '澗', '正', '載', '極', '恒河沙', '阿僧祇', '那由多', '不可思議', '無量大数'];
-const MURYO_LIMIT = 10n ** 68n; 
-const INITIAL_ROLL_COUNT = 7;
+    let reincData = {
+        points: 0,       
+        maxReachedRP: 0, 
+        upgrades: {}
+    };
+    const REINC_THRESHOLD = 10000000000; // 100億
 
-// --- 定数定義 ---
-
-const RARITY = {
-    COMMON:    { id: 'common',    name: 'コモン',       color: 'var(--rarity-common)',    price: 1,  weight: 60 },
-    UNCOMMON:  { id: 'uncommon',  name: 'アンコモン',     color: 'var(--rarity-uncommon)',  price: 2,  weight: 30 },
-    RARE:      { id: 'rare',      name: 'レア',        color: 'var(--rarity-rare)',      price: 4,  weight: 7 },
-    SR:        { id: 'sr',        name: 'スーパーレア',   color: 'var(--rarity-sr)',        price: 8,  weight: 2.5 },
-    LEGENDARY: { id: 'legendary', name: 'レジェンダリー', color: 'var(--rarity-legendary)', price: 16, weight: 0.5 }
-};
-
-const CONST_BASE_MULTIPLIERS = {
-    'pinzoro': 500n, 'arashi': 100n, '456': 20n, 'meari': 5n, 'menashi': 1n, 'hifumi': 0n
-};
-
-const ITEM_DATA = [];
-
-// 金の〇〇
-const GOLD_PROBS = [0.50, 0.45, 0.40, 0.35, 0.30, 0.25];
-['壱','弐','参','肆','伍','陸'].forEach((kanji, idx) => {
-    const face = idx + 1;
-    const prob = GOLD_PROBS[idx];
-    ITEM_DATA.push({
-        id: `gold_${face}`,
-        name: `金の${kanji}`,
-        rarity: 'common',
-        desc: `${kanji}の目が出た時、${Math.floor(prob*100)}%の確率で、${kanji}の出目点が現在の2倍になる`,
-        price: RARITY.COMMON.price,
-        effectType: 'gold_mul',
-        targetFace: face,
-        prob: prob
-    });
-});
-
-// 覚醒の〇〇
-const AWAKENING_PROBS = [0.20, 0.17, 0.14, 0.11, 0.08, 0.05];
-['壱','弐','参','肆','伍','陸'].forEach((kanji, idx) => {
-    const face = idx + 1;
-    const prob = AWAKENING_PROBS[idx];
-    ITEM_DATA.push({
-        id: `awakening_${face}`,
-        name: `覚醒の${kanji}`,
-        rarity: 'uncommon',
-        desc: `${kanji}の目が出た時、${Math.floor(prob*100)}%の確率で、成立した役の倍率が現在の2倍になる`,
-        price: RARITY.UNCOMMON.price,
-        effectType: 'awakening_mul',
-        targetFace: face,
-        prob: prob
-    });
-});
-
-// 幸福の〇〇
-const HAPPY_PROBS = [0.50, 0.46, 0.42, 0.38, 0.34, 0.30];
-['壱','弐','参','肆','伍','陸'].forEach((kanji, idx) => {
-    const face = idx + 1;
-    const prob = HAPPY_PROBS[idx];
-    ITEM_DATA.push({
-        id: `happy_${face}`,
-        name: `幸福の${kanji}`,
-        rarity: 'uncommon',
-        desc: `${kanji}の目が出た時、${Math.floor(prob*100)}%の確率でチケットを1枚獲得する`,
-        price: RARITY.UNCOMMON.price,
-        effectType: 'happy',
-        targetFace: face,
-        prob: prob
-    });
-});
-
-// LUCK系
-ITEM_DATA.push({ id: 'luck_1', name: '星の欠片', rarity: 'common', desc: '幸運ステータスが50上昇する', price: 1, effectType: 'luck_static', value: 50 });
-ITEM_DATA.push({ id: 'luck_2', name: '月光の指輪', rarity: 'uncommon', desc: '幸運ステータスが125上昇する', price: 2, effectType: 'luck_static', value: 125 }); 
-ITEM_DATA.push({ id: 'luck_3', name: '太陽のタリスマン', rarity: 'rare', desc: '幸運ステータスが300上昇する', price: 4, effectType: 'luck_static', value: 300 }); 
-ITEM_DATA.push({ id: 'luck_4', name: '運命の歯車', rarity: 'sr', desc: '幸運ステータスが750上昇する', price: 8, effectType: 'luck_static', value: 750 }); 
-ITEM_DATA.push({ id: 'luck_5', name: '奇跡の聖杯', rarity: 'legendary', desc: '幸運ステータスが2000上昇する', price: 16, effectType: 'luck_static', value: 2000 }); 
-
-ITEM_DATA.push({ id: 'luck_cond_menashi', name: '泥沼からの光', rarity: 'common', desc: '目なしが2回連続で発生した時、次のロールで幸運が一時的に+300される', price: 1, effectType: 'luck_cond_menashi', value: 300 }); 
-ITEM_DATA.push({ id: 'luck_chance_50', name: 'コインの表裏', rarity: 'common', desc: 'ロール開始時、50%の確率でそのロール中の幸運が+250される', price: 1, effectType: 'luck_chance', prob: 0.5, value: 250 }); 
-ITEM_DATA.push({ id: 'luck_chance_25', name: '四分の一の賭け', rarity: 'common', desc: 'ロール開始時、25%の確率でそのロール中の幸運が+500される', price: 1, effectType: 'luck_chance', prob: 0.25, value: 500 }); 
-
-ITEM_DATA.push({ id: 'inv_expand', name: '魔法の鞄', rarity: 'uncommon', desc: 'アイテムの最大所持数が2つ増加する', price: 2, effectType: 'inv_expand', value: 2 });
-ITEM_DATA.push({ id: 'buff_streak_win', name: '昇り龍の像', rarity: 'uncommon', desc: '「目あり」以上の役が3連続で続いた時、全ての役の倍率が現在の2倍になる', price: 2, effectType: 'buff_streak_win' });
-
-// 特殊効果
-ITEM_DATA.push({ id: 'rate_ticket', name: 'チケット・タックス', rarity: 'uncommon', desc: '所持しているチケット10枚ごとに、スコア計算時の全体倍率が+1.0加算される', price: 2, effectType: 'rate_ticket', value: 1.0 });
-ITEM_DATA.push({ id: 'ticket_interest', name: '利子', rarity: 'uncommon', desc: 'ステージクリア時、所持チケット5枚につき+1枚のチケットを追加で獲得する', price: 2, effectType: 'ticket_interest', value: 1 });
-ITEM_DATA.push({ id: 'rate_streak', name: 'コンボボーナス', rarity: 'common', desc: '「目あり」以上の役が続く限り、連勝数に応じて全体倍率が+0.2ずつ加算される（目なし・ヒフミでリセット）', price: 1, effectType: 'rate_streak', value: 0.2 });
-ITEM_DATA.push({ id: 'roll_add', name: 'アンコール', rarity: 'common', desc: 'ロールを行った際、15%の確率でロール回数が1回分回復する', price: 1, effectType: 'roll_add', prob: 0.15 });
-ITEM_DATA.push({ id: 'prob_boost', name: '幸運のクローバー', rarity: 'common', desc: '確率で発動するアイテムの判定成功率が2倍になる', price: 1, effectType: 'prob_boost' });
-
-// 極意・呪縛
-ITEM_DATA.push({ id: 'score_odd_2x', name: '奇数の極意', rarity: 'common', desc: '3つのダイスの合計が奇数の場合、そのロールの全体倍率が2倍になる', price: 1, effectType: 'score_sum_odd', value: 2 });
-ITEM_DATA.push({ id: 'score_even_2x', name: '偶数の極意', rarity: 'common', desc: '3つのダイスの合計が偶数の場合、そのロールの全体倍率が2倍になる', price: 1, effectType: 'score_sum_even', value: 2 });
-ITEM_DATA.push({ id: 'score_odd_focus', name: '奇数の呪縛', rarity: 'uncommon', desc: '3つのダイスの合計が奇数なら全体倍率4倍、偶数なら0.5倍になる', price: 2, effectType: 'score_sum_focus_odd' });
-ITEM_DATA.push({ id: 'score_even_focus', name: '偶数の呪縛', rarity: 'uncommon', desc: '3つのダイスの合計が偶数なら全体倍率4倍、奇数なら0.5倍になる', price: 2, effectType: 'score_sum_focus_even' });
-
-// ヒフミ系
-ITEM_DATA.push({ id: 'hifumi_act_roll', name: '逆境の糧', rarity: 'uncommon', desc: '役「ヒフミ」が成立した時、ロール回数が3回分回復する（1ラウンドにつき3回まで発動）', price: 2, effectType: 'hifumi_act_roll' });
-ITEM_DATA.push({ id: 'hifumi_act_pin', name: '起死回生', rarity: 'uncommon', desc: '役「ヒフミ」が成立した時、次回のロール結果が確定で「ピンゾロ」になる', price: 2, effectType: 'hifumi_act_pin' });
-ITEM_DATA.push({ id: 'hifumi_guard', name: '身代わりの人形', rarity: 'uncommon', desc: '役「ヒフミ」が成立した際に発生する、プールスコア没収のペナルティを無効化する', price: 2, effectType: 'hifumi_guard' });
-ITEM_DATA.push({ id: 'hifumi_buff_rate', name: '狂戦士の魂', rarity: 'rare', desc: '役「ヒフミ」が成立した時、そのラウンドが終了するまで全体倍率を2倍にする', price: 4, effectType: 'hifumi_mul_rate' });
-ITEM_DATA.push({ id: 'hifumi_buff_face', name: '混沌の力', rarity: 'rare', desc: '役「ヒフミ」が成立した時、全てのサイコロの出目点が永続的に4倍になる', price: 4, effectType: 'hifumi_buff_face' });
-ITEM_DATA.push({ id: 'hifumi_gain_ticket', name: '保険金', rarity: 'rare', desc: '役「ヒフミ」が成立した時、所持チケット5枚につき1枚のチケットを獲得する', price: 4, effectType: 'hifumi_ticket_pct' });
-ITEM_DATA.push({ id: 'start_fixed_hifumi', name: '破滅の契約書', rarity: 'sr', desc: '幸運での判定時、ヒフミが出ていたら他の役より優先してヒフミを選択する（1ラウンド3回まで）', price: 8, effectType: 'hifumi_priority' });
-
-// アラシ系
-ITEM_DATA.push({ id: 'arashi_act_roll', name: '疾風のブーツ', rarity: 'uncommon', desc: '役「アラシ」が成立した時、ロール回数が1回分回復する（1ラウンドにつき5回まで発動）', price: 2, effectType: 'arashi_act_roll' });
-ITEM_DATA.push({ id: 'arashi_luck_next', name: '雷鳴の指輪', rarity: 'uncommon', desc: '役「アラシ」が成立した時、次のロールの幸運ステータスが+200される', price: 2, effectType: 'arashi_luck_next' });
-ITEM_DATA.push({ id: 'arashi_mul_rate', name: '暴風の王冠', rarity: 'rare', desc: '役「アラシ」が成立した時、そのラウンドが終了するまで全体倍率を1.5倍にする', price: 4, effectType: 'arashi_mul_rate' });
-ITEM_DATA.push({ id: 'arashi_buff_face', name: '天地鳴動', rarity: 'rare', desc: '役「アラシ」が成立した時、全てのサイコロの出目点が永続的に1.5倍になる', price: 4, effectType: 'arashi_buff_face' });
-ITEM_DATA.push({ id: 'arashi_gain_ticket', name: '海賊の宝箱', rarity: 'rare', desc: '役「アラシ」が成立した時、チケットを20枚獲得する', price: 4, effectType: 'arashi_gain_ticket' });
-
-// シゴロ系
-ITEM_DATA.push({ id: 'shigoro_act_roll', name: '疾走の翼', rarity: 'uncommon', desc: '役「シゴロ」が成立した時、ロール回数が1回分回復する（1ラウンドにつき4回まで発動）', price: 2, effectType: 'shigoro_act_roll' });
-ITEM_DATA.push({ id: 'shigoro_luck_next', name: '星空の導き', rarity: 'uncommon', desc: '役「シゴロ」が成立した時、次のロールの幸運ステータスが+150される', price: 2, effectType: 'shigoro_luck_next' });
-ITEM_DATA.push({ id: 'shigoro_mul_rate', name: '烈火の王冠', rarity: 'rare', desc: '役「シゴロ」が成立した時、そのラウンドが終了するまで全体倍率を1.5倍にする', price: 4, effectType: 'shigoro_mul_rate' });
-ITEM_DATA.push({ id: 'shigoro_buff_face', name: '大地鳴動', rarity: 'rare', desc: '役「シゴロ」が成立した時、全てのサイコロの出目点が永続的に1.5倍になる', price: 4, effectType: 'shigoro_buff_face' });
-ITEM_DATA.push({ id: 'shigoro_gain_ticket', name: '盗賊の金貨', rarity: 'rare', desc: '役「シゴロ」が成立した時、チケットを15枚獲得する', price: 4, effectType: 'shigoro_gain_ticket' });
-
-// ピンゾロ系 (新規)
-ITEM_DATA.push({ id: 'pinzoro_act_roll', name: '天帝の凱旋', rarity: 'rare', desc: '役「ピンゾロ」が成立した時、ロール回数が2回分回復する（1ラウンドにつき3回まで発動）', price: 4, effectType: 'pinzoro_act_roll' });
-ITEM_DATA.push({ id: 'pinzoro_luck_next', name: '天運の指輪', rarity: 'rare', desc: '役「ピンゾロ」が成立した時、次のロールの幸運ステータスが+250される', price: 4, effectType: 'pinzoro_luck_next' });
-ITEM_DATA.push({ id: 'pinzoro_mul_rate', name: '覇王の冠', rarity: 'sr', desc: '役「ピンゾロ」が成立した時、そのラウンドが終了するまで全体倍率を2倍にする', price: 8, effectType: 'pinzoro_mul_rate' });
-ITEM_DATA.push({ id: 'pinzoro_buff_face', name: '天地創造', rarity: 'sr', desc: '役「ピンゾロ」が成立した時、全てのサイコロの出目点が永続的に2倍になる', price: 8, effectType: 'pinzoro_buff_face' });
-ITEM_DATA.push({ id: 'pinzoro_gain_ticket', name: '王の財宝', rarity: 'sr', desc: '役「ピンゾロ」が成立した時、チケットを30枚獲得する', price: 8, effectType: 'pinzoro_gain_ticket' });
-
-
-// リロール系
-ITEM_DATA.push({ id: 'reroll_c_1', name: '商人の会員証', rarity: 'common', desc: '新しいステージが開始されるたび、ショップの無料再入荷回数が2回分追加される', price: 1, effectType: 'reroll_stage', value: 2 });
-ITEM_DATA.push({ id: 'reroll_r_1', name: '貴族の紹介状', rarity: 'rare', desc: '各ラウンドが終了するたび、ショップの無料再入荷回数が1回分追加される', price: 4, effectType: 'reroll_round', value: 1 });
-ITEM_DATA.push({ id: 'rate_reroll', name: '準備万端', rarity: 'uncommon', desc: '所持しているリロール無料回数1回につき、全体倍率に+1.0倍を加算する', price: 2, effectType: 'rate_reroll', value: 1.0 });
-
-// プレステージオプション
-const PRESTIGE_OPTIONS = [
-    { type: 'weight', target: 1, text: '壱の目の出る確率の重みが+3永続的に増加する', icon: '⚀' },
-    { type: 'weight', target: 2, text: '弐の目の出る確率の重みが+3永続的に増加する', icon: '⚁' },
-    { type: 'weight', target: 3, text: '参の目の出る確率の重みが+3永続的に増加する', icon: '⚂' },
-    { type: 'weight', target: 4, text: '肆の目の出る確率の重みが+3永続的に増加する', icon: '⚃' },
-    { type: 'weight', target: 5, text: '伍の目の出る確率の重みが+3永続的に増加する', icon: '⚄' },
-    { type: 'weight', target: 6, text: '陸の目の出る確率の重みが+3永続的に増加する', icon: '⚅' },
-    { type: 'weight_group', targets: [1, 2, 3], val: -1, text: '1, 2, 3の目の出る確率の重みが-1永続的に減少する', icon: '🔻' },
-    { type: 'weight_group', targets: [4, 5, 6], val: -1, text: '4, 5, 6の目の出る確率の重みが-1永続的に減少する', icon: '🔽' },
-    { type: 'multi', target: 'pinzoro', text: '役「ピンゾロ」の現在の倍率が5倍になる（基礎点更新）', icon: '👑' },
-    { type: 'multi', target: 'arashi', text: '役「アラシ」の現在の倍率が5倍になる（基礎点更新）', icon: '🌀' },
-    { type: 'multi', target: '456', text: '役「シゴロ」の現在の倍率が5倍になる（基礎点更新）', icon: '🔥' },
-    { type: 'multi', target: 'meari', text: '役「目あり」の現在の倍率が5倍になる（基礎点更新）', icon: '👀' },
-    { type: 'multi', target: 'menashi', text: '役「目なし」の現在の倍率が5倍になる（基礎点更新）', icon: '☠️' },
-    { type: 'ticket', val: 5, text: 'チケットを5枚獲得する', icon: '🎫' },
-    { type: 'inv_max', text: 'インベントリの最大数が永続的に1つ増加する', icon: '🎒' }
-];
-
-function formatBigInt(val) {
-    if (val === 0n) return "0";
-    let isNeg = false;
-    if (val < 0n) { isNeg = true; val = -val; }
-
-    let muryoPower = 0;
-    let currentVal = val;
-    if (currentVal >= MURYO_LIMIT) {
-        while (currentVal >= MURYO_LIMIT) {
-            currentVal /= MURYO_LIMIT;
-            muryoPower++;
-        }
-    }
-    let suffix = "";
-    if (muryoPower > 0) {
-        suffix = "<" + Array(muryoPower).fill("無量大数").join("・") + ">";
-    }
-
-    let str = currentVal.toString();
-    let len = str.length;
-    let unitIndex = Math.floor((len - 1) / 4);
+    let expStatus = 'idle'; 
+    let expMode = 'normal'; 
+    let expTimeRemaining = 0;
+    const EXP_DURATION_BASE = 180 * 1000; 
+    let expNextCost = 15000;
+    let ritualNextCost = 500000; 
+    let fusionNextCost = 10000000; // 融合探索初期コスト
     
-    let topLen = (len % 4 === 0) ? 4 : len % 4;
-    let topNumStr = str.substring(0, topLen);
-    let result = topNumStr + JP_UNITS[unitIndex];
+    let currentRewards = []; 
+    let rewardSelectCount = 1; 
 
-    if (unitIndex > 0) {
-        let secondBlockStr = str.substring(topLen, topLen + 4);
-        if (secondBlockStr.length > 0) {
-            let secondVal = parseInt(secondBlockStr);
-            if (secondVal > 0) {
-                result += secondVal + JP_UNITS[unitIndex - 1];
-            }
-        }
-    }
-    return (isNeg ? "-" : "") + result + suffix;
-}
+    let lastTickTime = Date.now();
 
-class Game {
-    constructor() {
-        this.diceChars = ['?', '⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
-        this.stage = 1;
-        this.round = 1;
-        this.rollCount = INITIAL_ROLL_COUNT;
-        this.pool = 0n;
-        this.totalScore = 0n;
-        this.targetScore = 1500n;
-        
-        this.diceWeights = [0, 5, 5, 5, 5, 5, 5];
-        this.faceValues = [0n, 1n, 2n, 3n, 4n, 5n, 6n]; 
-        this.baseMultipliers = { ...CONST_BASE_MULTIPLIERS };
-        this.yakuMultipliers = { ...this.baseMultipliers };
+    // レアリティ定義（順序重要）
+    const RARITY_ORDER = ['common', 'uncommon', 'rare', 'super', 'ultra', 'magic', 'epic', 'legendary', 'eternal'];
+    let RARITIES = {};
 
-        this.tickets = 4;
-        this.freeRerolls = 0; 
-        this.baseLuck = 50;
-        this.currentLuck = 50;
-        this.globalMultiplier = 1.0; 
-        this.inventory = [];
-        this.shopItems = []; 
-        this.rerollCost = 1;
-        this.maxInventory = 7;
+    const upgState = {
+        finger: { lv: 0, max: 3, costs: [100, 1000, 3000], name: "黄金の指", icon: "☝️", desc: "獲得スコア+100%", req: null },
+        auto: { lv: 0, max: 1, costs: [3000], name: "自動ロール", icon: "🤖", desc: "自動でダイスを振る", req: "finger" },
+        field: { lv: 0, max: 9, costs: [2000, 5000, 10000, 30000, 70000, 150000, 300000, 500000, 1000000], name: "場を追加", icon: "🎲", desc: "場を増やす", req: "finger" },
+        expedition: { lv: 0, max: 1, costs: [15000], name: "通常探索", icon: "🧭", desc: "出目探索を解放", req: "auto" },
+        history: { lv: 0, max: 1, costs: [100], name: "家計簿", icon: "📖", desc: "配当TOP5を表示", req: "auto" },
+        speed: { lv: 0, max: 20, costs: Array.from({length:20}, (_,i)=>Math.floor(5000 * Math.pow(2.0, i))), name: "時間短縮", icon: "⚡", desc: "自動間隔-0.2s", req: "auto" },
+        digital_history: { lv: 0, max: 1, costs: [300], name: "電子家計簿", icon: "📱", desc: "プールの詳細を確認可能にする", req: ["history", "expedition"] },
+        potential: { lv: 0, max: 2, costs: [50000, 50000000], name: "ポテンシャル", icon: "💎", desc: "ダイス数+1", req: "field" },
+        exp_speed: { lv: 0, max: 10, costs: Array.from({length:10}, (_,i)=>100000 * Math.pow(1.5, i)), name: "探索短縮", icon: "⏩", desc: "探索時間 -16秒", req: "expedition" },
+        exp_amount: { lv: 0, max: 3, costs: [1000000, 5000000, 20000000], name: "通常探索強化", icon: "📦", desc: "探索の選択肢+1", req: "expedition" },
         
-        this.isScientific = false; // 表記モード
+        ritual_unlock: { lv: 0, max: 1, costs: [500000], name: "儀式探索", icon: "🔮", desc: "プール削除可能な儀式を解放", req: "expedition" },
+        ritual_amount: { lv: 0, max: 3, costs: [1000000, 5000000, 20000000], name: "儀式探索強化", icon: "🌑", desc: "儀式の選択肢+1", req: "ritual_unlock" },
 
-        this.streakMenashi = 0;
-        this.streakWin = 0;
-        this.tempLuckBoost = 0;
-        
-        this.tempRateBoost = 0.0; // 加算バフ
-        this.roundMultiplierBoost = 1.0; // 乗算バフ
-        
-        this.hifumiTriggerCount = 0; 
-        this.hifumiPriorityCount = 0; 
-        this.arashiRollCount = 0; 
-        this.shigoroRollCount = 0;
-        this.pinzoroRollCount = 0; // ピンゾロ用
+        fusion_exp: { lv: 0, max: 1, costs: [10000000], name: "融合探索", icon: "🔥", desc: "出目を融合し強化する探索を解放", req: "ritual_amount", reincReq: "fusion_dim" },
+        fusion_exp_amount: { lv: 0, max: 3, costs: [50000000, 5000000000, 500000000000], name: "融合探索強化", icon: "📦", desc: "融合候補の選択肢+1", req: "fusion_exp", reincReq: "fusion_dim" },
 
-        this.nextRollFixedDice = null; 
-        this.forcedDice = null; 
-        this.roundExecCount = 0; 
+        throw: { lv: 0, max: 5, costs: [100000, 1000000, 10000000, 100000000, 1000000000], name: "投擲技術", icon: "🎯", desc: "演出短縮", req: "speed" },
+        yaku_none: { lv: 0, max: 10, costs: Array.from({length:10}, (_,i)=>2500 * Math.pow(4, i)), name: "目なし強化", icon: "❕", desc: "目なし+400%", req: "auto" },
+        yaku_normal: { lv: 0, max: 10, costs: Array.from({length:10}, (_,i)=>5000 * Math.pow(4, i)), name: "通常目強化", icon: "⚂", desc: "通常目+400%", req: "yaku_none" },
+        yaku_456: { lv: 0, max: 10, costs: Array.from({length:10}, (_,i)=>10000 * Math.pow(4, i)), name: "シゴロ強化", icon: "✨", desc: "シゴロ+400%", req: "yaku_normal" },
+        yaku_arashi: { lv: 0, max: 10, costs: Array.from({length:10}, (_,i)=>10000 * Math.pow(4, i)), name: "アラシ強化", icon: "🌀", desc: "アラシ+400%", req: "yaku_456" },
+        yaku_pin: { lv: 0, max: 10, costs: Array.from({length:10}, (_,i)=>10000 * Math.pow(4, i)), name: "ピンゾロ強化", icon: "🔥", desc: "ピンゾロ+400%", req: "yaku_arashi" },
+
+        yaku_straight4: { lv: 0, max: 10, costs: Array.from({length:10}, (_,i)=>100000 * Math.pow(2, i)), name: "ストレート4強化", icon: "4️⃣", desc: "ストレート4+400%", req: "yaku_pin", reincReq: "straight4" },
+        yaku_arashi4: { lv: 0, max: 10, costs: Array.from({length:10}, (_,i)=>200000 * Math.pow(2, i)), name: "アラシ4強化", icon: "🌪️", desc: "アラシ4+400%", req: "yaku_straight4", reincReq: "arashi4" },
+        yaku_straight5: { lv: 0, max: 10, costs: Array.from({length:10}, (_,i)=>1000000 * Math.pow(2, i)), name: "ストレート5強化", icon: "5️⃣", desc: "ストレート5+400%", req: "yaku_arashi4", reincReq: "straight5" },
+        yaku_arashi5: { lv: 0, max: 10, costs: Array.from({length:10}, (_,i)=>2000000 * Math.pow(2, i)), name: "アラシ5強化", icon: "🌈", desc: "アラシ5+400%", req: "yaku_arashi4", reincReq: "arashi5" }
+    };
+    
+    const reincUpgInfo = {
+        wallet: { lv: 0, max: 20, costs: [1], name: "前世の財布", icon: "👛", desc: "転生直後のスコア+10万", req: null, fixedCost: true },
+        greedy_exp: { lv: 0, max: 2, costs: [4, 12], name: "強欲な遠征", icon: "🤩", desc: "通常探索で選べる数+1", req: "wallet" },
+        greedy_rit: { lv: 0, max: 2, costs: [4, 12], name: "強欲な儀式", icon: "😈", desc: "儀式探索で消せる数+1", req: "wallet" },
+        privatize: { lv: 0, max: 1, costs: [5], name: "数字の私物化", icon: "🔢", desc: "アラシ・シゴロ計算式変更", req: ["greedy_exp", "greedy_rit"] },
+        straight: { lv: 0, max: 1, costs: [6], name: "ストレート", icon: "📏", desc: "連番(234,345等)を役として扱う", req: "privatize" },
         
-        this.prestigeState = {
-            weights: [0, 0, 0, 0, 0, 0, 0], 
-            extraInv: 0
+        fusion_dim: { lv: 0, max: 1, costs: [10], name: "融合次元", icon: "🌌", desc: "（未実装）次元の壁が薄くなる...？", req: "straight" },
+        fusion_limit: { lv: 0, max: 10, costs: [2], name: "融合上限", icon: "🧱", desc: "融合出目の上限+3", req: "fusion_dim", fixedCost: true },
+        
+        straight4: { lv: 0, max: 1, costs: [5], name: "ストレート４", icon: "4️⃣", desc: "4つの連番で役成立<br>合計*10000", req: "fusion_dim" },
+        arashi4: { lv: 0, max: 1, costs: [5], name: "アラシ４", icon: "🌪️", desc: "4つの同数で役成立<br>合計*20000", req: "straight4" },
+        
+        straight5: { lv: 0, max: 1, costs: [10], name: "ストレート５", icon: "5️⃣", desc: "5つの連番で役成立<br>合計*50000", req: "arashi4" },
+        arashi5: { lv: 0, max: 1, costs: [10], name: "アラシ５", icon: "🌈", desc: "5つの同数で役成立<br>合計*100000", req: "straight5" }, 
+
+        rare_magic: { lv: 0, max: 1, costs: [5], name: "レアリティ：マジック", icon: "M", desc: "マジック(x64)を追加", req: "fusion_dim" },
+        rare_epic: { lv: 0, max: 1, costs: [5], name: "レアリティ：エピック", icon: "E", desc: "エピック(x128)を追加", req: "rare_magic" },
+        rare_legend: { lv: 0, max: 1, costs: [10], name: "レアリティ：レジェンダリー", icon: "L", desc: "レジェンダリー(x256)を追加", req: "rare_epic" },
+        rare_eternal: { lv: 0, max: 1, costs: [10], name: "レアリティ：エターナル", icon: "∞", desc: "エターナル(x512)を追加", req: "rare_legend" }
+    };
+
+    function updateRarityDefinitions() {
+        RARITIES = {
+            common: { name: "コモン", weight: 5000, mult: 1, color: "var(--rare-common)", class: "rarity-common" },
+            uncommon: { name: "アンコモン", weight: 3500, mult: 4, color: "var(--rare-uncommon)", class: "rarity-uncommon" },
+            rare: { name: "レア", weight: 1000, mult: 8, color: "var(--rare-rare)", class: "rarity-rare" },
+            super: { name: "スーパーレア", weight: 350, mult: 16, color: "var(--rare-super)", class: "rarity-super" },
+            ultra: { name: "ウルトラレア", weight: 150, mult: 32, color: "var(--rare-ultra)", class: "rarity-ultra" }
         };
-        this.prestigeRerollCost = 1;
-        this.currentPrestigeOptions = [];
+        
+        if (reincData.upgrades.rare_magic > 0) RARITIES.magic = { name: "マジック", weight: 100, mult: 64, color: "var(--rare-magic)", class: "rarity-magic" };
+        if (reincData.upgrades.rare_epic > 0) RARITIES.epic = { name: "エピック", weight: 50, mult: 128, color: "var(--rare-epic)", class: "rarity-epic" };
+        if (reincData.upgrades.rare_legend > 0) RARITIES.legendary = { name: "レジェンダリー", weight: 25, mult: 256, color: "var(--rare-legendary)", class: "rarity-legendary" };
+        if (reincData.upgrades.rare_eternal > 0) RARITIES.eternal = { name: "エターナル", weight: 10, mult: 512, color: "#fff", class: "rarity-eternal" };
+    }
 
-        this.isShopOpen = false;
-        this.roundGains = { faces: [0n,0n,0n,0n,0n,0n,0n], yakus: {} };
+    function formatScore(num) {
+        if (num < 10000) return Math.floor(num).toLocaleString();
+        const units = ["", "万", "億", "兆", "京", "垓", "𥝱", "溝", "澗", "正", "載", "極"];
+        let unitIdx = 0, tempNum = num;
+        while (tempNum >= 10000 && unitIdx < units.length - 1) { tempNum /= 10000; unitIdx++; }
+        return (Math.floor(tempNum * 100) / 100) + units[unitIdx];
+    }
 
-        // UI init
+    const debugCode = ["KeyW", "KeyW", "KeyS", "KeyS", "KeyA", "KeyD", "KeyA", "KeyD", "KeyA", "KeyB"];
+    let inputBuffer = [];
+    window.addEventListener('keydown', (e) => {
+        inputBuffer.push(e.code);
+        if (inputBuffer.length > debugCode.length) inputBuffer.shift();
+        if (JSON.stringify(inputBuffer) === JSON.stringify(debugCode)) {
+            const val = prompt("【デバッグ】スコア加算");
+            if (val) { score += parseFloat(val); totalScore += parseFloat(val); updateUI(); }
+        }
+        if(e.code === "KeyT" && expStatus === 'running') expTimeRemaining = 100;
+    });
+
+    function saveGame() {
+        if (isResetting) return;
+        const saveObj = {
+            score, totalScore, multiplier,
+            expNextCost, ritualNextCost, fusionNextCost,
+            dicePool, upgLevels: {}, 
+            reincData, scoreHistory,
+            ver: 6.4,
+            lastSaveTime: Date.now() 
+        };
+        for(let key in upgState) saveObj.upgLevels[key] = upgState[key].lv;
+        localStorage.setItem('chinchiro_clicker_save', JSON.stringify(saveObj));
+        const notice = document.getElementById('save-notice');
+        notice.style.opacity = 1; setTimeout(() => notice.style.opacity = 0, 2000);
+    }
+
+    function loadGame() {
+        const saveStr = localStorage.getItem('chinchiro_clicker_save');
+        if (!saveStr) {
+            initNewGame();
+            return;
+        }
         try {
-            this.ui = {
-                stage: document.getElementById('ui-stage'),
-                round: document.getElementById('ui-round'),
-                roll: document.getElementById('ui-roll'),
-                pool: document.getElementById('ui-pool'),
-                target: document.getElementById('ui-target'),
-                total: document.getElementById('ui-total'),
-                tickets: document.getElementById('ui-tickets'),
-                luck: document.getElementById('ui-luck'),
-                rate: document.getElementById('ui-rate'), 
-                invList: document.getElementById('ui-inventory'),
-                invCount: document.getElementById('ui-inv-count'),
-                diceCont: document.getElementById('dice-container'),
-                msgMain: document.getElementById('msg-main'),
-                msgSub: document.getElementById('msg-sub'),
-                msgLog: document.getElementById('msg-log'),
-                btnRoll: document.getElementById('btn-roll'),
-                btnShop: document.getElementById('btn-shop'),
-                btnClear: document.getElementById('btn-clear'),
-                clearSub: document.getElementById('clear-sub'),
-                mainPanel: document.getElementById('main-panel'),
-                gameView: document.getElementById('game-view'),
-                shopView: document.getElementById('shop-view'),
-                shopShelves: document.getElementById('shop-shelves'),
-                btnReroll: document.getElementById('btn-reroll'),
-                prestigeView: document.getElementById('prestige-view'),
-                prestigeCont: document.getElementById('prestige-container'),
-                btnPrestigeReroll: document.getElementById('btn-prestige-reroll'),
-                modal: document.getElementById('modal'),
-                mTitle: document.getElementById('modal-title'),
-                mMsg: document.getElementById('modal-msg'),
-                tableFaces: document.getElementById('table-faces'),
-                tableYaku: document.getElementById('table-yaku')
-            };
-            this.initStage();
-        } catch(e) {
-            console.error(e);
-            alert("初期化エラー: " + e.message);
-        }
-    }
+            const saveObj = JSON.parse(saveStr);
+            score = saveObj.score || 0;
+            totalScore = saveObj.totalScore || 0;
+            multiplier = saveObj.multiplier || 1;
+            expNextCost = saveObj.expNextCost || 15000;
+            ritualNextCost = saveObj.ritualNextCost || 500000;
+            fusionNextCost = saveObj.fusionNextCost || 10000000;
+            lastTickTime = saveObj.lastSaveTime || Date.now();
+            
+            if (saveObj.scoreHistory) scoreHistory = saveObj.scoreHistory;
 
-    toggleNotation() {
-        this.isScientific = !this.isScientific;
-        this.updateUI();
-        this.updateTables();
-    }
+            if(saveObj.dicePool && Array.isArray(saveObj.dicePool)) dicePool = saveObj.dicePool;
+            else initNewGame();
+            
+            // 安全策: ロード後に空なら初期化
+            if (dicePool.length === 0) initNewGame();
 
-    formatVal(val) {
-        if (this.isScientific) {
-            if (val === 0n) return "0";
-            let str = val.toString();
-            if (str.length <= 6) return str;
-            let exponent = str.length - 1;
-            let mantissa = str.substring(0, 4); 
-            return mantissa.charAt(0) + "." + mantissa.substring(1) + "e+" + exponent;
-        } else {
-            return formatBigInt(val);
-        }
-    }
-
-    initStage() {
-        this.round = 1;
-        this.pool = 0n;
-        this.rollCount = INITIAL_ROLL_COUNT;
-        this.roundExecCount = 0;
-        
-        // Target = 1500 * 4 ^ (経過ステージ数 * 経過ステージ数)
-        const elapsedStages = this.stage - 1;
-        const exponent = BigInt(elapsedStages * elapsedStages);
-        this.targetScore = 1500n * (4n ** exponent);
-
-        this.nextRollFixedDice = null;
-        this.tempRateBoost = 0.0;
-        this.roundMultiplierBoost = 1.0;
-        this.hifumiTriggerCount = 0;
-        this.hifumiPriorityCount = 0;
-        this.arashiRollCount = 0;
-        this.shigoroRollCount = 0;
-        this.pinzoroRollCount = 0;
-
-        this.inventory.forEach(item => {
-            if (item.effectType === 'reroll_stage') {
-                this.freeRerolls += item.value;
-            }
-        });
-
-        this.yakuMultipliers = { ...this.baseMultipliers };
-
-        this.recalcStats();
-        this.rerollCost = 1;
-        this.generateShopItems();
-
-        this.updateUI();
-        this.updateTables();
-        this.updateClearButton();
-        
-        this.ui.msgMain.textContent = `STAGE ${this.stage}`;
-        this.ui.msgMain.classList.remove('hifumi-text');
-        this.ui.msgSub.textContent = `目標: ${this.formatVal(this.targetScore)}pt`;
-        this.ui.btnShop.classList.remove('hidden-el');
-        this.ui.btnShop.disabled = false;
-        this.ui.btnRoll.disabled = false;
-        
-        this.ui.msgLog.innerHTML = "";
-
-        if (this.stage === 1) {
-            this.openShop();
-        } else {
-            this.closeShop();
-        }
-    }
-
-    clearLogs() { this.ui.msgLog.innerHTML = ""; }
-    addLog(text, type) {
-        const span = document.createElement('span');
-        span.className = `log-tag ${type || ''}`;
-        span.textContent = text;
-        this.ui.msgLog.appendChild(span);
-    }
-    checkProb(baseProb) {
-        let prob = baseProb;
-        const hasBoost = this.inventory.some(i => i.effectType === 'prob_boost');
-        if (hasBoost) prob *= 2;
-        return Math.random() < prob;
-    }
-
-    recalcStats() {
-        let w = [0, 5, 5, 5, 5, 5, 5];
-        
-        for(let i=1; i<=6; i++) {
-            w[i] += this.prestigeState.weights[i];
-        }
-        for(let i=1; i<=6; i++) if(w[i] < 0) w[i] = 0;
-        this.diceWeights = w;
-
-        let l = 50;
-        this.inventory.forEach(item => {
-            if (item.effectType === 'luck_static') l += item.value;
-        });
-        this.baseLuck = l;
-        this.currentLuck = l; 
-
-        let maxInv = 7 + this.prestigeState.extraInv; 
-        this.inventory.forEach(item => {
-            if (item.effectType === 'inv_expand') maxInv += item.value;
-        });
-        this.maxInventory = maxInv;
-
-        let rate = 1.0;
-        this.inventory.forEach(item => {
-            if (item.effectType === 'rate_ticket') {
-                rate += Math.floor(this.tickets / 10) * item.value;
-            }
-            if (item.effectType === 'rate_streak') {
-                rate += this.streakWin * item.value;
-            }
-            if (item.effectType === 'rate_reroll') {
-                rate += this.freeRerolls * item.value;
-            }
-        });
-        rate += this.tempRateBoost; 
-        rate *= this.roundMultiplierBoost;
-
-        this.globalMultiplier = rate;
-        this.updateTables();
-    }
-
-    roll() {
-        if (this.rollCount <= 0) return;
-        this.resetGains();
-        this.recalcStats();
-        this.updateTables();
-        this.clearLogs();
-
-        this.forcedDice = null;
-        
-        if (this.nextRollFixedDice) {
-            this.forcedDice = [...this.nextRollFixedDice];
-            this.nextRollFixedDice = null;
-            this.addLog(`🔥確定演出`, 'log-buff');
-        }
-
-        this.roundExecCount++;
-
-        let rollLuck = this.baseLuck + this.tempLuckBoost;
-        this.tempLuckBoost = 0; 
-        this.inventory.forEach(item => {
-            if (item.effectType === 'luck_chance') {
-                if (this.checkProb(item.prob)) { 
-                    rollLuck += item.value;
-                    this.addLog(`✨${item.name}`, 'log-luck');
+            if(saveObj.upgLevels) {
+                for(let key in upgState) {
+                    if (saveObj.upgLevels[key] !== undefined) upgState[key].lv = Math.min(saveObj.upgLevels[key], upgState[key].max);
                 }
             }
-        });
-        this.currentLuck = rollLuck;
-
-        this.ui.btnRoll.disabled = true;
-        this.ui.btnShop.classList.add('hidden-el');
-        this.ui.btnClear.classList.remove('visible'); 
-        document.getElementById('pool-box').classList.remove('shock-effect');
-
-        let count = 0;
-        const interval = setInterval(() => {
-            const dummyDice = [this.rand(), this.rand(), this.rand()];
-            this.renderDice(dummyDice);
-            count++;
-            if (count > 8) {
-                clearInterval(interval);
-                this.resolveRoll();
-            }
-        }, 60);
-    }
-
-    resetGains() { this.roundGains = { faces: [0n,0n,0n,0n,0n,0n,0n], yakus: {} }; }
-    rand() { return Math.floor(Math.random()*6)+1; }
-    
-    getWeightedRandom() {
-        const total = this.diceWeights.reduce((a, b) => a + b, 0);
-        if (total <= 0) return Math.floor(Math.random()*6)+1;
-        let r = Math.random() * total;
-        for (let i = 1; i <= 6; i++) {
-            if (r < this.diceWeights[i]) return i;
-            r -= this.diceWeights[i];
-        }
-        return 6;
-    }
-
-    resolveRoll() {
-        let dice, res;
-        let rollAttempts = [];
-        
-        if (this.forcedDice) {
-            dice = this.forcedDice;
-            res = this.calc(dice);
-            rollAttempts.push({ dice, res });
-            this.forcedDice = null;
-        } else {
-            let activeLuck = this.currentLuck;
-            do {
-                let d = [this.getWeightedRandom(), this.getWeightedRandom(), this.getWeightedRandom()];
-                let r = this.calc(d);
-                rollAttempts.push({ dice: d, res: r });
-                if (Math.random() * 100 < activeLuck) {
-                    activeLuck /= 2;
-                } else {
-                    break;
-                }
-            } while (true);
-        }
-
-        let picked = null;
-        const ruinContract = this.inventory.find(i => i.effectType === 'hifumi_priority');
-        if (ruinContract && this.hifumiPriorityCount < 3) {
-            const hifumiRoll = rollAttempts.find(a => a.res.isHifumi);
-            if (hifumiRoll) {
-                picked = hifumiRoll;
-                this.hifumiPriorityCount++;
-                this.addLog(`📜${ruinContract.name}`, 'log-hifumi');
-            }
-        }
-
-        if (!picked) {
-            const YAKU_RANK = {
-                'pinzoro': 5,
-                'arashi': 4,
-                '456': 3,
-                'meari': 2,
-                'menashi': 1,
-                'hifumi': 0
-            };
-
-            rollAttempts.sort((a, b) => {
-                const rankA = YAKU_RANK[a.res.yakuKey] || 0;
-                const rankB = YAKU_RANK[b.res.yakuKey] || 0;
-                
-                if (rankB !== rankA) {
-                    return rankB - rankA; 
+            
+            if (saveObj.reincData) {
+                reincData = saveObj.reincData;
+                if (reincData.points === undefined) {
+                    reincData.points = reincData.totalRP || 0;
+                    reincData.maxReachedRP = reincData.maxRP || reincData.totalRP || 0;
+                    if (reincData.maxReachedRP < reincData.points) reincData.maxReachedRP = reincData.points;
                 }
                 
-                if (b.res.score > a.res.score) return 1;
-                if (b.res.score < a.res.score) return -1;
-                return 0;
-            });
-            picked = rollAttempts[0];
-        }
-        
-        dice = picked.dice;
-        res = picked.res;
-
-        const luckTriggerCount = rollAttempts.length - 1;
-        if (luckTriggerCount > 0) this.addLog(`LUCK発動 x${luckTriggerCount}`, 'log-luck');
-
-        if (res.yakuKey === 'menashi') {
-            this.streakMenashi++;
-            this.streakWin = 0;
-        } else if (res.yakuKey !== 'hifumi') { 
-            this.streakWin++;
-            this.streakMenashi = 0;
-        } else {
-            this.streakMenashi = 0;
-            this.streakWin = 0;
-        }
-
-        this.inventory.forEach(item => {
-            if (item.effectType === 'luck_cond_menashi') {
-                if (this.streakMenashi >= 2) this.tempLuckBoost += item.value;
-            }
-        });
-
-        if (this.streakWin >= 3) {
-            let dragonFired = false;
-            this.inventory.forEach(item => {
-                if (item.effectType === 'buff_streak_win') {
-                    for(let key in this.baseMultipliers) {
-                        const added = this.baseMultipliers[key]; 
-                        this.baseMultipliers[key] *= 2n;
-                        this.yakuMultipliers[key] *= 2n;
-                        this.roundGains.yakus[key] = (this.roundGains.yakus[key] || 0n) + added;
-                    }
-                    dragonFired = true;
-                    this.addLog(`🐲${item.name}`, 'log-buff');
+                for (let k in reincUpgInfo) {
+                    if (reincData.upgrades[k] === undefined) reincData.upgrades[k] = 0;
                 }
-            });
-            if(dragonFired) {
-                this.recalcStats();
-                res = this.calc(dice);
-            }
-        }
-
-        this.renderDice(dice);
-        this.checkPreCalcEffects(dice);
-        
-        this.ui.msgMain.classList.remove('hifumi-text');
-        
-        if (res.isHifumi) {
-            this.ui.msgMain.textContent = "ヒフミ！！！";
-            this.ui.msgMain.classList.add('hifumi-text');
-            const guardItem = this.inventory.find(i => i.effectType === 'hifumi_guard');
-            if (guardItem) {
-                this.addLog(`🛡️${guardItem.name}`, 'log-buff');
-                this.ui.msgSub.innerHTML = "<span style='color:#2ecc71'>ペナルティ無効化！</span>";
             } else {
-                this.pool = 0n;
-                this.ui.msgSub.innerHTML = "<span style='color:#e74c3c; font-weight:bold;'>ペナルティ発動！プール没収！</span>";
-                document.getElementById('pool-box').classList.add('shock-effect');
+                reincData = { points:0, maxReachedRP:0, upgrades:{} };
+                for (let k in reincUpgInfo) reincData.upgrades[k] = 0;
             }
-            this.triggerHifumiEffects();
+            
+            updateRarityDefinitions();
+
+        } catch(e) {
+            console.error("Save corrupted", e);
+            initNewGame();
+        }
+    }
+    
+    function initNewGame() {
+        dicePool = [];
+        for(let v=1; v<=6; v++) for(let i=0; i<3; i++) dicePool.push({ val: v, rarity: 'common' });
+        
+        if (reincData && reincData.upgrades && reincData.upgrades.wallet > 0) {
+            const bonus = reincData.upgrades.wallet * 100000;
+            score += bonus;
+            totalScore += bonus;
+        }
+        updateRarityDefinitions();
+    }
+    
+    function resetGame() {
+        if(!confirm("本当にデータをリセットしますか？（転生ポイントも消えます）")) return;
+        isResetting = true;
+        localStorage.removeItem('chinchiro_clicker_save');
+        location.reload();
+    }
+
+    function calcRP(currentTotalScore) {
+        if (currentTotalScore < 100) return 0;
+        const val = (Math.log10(currentTotalScore) * 20) - 180;
+        return Math.floor(Math.max(0, val));
+    }
+
+    function openReincarnationModal() {
+        const potentialRP = calcRP(totalScore);
+        const gain = Math.max(0, potentialRP - reincData.maxReachedRP);
+        
+        document.getElementById('reinc-point-disp').textContent = reincData.points;
+        document.getElementById('pending-rp').textContent = potentialRP;
+        
+        document.getElementById('reinc-action-area').style.display = 'block';
+        document.getElementById('reinc-finish-area').style.display = 'none';
+
+        const btn = document.getElementById('do-reinc-btn');
+        const msg = document.getElementById('reinc-gain-msg');
+        const viewMsg = document.getElementById('reinc-view-mode-msg');
+        
+        if (totalScore >= REINC_THRESHOLD && gain > 0) {
+            msg.textContent = `転生すると +${gain} Pt 獲得できます！`;
+            btn.disabled = false;
+            btn.style.opacity = 1;
+            btn.style.cursor = "pointer";
         } else {
-            this.pool += res.score;
-            this.ui.msgMain.textContent = res.yakuName;
-            this.ui.msgSub.textContent = `出目(${this.formatVal(res.sum)}) × 倍率(${this.formatVal(res.mul)}) = +${this.formatVal(res.score)}pt`;
-            this.checkPostCalcEffects(dice, res.yakuKey);
+            msg.textContent = "※転生にはスコア100億以上、かつ最高記録の更新が必要です";
+            btn.disabled = true;
+            btn.style.opacity = 0.5;
+            btn.style.cursor = "not-allowed";
         }
 
-        if (res.yakuKey === 'arashi') {
-            this.triggerArashiEffects();
-        }
-        if (res.yakuKey === '456') {
-            this.triggerShigoroEffects();
-        }
-        if (res.yakuKey === 'pinzoro') {
-            this.triggerPinzoroEffects();
-        }
-
-        this.rollCount--;
-        this.inventory.forEach(item => {
-            if (item.effectType === 'roll_add') {
-                if (this.checkProb(item.prob)) {
-                    this.rollCount++;
-                    this.addLog(`🎵${item.name}`, 'log-luck');
-                }
-            }
-        });
-
-        this.currentLuck = this.baseLuck; 
-        this.updateUI();
-        this.updateTables();
-
-        if (this.rollCount <= 0) {
-            this.ui.btnRoll.disabled = true;
-            setTimeout(() => this.endRound(), 1500);
+        if (!isReincarnationPhase) {
+            viewMsg.style.display = 'block';
         } else {
-            this.ui.btnRoll.disabled = false;
+            viewMsg.style.display = 'none';
+        }
+        
+        updateReincUI();
+        toggleReincModal(true);
+        setTimeout(drawReincLines, 50);
+    }
+
+    function toggleReincModal(show) {
+        document.getElementById('reinc-modal').style.display = show ? 'flex' : 'none';
+        if (!show && isReincarnationPhase) {
+            finishReincarnation(); 
         }
     }
 
-    triggerArashiEffects() {
-        let recalcNeeded = false;
-        this.inventory.forEach(item => {
-            if (item.effectType === 'arashi_act_roll') {
-                if (this.arashiRollCount < 5) {
-                    this.rollCount += 1;
-                    this.arashiRollCount++;
-                    this.addLog(`💨${item.name}(+1 Roll)`, 'log-arashi');
-                } else {
-                    this.addLog(`(上限)${item.name}`, 'log-bad');
-                }
-            }
-            if (item.effectType === 'arashi_luck_next') {
-                this.tempLuckBoost += 200;
-                this.addLog(`⚡${item.name}`, 'log-luck');
-            }
-            if (item.effectType === 'arashi_mul_rate') {
-                this.roundMultiplierBoost *= 1.5;
-                this.addLog(`🌪️${item.name}`, 'log-rate');
-                recalcNeeded = true;
-            }
-            if (item.effectType === 'arashi_buff_face') {
-                for(let i=1; i<=6; i++) {
-                    const gain = (this.faceValues[i] * 5n) / 10n; // +0.5x
-                    this.faceValues[i] = (this.faceValues[i] * 15n) / 10n;
-                    this.roundGains.faces[i] += gain;
-                }
-                this.addLog(`🌋${item.name}`, 'log-buff');
-            }
-            if (item.effectType === 'arashi_gain_ticket') {
-                this.tickets += 20;
-                this.addLog(`🏴‍☠️${item.name}`, 'log-ticket');
-            }
-        });
-        if (recalcNeeded) this.recalcStats();
-    }
-
-    triggerShigoroEffects() {
-        let recalcNeeded = false;
-        this.inventory.forEach(item => {
-            if (item.effectType === 'shigoro_act_roll') {
-                if (this.shigoroRollCount < 4) {
-                    this.rollCount += 1;
-                    this.shigoroRollCount++;
-                    this.addLog(`🦅${item.name}(+1 Roll)`, 'log-shigoro');
-                } else {
-                    this.addLog(`(上限)${item.name}`, 'log-bad');
-                }
-            }
-            if (item.effectType === 'shigoro_luck_next') {
-                this.tempLuckBoost += 150;
-                this.addLog(`🌠${item.name}`, 'log-luck');
-            }
-            if (item.effectType === 'shigoro_mul_rate') {
-                this.roundMultiplierBoost *= 1.5;
-                this.addLog(`🔥${item.name}`, 'log-rate');
-                recalcNeeded = true;
-            }
-            if (item.effectType === 'shigoro_buff_face') {
-                for(let i=1; i<=6; i++) {
-                    const gain = (this.faceValues[i] * 5n) / 10n; // +0.5x
-                    this.faceValues[i] = (this.faceValues[i] * 15n) / 10n;
-                    this.roundGains.faces[i] += gain;
-                }
-                this.addLog(`🌍${item.name}`, 'log-buff');
-            }
-            if (item.effectType === 'shigoro_gain_ticket') {
-                this.tickets += 15;
-                this.addLog(`💰${item.name}`, 'log-ticket');
-            }
-        });
-        if (recalcNeeded) this.recalcStats();
-    }
-
-    triggerPinzoroEffects() {
-        let recalcNeeded = false;
-        this.inventory.forEach(item => {
-            if (item.effectType === 'pinzoro_act_roll') {
-                if (this.pinzoroRollCount < 3) {
-                    this.rollCount += 2;
-                    this.pinzoroRollCount++;
-                    this.addLog(`👑${item.name}(+2 Roll)`, 'log-pinzoro');
-                } else {
-                    this.addLog(`(上限)${item.name}`, 'log-bad');
-                }
-            }
-            if (item.effectType === 'pinzoro_luck_next') {
-                this.tempLuckBoost += 250;
-                this.addLog(`✨${item.name}`, 'log-luck');
-            }
-            if (item.effectType === 'pinzoro_mul_rate') {
-                this.roundMultiplierBoost *= 2.0;
-                this.addLog(`⚔️${item.name}`, 'log-rate');
-                recalcNeeded = true;
-            }
-            if (item.effectType === 'pinzoro_buff_face') {
-                for(let i=1; i<=6; i++) {
-                    const gain = this.faceValues[i]; // +1.0x (total 2x)
-                    this.faceValues[i] *= 2n;
-                    this.roundGains.faces[i] += gain;
-                }
-                this.addLog(`🪐${item.name}`, 'log-buff');
-            }
-            if (item.effectType === 'pinzoro_gain_ticket') {
-                this.tickets += 30;
-                this.addLog(`💎${item.name}`, 'log-ticket');
-            }
-        });
-        if (recalcNeeded) this.recalcStats();
-    }
-
-    triggerHifumiEffects() {
-        let recalcNeeded = false;
-        this.inventory.forEach(item => {
-            if (item.effectType === 'hifumi_act_roll') {
-                if (this.hifumiTriggerCount < 3) {
-                    this.rollCount += 3;
-                    this.hifumiTriggerCount++;
-                    this.addLog(`🥖${item.name}(+3 Roll)`, 'log-buff');
-                } else {
-                    this.addLog(`(上限)${item.name}`, 'log-bad');
-                }
-            }
-            if (item.effectType === 'hifumi_act_pin') {
-                this.nextRollFixedDice = [1, 1, 1];
-                this.addLog(`⚔️${item.name}`, 'log-buff');
-            }
-            if (item.effectType === 'hifumi_mul_rate') {
-                this.roundMultiplierBoost *= 2.0;
-                this.addLog(`😡${item.name}`, 'log-rate');
-                recalcNeeded = true;
-            }
-            if (item.effectType === 'hifumi_buff_face') {
-                for(let i=1; i<=6; i++) {
-                    const gain = this.faceValues[i] * 3n; 
-                    this.faceValues[i] *= 4n;
-                    this.roundGains.faces[i] += gain;
-                }
-                this.addLog(`🌀${item.name}`, 'log-buff');
-            }
-            if (item.effectType === 'hifumi_ticket_pct') {
-                const gain = Math.floor(this.tickets / 5);
-                if (gain > 0) {
-                    this.tickets += gain;
-                    this.addLog(`💰${item.name}(+${gain})`, 'log-ticket');
-                }
-            }
-        });
-        if (recalcNeeded) this.recalcStats();
-    }
-
-    calc(dice) {
-        const sorted = [...dice].sort((a,b)=>a-b);
-        let sum = 0n;
-        dice.forEach(d => {
-            let val = this.faceValues[d];
-            sum += val;
-        });
-
-        const diceSumTotal = dice.reduce((a,c) => a+c, 0);
-        const isSumOdd = (diceSumTotal % 2 !== 0);
+    function doReincarnation() {
+        const potentialRP = calcRP(totalScore);
+        const gain = Math.max(0, potentialRP - reincData.maxReachedRP);
         
-        let tempRateMul = 1.0;
+        if (!confirm(`本当に転生しますか？\n+${gain} Pt を獲得し、スコア等はリセットされます。`)) return;
         
-        this.inventory.forEach(item => {
-            if (item.effectType === 'score_sum_odd' && isSumOdd) tempRateMul *= item.value;
-            if (item.effectType === 'score_sum_even' && !isSumOdd) tempRateMul *= item.value;
-            if (item.effectType === 'score_sum_focus_odd') {
-                if (isSumOdd) tempRateMul *= 4.0; else tempRateMul *= 0.5;
-            }
-            if (item.effectType === 'score_sum_focus_even') {
-                if (!isSumOdd) tempRateMul *= 4.0; else tempRateMul *= 0.5;
-            }
-        });
+        reincData.points += gain;
+        reincData.maxReachedRP = potentialRP;
         
-        let yakuKey = 'menashi';
-        let yakuName = "目なし";
-        let isHifumi = false;
-        if (sorted[0]===1 && sorted[1]===1 && sorted[2]===1) { yakuKey='pinzoro'; yakuName="ピンゾロ"; }
-        else if (sorted[0]===sorted[1] && sorted[1]===sorted[2]) { yakuKey='arashi'; yakuName="アラシ"; }
-        else if (sorted[0]===4 && sorted[1]===5 && sorted[2]===6) { yakuKey='456'; yakuName="シゴロ"; }
-        else if (sorted[0]===1 && sorted[1]===2 && sorted[2]===3) { yakuKey='hifumi'; yakuName="ヒフミ"; isHifumi=true; }
-        else if (sorted[0]===sorted[1] || sorted[1]===sorted[2] || sorted[0]===sorted[2]) { yakuKey='meari'; yakuName="目あり"; }
+        score = 0;
+        totalScore = 0;
+        multiplier = 1;
+        expNextCost = 15000;
+        ritualNextCost = 500000;
+        fusionNextCost = 10000000;
+        for(let k in upgState) upgState[k].lv = 0;
+        hasAutoRoll = false;
+        expStatus = 'idle';
+        expTimeRemaining = 0;
+        
+        initNewGame(); 
+        
+        document.getElementById('game-fields').innerHTML = '';
+        fieldCount = 1;
+        fieldTimers = [0];
+        addField(0);
+        document.getElementById('panel-history').style.display = 'none';
+        document.getElementById('btn-pool-detail').style.display = 'none';
+        document.getElementById('btn-mode-toggle').style.display = 'none';
+        document.getElementById('expedition-panel').style.display = 'none';
+        
+        isReincarnationPhase = true;
+        document.getElementById('reinc-action-area').style.display = 'none';
+        document.getElementById('reinc-finish-area').style.display = 'block';
+        document.getElementById('reinc-gain-msg-2').textContent = `転生完了！ +${gain} Pt`;
+        
+        document.getElementById('reinc-view-mode-msg').style.display = 'none';
 
-        let mul = this.yakuMultipliers[yakuKey]; 
-        
-        const effectiveGlobalRate = this.globalMultiplier * tempRateMul;
-        let globalRateInt = BigInt(Math.round(effectiveGlobalRate * 100));
-        
-        const finalScore = (sum * mul * globalRateInt) / 100n;
-        return { sum, mul, score: finalScore, yakuName, yakuKey, isHifumi };
+        updateReincUI();
+        updateUI();
+        saveGame();
+    }
+    
+    function finishReincarnation() {
+        isReincarnationPhase = false;
+        document.getElementById('reinc-modal').style.display = 'none';
+        saveGame();
     }
 
-    checkPreCalcEffects(dice) {
-        this.inventory.forEach(item => {
-            if (item.effectType === 'happy') {
-                const count = dice.filter(d => d === item.targetFace).length;
-                for(let i=0; i<count; i++) {
-                    if (Math.random() < item.prob) { 
-                        this.tickets++;
-                        this.addLog(`🎫${item.name}`, 'log-ticket');
-                    }
-                }
+    function buyReincUpgrade(type) {
+        if (!isReincarnationPhase) return;
+
+        const upg = reincUpgInfo[type];
+        const reqs = Array.isArray(upg.req) ? upg.req : (upg.req ? [upg.req] : []);
+        const unlocked = reqs.every(r => reincData.upgrades[r] > 0);
+        
+        if (!unlocked) return;
+        if (reincData.upgrades[type] >= upg.max) return;
+
+        let cost = 0;
+        if (upg.fixedCost) {
+            cost = upg.costs[0];
+        } else {
+            cost = upg.costs[reincData.upgrades[type]];
+        }
+
+        if (reincData.points >= cost) {
+            reincData.points -= cost;
+            reincData.upgrades[type]++;
+            
+            if(type.startsWith('rare_')) updateRarityDefinitions();
+            
+            updateReincUI();
+            
+            if (type === 'wallet') {
+                score += 100000;
+                totalScore += 100000;
+                updateUI();
             }
+            saveGame();
+        }
+    }
+
+    function updateReincUI() {
+        document.getElementById('reinc-point-disp').textContent = reincData.points;
+        
+        for(let k in reincUpgInfo) {
+            const u = reincUpgInfo[k];
+            const n = document.getElementById('rnode-'+k);
+            if(!n) continue;
+            
+            const reqs = Array.isArray(u.req) ? u.req : (u.req ? [u.req] : []);
+            const open = reqs.length === 0 || reqs.every(r => reincData.upgrades[r] > 0);
+            const isMax = reincData.upgrades[k] >= u.max;
+            
+            let cost = u.fixedCost ? u.costs[0] : u.costs[reincData.upgrades[k]];
+            
+            const canBuy = open && !isMax && reincData.points >= cost && isReincarnationPhase;
+            
+            n.className = `skill-node reinc-node ${open?(reincData.upgrades[k]>0?'unlocked':'available'):'locked'} ${isMax?'is-max':''} ${canBuy?'can-buy':''}`;
+            document.getElementById('rlv-'+k).textContent = `Lv ${reincData.upgrades[k]}/${u.max}`;
+            
+            let tooltipHTML = `<strong>${u.name}</strong><br>${u.desc}<br>コスト: ${isMax?'MAX':cost + ' Pt'}`;
+            if (!open) {
+                const reqNames = reqs.map(r => reincUpgInfo[r].name).join(', ');
+                tooltipHTML += `<br><span style="color:#e74c3c; font-size:0.7rem;">(前提: ${reqNames})</span>`;
+            }
+            document.getElementById('rtip-'+k).innerHTML = tooltipHTML;
+        }
+        drawReincLines();
+    }
+
+    function drawReincLines() {
+        const svg = document.getElementById('reinc-tree-svg');
+        const root = document.getElementById('reinc-tree-root').getBoundingClientRect();
+        svg.innerHTML = '';
+        
+        const conn = [
+            ['wallet','greedy_exp'], ['wallet','greedy_rit'],
+            ['greedy_exp','privatize'], ['greedy_rit','privatize'],
+            ['privatize','straight'], ['straight', 'fusion_dim'], ['fusion_dim', 'fusion_limit'],
+            ['fusion_dim', 'straight4'], ['straight4', 'arashi4'],
+            ['arashi4', 'straight5'], ['straight5', 'arashi5'], 
+            ['fusion_dim', 'rare_magic'], ['rare_magic', 'rare_epic'],
+            ['rare_epic', 'rare_legend'], ['rare_legend', 'rare_eternal']
+        ];
+        
+        conn.forEach(([p,c])=>{
+            const pe = document.getElementById('rnode-'+p), ce = document.getElementById('rnode-'+c);
+            if(!pe || !ce) return;
+            const pr = pe.getBoundingClientRect(), cr = ce.getBoundingClientRect();
+            const l = document.createElementNS("http://www.w3.org/2000/svg","line");
+            l.setAttribute("x1", pr.left+pr.width/2-root.left);
+            l.setAttribute("y1", pr.top+pr.height/2-root.top);
+            l.setAttribute("x2", cr.left+cr.width/2-root.left);
+            l.setAttribute("y2", cr.top+cr.height/2-root.top);
+            
+            const isActive = reincData.upgrades[p] > 0;
+            l.className.baseVal = "skill-line reinc-line " + (isActive?'active':'');
+            svg.appendChild(l);
         });
     }
 
-    checkPostCalcEffects(dice, yakuKey) {
-        let changed = false;
-        this.inventory.forEach(item => {
-            if (item.effectType === 'gold_mul') {
-                const count = dice.filter(d => d === item.targetFace).length;
-                for(let i=0; i<count; i++) {
-                    if (this.checkProb(item.prob)) { 
-                        const face = item.targetFace;
-                        const added = this.faceValues[face]; 
-                        this.faceValues[face] *= 2n;
-                        this.roundGains.faces[face] += added;
-                        this.addLog(`💪${item.name}(x2)`, 'log-buff');
-                        changed = true;
-                    }
-                }
-            }
-            if (item.effectType === 'awakening_mul') {
-                const count = dice.filter(d => d === item.targetFace).length;
-                for(let i=0; i<count; i++) {
-                    if (this.checkProb(item.prob)) { 
-                        const current = this.baseMultipliers[yakuKey];
-                        if (current > 0n) {
-                            this.baseMultipliers[yakuKey] *= 2n;
-                            this.yakuMultipliers[yakuKey] *= 2n;
-                            this.roundGains.yakus[yakuKey] = (this.roundGains.yakus[yakuKey] || 0n) + current;
-                            this.addLog(`⚡${item.name}(x2)`, 'log-buff');
-                            changed = true;
+    // --- メイン初期化 ---
+
+    function init() {
+        loadGame();
+        
+        if(upgState.finger.lv > 0) multiplier = 1 + upgState.finger.lv;
+        if(upgState.auto.lv > 0) hasAutoRoll = true;
+        fieldCount = 1 + upgState.field.lv;
+        
+        fieldTimers = Array(fieldCount).fill(0);
+        document.getElementById('game-fields').innerHTML = '';
+        for(let i=0; i<fieldCount; i++) addField(i);
+        
+        if (scoreHistory.length > 0) {
+            renderHistory();
+        }
+
+        if (upgState.history.lv > 0) document.getElementById('panel-history').style.display = 'block';
+        if (upgState.digital_history.lv > 0) document.getElementById('btn-pool-detail').style.display = 'block';
+
+        setInterval(tick, 100);
+        setInterval(saveGame, 10000);
+        window.addEventListener('beforeunload', saveGame);
+        
+        updateUI();
+        setTimeout(drawLines, 200);
+    }
+
+    function tick() {
+        const now = Date.now();
+        const dt = now - lastTickTime; // 経過時間
+        lastTickTime = now;
+        
+        const isOffline = dt > 5000; // 5秒以上判定
+        let offlineActionCount = 0;
+
+        if (hasAutoRoll) {
+            const interval = Math.max(500, AUTO_BASE_TIME - (upgState.speed.lv * 200));
+            for (let i = 0; i < fieldCount; i++) {
+                const btn = document.getElementById(`b-${i}`);
+                
+                if (btn && !btn.disabled) {
+                    fieldTimers[i] = (fieldTimers[i] || 0) + dt;
+                    
+                    if (isOffline) {
+                        if (fieldTimers[i] >= interval) {
+                            let rolls = Math.floor(fieldTimers[i] / interval);
+                            if (rolls > 2000) rolls = 2000; // 上限
+                            for(let r=0; r<rolls; r++) instantRoll(i);
+                            offlineActionCount += rolls;
+                            fieldTimers[i] %= interval; 
+                        }
+                    } else {
+                        if (fieldTimers[i] >= interval) {
+                            fieldTimers[i] = 0; 
+                            playGame(i);        
                         }
                     }
                 }
-            }
-        });
-        if(changed) this.recalcStats();
-    }
-
-    endRound() {
-        this.totalScore += this.pool;
-        const earned = this.pool;
-        this.pool = 0n;
-        this.tempRateBoost = 0;
-        this.roundMultiplierBoost = 1.0; 
-        this.hifumiTriggerCount = 0;
-        this.hifumiPriorityCount = 0; 
-        this.arashiRollCount = 0; 
-        this.shigoroRollCount = 0;
-        this.pinzoroRollCount = 0;
-        
-        this.inventory.forEach(item => {
-            if (item.effectType === 'reroll_round') {
-                this.freeRerolls += item.value;
-            }
-        });
-        this.ui.btnClear.classList.remove('visible'); 
-        this.ui.msgMain.textContent = "ROUND FINISH";
-        this.ui.msgMain.classList.remove('hifumi-text');
-        this.ui.msgSub.textContent = `獲得: ${this.formatVal(earned)}pt / 合計: ${this.formatVal(this.totalScore)}pt`;
-        document.getElementById('pool-box').classList.remove('shock-effect');
-        this.updateUI();
-        this.round++;
-        this.rollCount = INITIAL_ROLL_COUNT;
-        this.roundExecCount = 0; 
-        
-        if (this.round > 3) {
-            setTimeout(() => this.checkStageClear(), 1500);
-        } else {
-            setTimeout(() => {
-                this.ui.msgMain.textContent = `ROUND ${this.round}`;
-                this.ui.msgSub.textContent = "ショップ利用可能";
-                this.ui.btnRoll.disabled = false;
-                this.ui.btnShop.classList.remove('hidden-el');
-                this.ui.btnShop.disabled = false;
-                this.clearLogs(); 
-                this.yakuMultipliers = { ...this.baseMultipliers };
-                this.roundGains.yakus = {}; 
-                this.recalcStats(); 
-                this.updateUI();
-                this.updateClearButton(); 
-            }, 1500);
-        }
-    }
-
-    calculateReward() {
-        let roundsLeft = Math.max(0, 4 - this.round);
-        let bonus = 0;
-        this.inventory.forEach(item => {
-            if (item.effectType === 'ticket_interest') {
-                bonus += Math.floor(this.tickets / 5) * item.value;
-            }
-        });
-        return 2 + (roundsLeft * 2) + bonus;
-    }
-
-    updateClearButton() {
-        if (this.totalScore >= this.targetScore && this.round <= 3) {
-            const reward = this.calculateReward();
-            this.ui.clearSub.textContent = `(+${reward} 🎫)`;
-            this.ui.btnClear.classList.add('visible');
-        } else {
-            this.ui.btnClear.classList.remove('visible');
-        }
-    }
-
-    stageWin() {
-        const reward = this.calculateReward();
-        const roundsLeft = Math.max(0, 4 - this.round);
-        this.tickets += reward;
-        const paid = this.targetScore;
-        this.totalScore -= this.targetScore;
-        this.updateUI();
-        this.showModal("STAGE CLEAR! 🎉", 
-            `目標スコア達成！<br>
-             支払い: -${this.formatVal(paid)}pt<br>
-             残りスコア: ${this.formatVal(this.totalScore)}pt<br>
-             <div style="margin-top:10px; font-size:0.9em; background:#eee; padding:10px; border-radius:5px; color:#333;">
-                獲得: ${reward}枚<br>
-                (基本2 + 残R${roundsLeft}x2 + アイテム等)
-             </div>`, 
-            true);
-    }
-
-    checkStageClear() {
-        if (this.totalScore >= this.targetScore) {
-            const reward = this.calculateReward(); 
-            this.tickets += reward;
-            const paid = this.targetScore;
-            this.totalScore -= this.targetScore;
-            this.updateUI();
-            this.showModal("STAGE CLEAR! 🎉", 
-            `目標スコア達成！<br>
-             支払い: -${this.formatVal(paid)}pt<br>
-             残りスコア: ${this.formatVal(this.totalScore)}pt<br>
-             <div style="margin-top:10px; font-size:0.9em; background:#eee; padding:10px; border-radius:5px; color:#333;">
-                獲得: ${reward}枚
-             </div>`, 
-            true);
-        } else {
-            this.showModal("GAME OVER", `SCORE: ${this.formatVal(this.totalScore)}<br>目標(${this.formatVal(this.targetScore)})に届かず...`, false);
-        }
-    }
-
-    updateTables() {
-        let htmlFaces = `<tr><th>出目</th><th>点数</th><th>確率</th></tr>`;
-        const totalWeight = this.diceWeights.reduce((a,b)=>a+b,0);
-        for(let i=1; i<=6; i++) {
-            const w = this.diceWeights[i];
-            const prob = totalWeight > 0 ? (w / totalWeight) : 0;
-            const standardProb = 1/6;
-            const val = this.faceValues[i];
-            const gain = this.roundGains.faces[i];
-            const gainHtml = gain > 0n ? `<span class="val-gain">(+${this.formatVal(gain)})</span>` : '';
-            let probClass = 'prob-col';
-            if (Math.abs(prob - standardProb) < 0.0001) {} 
-            else if (prob > standardProb) { probClass += ' prob-high'; } 
-            else { probClass += ' prob-low'; }
-            htmlFaces += `<tr>
-                <td>${i}</td>
-                <td>${this.formatVal(val)}点 ${gainHtml}</td>
-                <td class="${probClass}">${(prob*100).toFixed(1)}%</td>
-            </tr>`;
-        }
-        this.ui.tableFaces.innerHTML = htmlFaces;
-
-        // --- 2. 役確率の計算ロジック ---
-        const probs = { 'pinzoro': 0, 'arashi': 0, '456': 0, 'hifumi': 0, 'meari': 0, 'menashi': 0 };
-        
-        if (totalWeight > 0) {
-            for (let i = 1; i <= 6; i++) {
-                for (let j = 1; j <= 6; j++) {
-                    for (let k = 1; k <= 6; k++) {
-                        const p = (this.diceWeights[i] / totalWeight) * (this.diceWeights[j] / totalWeight) * (this.diceWeights[k] / totalWeight);
-                        
-                        const sorted = [i, j, k].sort((a, b) => a - b);
-                        if (sorted[0] === 1 && sorted[1] === 1 && sorted[2] === 1) probs['pinzoro'] += p;
-                        else if (sorted[0] === sorted[1] && sorted[1] === sorted[2]) probs['arashi'] += p;
-                        else if (sorted[0] === 4 && sorted[1] === 5 && sorted[2] === 6) probs['456'] += p;
-                        else if (sorted[0] === 1 && sorted[1] === 2 && sorted[2] === 3) probs['hifumi'] += p;
-                        else if (sorted[0] === sorted[1] || sorted[1] === sorted[2] || sorted[0] === sorted[2]) probs['meari'] += p;
-                        else probs['menashi'] += p;
-                    }
-                }
+                const prog = document.getElementById(`prog-${i}`);
+                if (prog) prog.style.strokeDashoffset = 100 - (Math.min(fieldTimers[i], interval) / interval * 100);
             }
         }
-
-        // --- 3. 役倍率テーブルの更新 ---
-        let htmlYaku = `<tr><th>役名</th><th>倍率</th><th>確率</th></tr>`;
-        const yakus = [
-            {k:'pinzoro', n:'ピンゾロ'}, 
-            {k:'arashi', n:'アラシ'}, 
-            {k:'456', n:'シゴロ'}, 
-            {k:'meari', n:'目あり'}, 
-            {k:'menashi', n:'目なし'},
-            {k:'hifumi', n:'ヒフミ'} // 一番下に移動しました
-        ];
         
-        yakus.forEach(y => {
-            let curr = this.yakuMultipliers[y.k];
-            if (curr === undefined) curr = 0n; 
+        if (isOffline && offlineActionCount > 0) {
+             updateUI();
+             renderHistory();
+             const notice = document.getElementById('offline-notice');
+             notice.style.opacity = 1; 
+             setTimeout(() => notice.style.opacity = 0, 4000);
+        }
 
-            const gain = this.roundGains.yakus[y.k] || 0n;
-            const gainHtml = gain > 0n ? `<span class="val-gain">(+${this.formatVal(gain)})</span>` : '';
+        if (expStatus === 'running') {
+            expTimeRemaining -= dt;
+            const duration = Math.max(20000, EXP_DURATION_BASE - (upgState.exp_speed.lv * 16000));
             
-            const probVal = probs[y.k] * 100;
-            let probStr = probVal.toFixed(1) + '%';
-            
-            let probClass = 'prob-col';
-            if (y.k === 'hifumi' && probVal > 0) probClass = 'prob-low'; 
-            if (y.k === 'pinzoro' && probVal > 1) probClass = 'prob-high'; 
-
-            htmlYaku += `<tr>
-                <td>${y.n}</td>
-                <td>x${this.formatVal(curr)} ${gainHtml}</td>
-                <td class="${probClass}">${probStr}</td>
-            </tr>`;
-        });
-        this.ui.tableYaku.innerHTML = htmlYaku;
-    }
-
-    renderDice(dice) {
-        this.ui.diceCont.innerHTML = '';
-        dice.forEach(v => {
-            const d = document.createElement('div');
-            d.className = 'die';
-            d.textContent = this.diceChars[v];
-            if (v === 1) d.dataset.value = "1";
-            this.ui.diceCont.appendChild(d);
-        });
-    }
-
-    updateUI() {
-        this.ui.stage.textContent = this.stage;
-        this.ui.round.textContent = Math.min(this.round, 3);
-        this.ui.roll.textContent = Math.max(0, this.rollCount);
-        this.ui.pool.textContent = this.formatVal(this.pool);
-        this.ui.target.textContent = this.formatVal(this.targetScore);
-        this.ui.total.textContent = this.formatVal(this.totalScore);
-        this.ui.tickets.textContent = this.tickets;
-        this.ui.luck.textContent = this.currentLuck; 
-        this.ui.rate.textContent = 'x' + this.globalMultiplier.toFixed(1);
-
-        this.ui.invCount.textContent = `${this.inventory.length}/${this.maxInventory}`;
-        this.ui.invList.innerHTML = '';
-        if (this.inventory.length === 0) {
-            this.ui.invList.innerHTML = '<div style="opacity:0.5; text-align:center; padding:10px;">Empty</div>';
-        } else {
-            this.inventory.forEach(item => {
-                const div = document.createElement('div');
-                div.className = `inv-item inv-${item.rarity}`;
-                div.innerHTML = `<span>${item.name}</span>`;
-                div.title = item.desc;
-                
-                let actionHtml = '';
-                if (this.isShopOpen) {
-                    const sellPrice = Math.floor(item.price / 2);
-                    actionHtml = `<button class="btn-inv-sell" onclick="window.game.sellItem(${this.inventory.indexOf(item)})">売却(${sellPrice})</button>`;
-                }
-                div.innerHTML += actionHtml;
-                this.ui.invList.appendChild(div);
-            });
-        }
-    }
-
-    openShop() {
-        this.ui.gameView.classList.add('hidden');
-        this.ui.shopView.classList.add('active');
-        this.isShopOpen = true;
-        this.updateUI();
-        this.updateShopUI();
-    }
-
-    closeShop() {
-        this.ui.shopView.classList.remove('active');
-        this.ui.gameView.classList.remove('hidden');
-        this.isShopOpen = false;
-        this.updateUI();
-    }
-
-    generateShopItems() {
-        this.shopItems = [];
-        const ownedIds = this.inventory.map(i => i.id);
-        let candidates = ITEM_DATA.filter(it => !ownedIds.includes(it.id));
-        for(let i=0; i<4; i++) {
-            if (candidates.length === 0) {
-                this.shopItems.push(null);
-                continue;
+            if (expTimeRemaining <= 0) {
+                expStatus = 'ready';
+                expTimeRemaining = 0;
+                const b = document.getElementById('exp-action-btn');
+                b.disabled = false; b.textContent = "帰還する";
+                saveGame();
             }
-            const weightedCandidates = candidates.map(it => {
-                const rInfo = Object.values(RARITY).find(r => r.id === it.rarity);
-                return { item: it, weight: rInfo.weight };
-            });
-            const totalWeight = weightedCandidates.reduce((sum, c) => sum + c.weight, 0);
-            let r = Math.random() * totalWeight;
-            let selected = null;
-            for (let c of weightedCandidates) {
-                if (r < c.weight) {
-                    selected = c.item;
-                    break;
-                }
-                r -= c.weight;
-            }
-            if (!selected) selected = weightedCandidates[weightedCandidates.length - 1].item;
-            this.shopItems.push({ item: selected, sold: false });
-            candidates = candidates.filter(c => c.id !== selected.id);
-        }
-        this.updateShopUI();
-    }
-
-    rerollShop() {
-        if (this.stage === 1 && this.round === 1 && this.rollCount === INITIAL_ROLL_COUNT) {
-            this.generateShopItems();
-            return;
-        }
-        if (this.freeRerolls > 0) {
-            this.freeRerolls--;
-            this.generateShopItems();
-            this.updateUI(); 
-        } else if (this.tickets >= this.rerollCost) {
-            this.tickets -= this.rerollCost;
-            this.rerollCost *= 2;
-            this.generateShopItems();
-            this.updateUI();
-        }
-    }
-
-    buyItem(shopIndex) {
-        const slot = this.shopItems[shopIndex];
-        if (!slot || slot.sold) return;
-        if (this.inventory.length >= this.maxInventory) {
-            alert("アイテムがいっぱいです！");
-            return;
-        }
-        if (this.tickets >= slot.item.price) {
-            this.tickets -= slot.item.price;
-            this.inventory.push(slot.item);
-            slot.sold = true;
-            this.inventory.forEach(invItem => {
-                if (invItem.effectType === 'reroll_buy_chance') {
-                    if (this.checkProb(invItem.prob)) {
-                        this.freeRerolls += invItem.value;
-                    }
-                }
-            });
-            this.recalcStats(); 
-            this.updateUI();
-            this.updateShopUI();
-        } else {
-            alert("チケットが足りません");
+            const p = document.getElementById('exp-prog');
+            p.style.strokeDashoffset = (expTimeRemaining / duration) * 100;
+            document.getElementById('exp-timer-text').textContent = Math.ceil(expTimeRemaining/1000) + "s";
         }
     }
     
-    sellItem(index) {
-        const item = this.inventory[index];
-        const sellPrice = Math.floor(item.price / 2);
-        if(confirm(`${item.name} をチケット ${sellPrice} 枚で売却しますか？`)) {
-            this.tickets += sellPrice;
-            this.inventory.splice(index, 1);
-            this.recalcStats();
-            this.updateUI();
-            this.updateShopUI();
+    function instantRoll(id) {
+        // 安全策: プールが空なら緊急補充
+        if (dicePool.length === 0) initNewGame();
+
+        const baseNum = 3; 
+        const num = baseNum + upgState.potential.lv;
+        const res = Array.from({length:num}, () => {
+            const d = dicePool[Math.floor(Math.random()*dicePool.length)];
+            return d || { val: 1, rarity: 'common' };
+        });
+        processResult(res, id, true);
+    }
+
+    // --- 探索ロジック ---
+    function toggleExpeditionMode() {
+        if (expStatus === 'running' || expStatus === 'ready') return;
+        expMode = expMode === 'normal' ? 'ritual' : 'normal';
+        updateUI();
+    }
+
+    function handleExpedition() {
+        if (expStatus === 'idle') {
+            let cost = expNextCost;
+            if (expMode === 'ritual') cost = ritualNextCost;
+            if (expMode === 'fusion') cost = fusionNextCost;
+            
+            if (expMode === 'ritual' && dicePool.length <= 10) return alert("プールが10個以下のため、儀式探索を行えません。");
+            if (expMode === 'fusion' && dicePool.length <= 10) return alert("プールが10個以下のため、融合探索を行えません。");
+            
+            if (score < cost) return alert("スコアが足りません");
+            score -= cost;
+            expStatus = 'running';
+            expTimeRemaining = Math.max(20000, EXP_DURATION_BASE - (upgState.exp_speed.lv * 16000));
+            
+            const b = document.getElementById('exp-action-btn');
+            b.disabled = true; b.textContent = "探索中...";
+            updateUI();
+            saveGame();
+        } else if (expStatus === 'ready') {
+            showRewards();
         }
     }
 
-    updateShopUI() {
-        this.ui.shopShelves.innerHTML = '';
-        for(let i=0; i<4; i++) {
-            const slot = this.shopItems[i];
-            const div = document.createElement('div');
-            if (slot) {
-                const item = slot.item;
-                div.className = `shop-item rarity-${item.rarity} ${slot.sold ? 'sold-out' : ''}`;
-                div.innerHTML = `
-                    <div class="item-name">${item.name}</div>
-                    <div class="item-desc">${item.desc}</div>
-                    <div class="item-price">価格: ${item.price}枚</div>
-                    <button class="btn-buy" onclick="window.game.buyItem(${i})">
-                        ${slot.sold ? 'SOLD' : '購入'}
-                    </button>
-                `;
-            } else {
-                div.className = 'shop-item sold-out';
-                div.innerHTML = `<div class="item-name">Empty</div><div class="item-desc">在庫なし</div>`;
-            }
-            this.ui.shopShelves.appendChild(div);
-        }
-        const btn = this.ui.btnReroll;
-        
-        if (this.stage === 1 && this.round === 1 && this.rollCount === INITIAL_ROLL_COUNT) {
-            btn.textContent = `再入荷 (無料: スタートボーナス)`;
-            btn.style.background = '#2ecc71'; 
-            btn.style.boxShadow = '0 4px 0 #27ae60';
-            btn.disabled = false;
-        } else if (this.freeRerolls > 0) {
-            btn.textContent = `再入荷 (無料: ${this.freeRerolls}回)`;
-            btn.style.background = '#2ecc71'; 
-            btn.style.boxShadow = '0 4px 0 #27ae60';
-            btn.disabled = false;
-        } else {
-            btn.textContent = `再入荷 (Cost: ${this.rerollCost})`;
-            btn.style.background = ''; 
-            btn.style.boxShadow = '';
-            btn.disabled = (this.tickets < this.rerollCost);
-        }
-    }
+    function showRewards() {
+        const list = document.getElementById('reward-list');
+        list.innerHTML = '';
+        currentRewards = [];
+        const fusionArea = document.getElementById('fusion-action-area');
+        fusionArea.style.display = 'none';
 
-    showModal(title, msg, isClear) {
-        this.ui.mTitle.textContent = title;
-        this.ui.mMsg.innerHTML = msg;
-        this.ui.modal.classList.add('show');
-        this.ui.modal.dataset.isClear = isClear;
-    }
+        const title = document.getElementById('reward-title');
+        const desc = document.getElementById('reward-desc');
+        const cancelBtn = document.getElementById('reward-cancel-btn');
+        const countMsg = document.getElementById('reward-count-msg');
 
-    nextPhase() {
-        this.ui.modal.classList.remove('show');
-        const isClear = this.ui.modal.dataset.isClear === "true";
-        if (isClear) {
-            this.openPrestige();
-        } else {
-            this.stage = 1;
-            this.totalScore = 0n;
-            this.inventory = [];
-            this.tickets = 4;
-            this.freeRerolls = 0; 
-            this.streakMenashi = 0; 
-            this.streakWin = 0;
-            this.faceValues = [0n,1n,2n,3n,4n,5n,6n];
-            this.baseMultipliers = { ...CONST_BASE_MULTIPLIERS };
-            this.yakuMultipliers = { ...this.baseMultipliers };
-            this.prestigeState.weights = [0,0,0,0,0,0,0];
-            this.prestigeState.extraInv = 0;
-            this.initStage();
-        }
-    }
+        if (expMode === 'normal') {
+            title.textContent = "探索から帰還！";
+            title.style.color = "var(--accent)";
+            desc.innerHTML = "持ち帰る出目を選択してください。<br><span style='font-size:0.8rem; color:#aaa;'>※選択すると次回の探索コストが倍になります</span>";
+            cancelBtn.textContent = "終了";
+            
+            rewardSelectCount = 1 + reincData.upgrades.greedy_exp;
+            const choiceNum = 2 + upgState.exp_amount.lv + reincData.upgrades.greedy_exp;
+            
+            for(let i=0; i<choiceNum; i++) currentRewards.push({ die: genDie(), selected: false });
 
-    openPrestige() {
-        this.ui.gameView.classList.add('hidden');
-        this.ui.shopView.classList.remove('active');
-        this.ui.prestigeView.classList.add('active');
-        this.prestigeRerollCost = 1;
-        this.generatePrestigeOptions();
-    }
-
-    generatePrestigeOptions() {
-        this.ui.prestigeCont.innerHTML = '';
-        this.ui.btnPrestigeReroll.textContent = `選択肢変更 (Cost: ${this.prestigeRerollCost})`;
-        this.ui.btnPrestigeReroll.disabled = (this.tickets < this.prestigeRerollCost);
-        this.currentPrestigeOptions = [];
-        let pool = [...PRESTIGE_OPTIONS];
-        for(let i=0; i<3; i++) {
-            if(pool.length === 0) break;
-            const idx = Math.floor(Math.random() * pool.length);
-            const opt = pool[idx];
-            pool.splice(idx, 1);
-            this.currentPrestigeOptions.push(opt);
-            const div = document.createElement('div');
-            div.className = 'prestige-card';
-            div.innerHTML = `
-                <div class="p-icon">${opt.icon}</div>
-                <div class="p-desc">${opt.text}</div>
-            `;
-            div.onclick = () => this.selectPrestige(i);
-            this.ui.prestigeCont.appendChild(div);
-        }
-    }
-
-    rerollPrestige() {
-        if(this.tickets >= this.prestigeRerollCost) {
-            this.tickets -= this.prestigeRerollCost;
-            this.prestigeRerollCost *= 2;
-            this.updateUI();
-            this.generatePrestigeOptions();
-        }
-    }
-
-    selectPrestige(index) {
-        const opt = this.currentPrestigeOptions[index];
-        if (opt.type === 'weight') {
-            this.prestigeState.weights[opt.target] += 3;
-        } else if (opt.type === 'weight_group') { // New logic
-            opt.targets.forEach(t => {
-                this.prestigeState.weights[t] += opt.val;
+            currentRewards.forEach((item, i) => {
+                const card = createCard(item.die, false);
+                card.id = `reward-card-${i}`;
+                card.onclick = () => selectReward(i);
+                list.appendChild(card);
             });
-        } else if (opt.type === 'multi') {
-            this.baseMultipliers[opt.target] *= 5n; // インフレ対応 x5
-        } else if (opt.type === 'ticket') {
-            this.tickets += opt.val;
-        } else if (opt.type === 'inv_max') {
-            this.prestigeState.extraInv += 1;
-        }
-        this.ui.prestigeView.classList.remove('active');
-        this.ui.gameView.classList.remove('hidden');
-        this.stage++;
-        this.initStage();
-    }
-}
 
-// 起動処理の安全化
-window.addEventListener('DOMContentLoaded', () => {
-    try {
-        window.game = new Game();
-    } catch(e) {
-        console.error("Critical Init Error:", e);
-        alert("ゲームの起動に失敗しました。\n" + e.message);
+        } else if (expMode === 'ritual') {
+            title.textContent = "儀式の刻";
+            title.style.color = "#9b59b6";
+            desc.innerHTML = "消滅させる出目を選択してください。<br><span style='font-size:0.8rem; color:#aaa;'>※削除すると次回の儀式コストが倍になります</span>";
+            cancelBtn.textContent = "終了";
+
+            rewardSelectCount = 1 + reincData.upgrades.greedy_rit;
+            const count = 2 + upgState.ritual_amount.lv + reincData.upgrades.greedy_rit;
+            const indices = [];
+            while(indices.length < count && indices.length < dicePool.length) {
+                const r = Math.floor(Math.random() * dicePool.length);
+                if(!indices.includes(r)) indices.push(r);
+            }
+            
+            indices.forEach(idx => {
+                currentRewards.push({ die: dicePool[idx], poolIndex: idx, selected: false });
+            });
+
+            currentRewards.forEach((item, i) => {
+                const card = createCard(item.die, true);
+                card.id = `reward-card-${i}`;
+                card.onclick = () => selectReward(i);
+                list.appendChild(card);
+            });
+        } else if (expMode === 'fusion') {
+            title.textContent = "融合の儀";
+            title.style.color = "var(--mode-fusion)";
+            desc.innerHTML = "融合する出目を2つ選択してください。<br><span style='font-size:0.8rem; color:#aaa;'>※融合すると元の2つは消滅し、新たな1つが生まれます</span>";
+            cancelBtn.textContent = "中止";
+            
+            rewardSelectCount = 2;
+            const count = 5 + upgState.fusion_exp_amount.lv;
+            
+            const indices = [];
+            while(indices.length < count && indices.length < dicePool.length) {
+                const r = Math.floor(Math.random() * dicePool.length);
+                if(!indices.includes(r)) indices.push(r);
+            }
+            
+            indices.forEach(idx => {
+                currentRewards.push({ die: dicePool[idx], poolIndex: idx, selected: false });
+            });
+
+            currentRewards.forEach((item, i) => {
+                const card = createCard(item.die, false, true); 
+                card.id = `reward-card-${i}`;
+                card.onclick = () => selectFusionReward(i);
+                list.appendChild(card);
+            });
+            
+            fusionArea.style.display = 'block';
+        }
+        
+        updateRewardCountMsg();
+        document.getElementById('reward-modal').style.display = 'flex';
     }
-});
+    
+    function updateRewardCountMsg() {
+        if(expMode === 'fusion') {
+            document.getElementById('reward-count-msg').textContent = `選択中: ${2 - rewardSelectCount} / 2`;
+        } else {
+            document.getElementById('reward-count-msg').textContent = `残り選択可能数: ${rewardSelectCount}`;
+        }
+    }
+
+    function createCard(d, isRemove, isFusion) {
+        const card = document.createElement('div'); 
+        let className = 'reward-card';
+        if(isRemove) className += ' remove-mode';
+        if(isFusion) className += ' fusion-mode';
+        card.className = className;
+        
+        const dieContent = getDieContent(d.val);
+        const dieClass = typeof d.val === 'number' && d.val > 6 ? 'die is-number' : 'die';
+        
+        let faceColor = RARITIES[d.rarity].color;
+        if (d.rarity === 'common') {
+            faceColor = '#333333'; 
+        }
+
+        card.innerHTML = `
+            <div class="${dieClass}" style="width:60px; height:60px; font-size:2rem; color:${faceColor}; border:1px solid #ccc;">${dieContent}</div>
+            <div style="color:${RARITIES[d.rarity].color}; font-size:0.7rem; font-weight:bold;">${RARITIES[d.rarity].name}</div>
+            <div style="font-size:0.6rem; color:#888;">倍率: x${RARITIES[d.rarity].mult}</div>
+            <div style="font-size:0.6rem; color:#aaa;">${d.val > 6 ? 'Value: '+d.val : ''}</div>
+        `;
+        return card;
+    }
+    
+    function getDieContent(val) {
+        if(val <= 6) return ["","⚀","⚁","⚂","⚃","⚄","⚅"][val];
+        return val;
+    }
+
+    function selectReward(index) {
+        if (currentRewards[index].selected) return; 
+        if (rewardSelectCount <= 0) return;
+
+        currentRewards[index].selected = true;
+        document.getElementById(`reward-card-${index}`).classList.add('selected');
+        rewardSelectCount--;
+        updateRewardCountMsg();
+
+        if (expMode === 'normal') {
+            dicePool.push(currentRewards[index].die);
+            expNextCost *= 2; 
+        } else {
+            dicePool[currentRewards[index].poolIndex] = null; // null化
+            ritualNextCost *= 2;
+        }
+
+        if (rewardSelectCount <= 0) {
+            setTimeout(() => discardRewards(), 500);
+        }
+        saveGame();
+    }
+    
+    function selectFusionReward(index) {
+        const item = currentRewards[index];
+        const el = document.getElementById(`reward-card-${index}`);
+        
+        if (item.selected) {
+            item.selected = false;
+            el.classList.remove('selected');
+            rewardSelectCount++;
+        } else {
+            if (rewardSelectCount <= 0) return; 
+            item.selected = true;
+            el.classList.add('selected');
+            rewardSelectCount--;
+        }
+        
+        updateRewardCountMsg();
+        
+        document.getElementById('btn-do-fuse').disabled = (rewardSelectCount !== 0);
+        document.getElementById('btn-do-fuse').style.opacity = (rewardSelectCount !== 0) ? 0.5 : 1;
+        document.getElementById('btn-do-fuse').style.cursor = (rewardSelectCount !== 0) ? 'not-allowed' : 'pointer';
+    }
+    
+    function executeFusion() {
+        const selected = currentRewards.filter(r => r.selected);
+        if(selected.length !== 2) return;
+        
+        const d1 = selected[0].die;
+        const d2 = selected[1].die;
+        
+        const limit = 20 + (reincData.upgrades.fusion_limit * 3);
+        let newVal = d1.val + d2.val;
+        if(newVal > limit) newVal = limit;
+        
+        let newRarityKey = 'common';
+        const r1Idx = RARITY_ORDER.indexOf(d1.rarity);
+        const r2Idx = RARITY_ORDER.indexOf(d2.rarity);
+        
+        if (r1Idx > r2Idx) {
+            newRarityKey = d1.rarity;
+        } else if (r2Idx > r1Idx) {
+            newRarityKey = d2.rarity;
+        } else {
+            const nextIdx = r1Idx + 1;
+            if (nextIdx < RARITY_ORDER.length) {
+                const nextKey = RARITY_ORDER[nextIdx];
+                if (RARITIES[nextKey]) {
+                    newRarityKey = nextKey;
+                } else {
+                    newRarityKey = d1.rarity; 
+                }
+            } else {
+                newRarityKey = d1.rarity; 
+            }
+        }
+        
+        const newDie = { val: newVal, rarity: newRarityKey };
+        
+        dicePool[selected[0].poolIndex] = null;
+        dicePool[selected[1].poolIndex] = null;
+        
+        dicePool.push(newDie);
+        
+        fusionNextCost *= 2;
+        
+        alert(`融合成功！\n値: ${newVal} (上限${limit})\nレアリティ: ${RARITIES[newRarityKey].name}`);
+        
+        dicePool = dicePool.filter(d => d !== null);
+        document.getElementById('reward-modal').style.display = 'none';
+        closeExpeditionModal(true);
+        saveGame();
+    }
+
+    function discardRewards() {
+        if (expMode === 'ritual') {
+            dicePool = dicePool.filter(d => d !== null);
+        }
+        
+        let acted = currentRewards.some(r => r.selected);
+        closeExpeditionModal(acted);
+    }
+
+    function closeExpeditionModal(acted) {
+        document.getElementById('reward-modal').style.display = 'none';
+        expStatus = 'idle';
+        expTimeRemaining = 0;
+        
+        const b = document.getElementById('exp-action-btn');
+        b.disabled = false;
+        b.textContent = "探索開始";
+        
+        const p = document.getElementById('exp-prog');
+        p.style.strokeDashoffset = 100;
+        document.getElementById('exp-timer-text').textContent = "READY";
+        
+        let actionName = "";
+        if (expMode === 'normal') actionName = acted ? "加えました！" : "持ち帰りませんでした。";
+        else if (expMode === 'ritual') actionName = acted ? "消滅させました..." : "儀式を中断しました。";
+        else if (expMode === 'fusion') actionName = acted ? "融合しました！" : "融合しませんでした。";
+        
+        document.getElementById('exp-msg').textContent = acted || !acted ? `結果: ${actionName}` : "";
+        
+        updateUI();
+    }
+
+    function genDie() {
+        const v = Math.floor(Math.random()*6)+1;
+        const weights = Object.entries(RARITIES);
+        const totalWeight = weights.reduce((a,b)=>a+b[1].weight, 0);
+        let r = Math.random() * totalWeight;
+        for(let [k, d] of weights) { if(r < d.weight) return {val:v, rarity:k}; r -= d.weight; }
+        return {val:v, rarity:'common'};
+    }
+
+    // --- ゲームエンジン ---
+    function buyUpgrade(type) {
+        const upg = upgState[type];
+        const reqs = Array.isArray(upg.req) ? upg.req : (upg.req ? [upg.req] : []);
+        const canBuy = reqs.every(r => upgState[r].lv > 0);
+        if (reqs.length > 0 && !canBuy) return;
+
+        if (score >= upg.costs[upg.lv] && upg.lv < upg.max) {
+            score -= upg.costs[upg.lv];
+            upg.lv++;
+            if (type === 'finger') multiplier = 1 + upg.lv;
+            if (type === 'auto') { hasAutoRoll = true; document.querySelectorAll('.timer-container').forEach(e => e.style.display='block'); }
+            if (type === 'field' || type === 'potential') {
+                fieldCount = 1 + upgState.field.lv;
+                document.getElementById('game-fields').innerHTML = '';
+                for(let i=0; i<fieldCount; i++) addField(i);
+            }
+            if (type === 'history') document.getElementById('panel-history').style.display = 'block';
+            if (type === 'digital_history') document.getElementById('btn-pool-detail').style.display = 'block';
+            if (type === 'ritual_unlock' || type === 'fusion_exp') document.getElementById('btn-mode-toggle').style.display = 'block';
+            
+            saveGame();
+            updateUI(); drawLines();
+        }
+    }
+
+    function addField(id) {
+        const div = document.createElement('div');
+        div.className = 'field';
+        const num = 3 + upgState.potential.lv;
+        let dHtml = ''; for(let i=0; i<num; i++) dHtml += `<div class="die" id="d-${id}-${i}">?</div>`;
+        div.innerHTML = `<div class="timer-container" style="display:${hasAutoRoll?'block':'none'}"><svg class="timer-svg" viewBox="0 0 36 36"><circle class="timer-bg" cx="18" cy="18" r="16"></circle><circle id="prog-${id}" class="timer-progress" cx="18" cy="18" r="16"></circle></svg></div><div id="m-${id}" style="font-size:0.8rem; font-weight:bold; height:1rem; margin-bottom:5px;"></div><div class="dice-row">${dHtml}</div><button class="roll-btn" id="b-${id}" onclick="playGame(${id})">ロール</button>`;
+        document.getElementById('game-fields').appendChild(div);
+    }
+
+    function playGame(idString) {
+        const id = typeof idString === 'string' ? parseInt(idString.split('-')[1]) : idString;
+        const btn = document.getElementById(`b-${id}`); if(!btn || btn.disabled) return;
+        btn.disabled = true;
+        const num = 3 + upgState.potential.lv;
+        let c = 0, wait = Math.max(2, 10 - upgState.throw.lv);
+        const iv = setInterval(() => {
+            for(let i=0; i<num; i++) {
+                const d = document.getElementById(`d-${id}-${i}`);
+                if(d) {
+                    d.textContent = ["⚀","⚁","⚂","⚃","⚄","⚅"][Math.floor(Math.random()*6)];
+                    d.className = "die rolling";
+                }
+            }
+            if(++c > wait) {
+                clearInterval(iv);
+                
+                // 安全策: プールが空なら緊急補充
+                if (dicePool.length === 0) initNewGame();
+
+                const res = Array.from({length:num}, () => {
+                    const d = dicePool[Math.floor(Math.random()*dicePool.length)];
+                    return d || { val: 1, rarity: 'common' };
+                });
+
+                res.forEach((d, i) => {
+                    const el = document.getElementById(`d-${id}-${i}`);
+                    if(el) {
+                        el.textContent = getDieContent(d.val);
+                        el.className = "die " + (RARITIES[d.rarity].class || "");
+                        if(d.val > 6) el.classList.add('is-number');
+                    }
+                });
+                processResult(res, id, false); 
+                btn.disabled = false;
+            }
+        }, 100);
+    }
+
+    function processResult(dice, id, isSilent) {
+        let best = { val: -1, yaku: "目なし", base: 10, idx: [0,1,2], b: 1 };
+        for(let i=0; i<dice.length; i++) for(let j=i+1; j<dice.length; j++) for(let k=j+1; k<dice.length; k++) {
+            const trio = [dice[i], dice[j], dice[k]];
+            const [base, yaku, scoreVal] = calcScore([trio[0].val, trio[1].val, trio[2].val]);
+            let rarityMult = 1;
+            if (yaku !== "目なし" && yaku !== "ヒフミ") {
+                rarityMult = RARITIES[trio[0].rarity].mult * RARITIES[trio[1].rarity].mult * RARITIES[trio[2].rarity].mult;
+            }
+            const totalVal = scoreVal * rarityMult;
+            if (totalVal > best.val) best = { val: totalVal, yaku: yaku, base: base, idx: [i,j,k], b: rarityMult };
+        }
+        
+        if (!isSilent) {
+            for(let i=0; i<dice.length; i++) {
+                const dieEl = document.getElementById(`d-${id}-${i}`);
+                if(dieEl && !best.idx.includes(i)) dieEl.classList.add('unused');
+            }
+        }
+        
+        const reincMult = Math.max(1, reincData.maxReachedRP * 0.2);
+        
+        const gain = best.base * multiplier * best.b * reincMult;
+        score += gain; totalScore += gain;
+        
+        const bonusText = best.b > 1 ? ` (x${best.b})` : "";
+        if (!isSilent) {
+            const msgEl = document.getElementById(`m-${id}`);
+            if(msgEl) msgEl.textContent = `${best.yaku}${bonusText} (+${formatScore(gain)})`;
+        }
+
+        if (upgState.history.lv > 0 && gain > 0) {
+            scoreHistory.push({n: best.yaku + bonusText, p: gain});
+            scoreHistory.sort((a,b)=>b.p-a.p); 
+            scoreHistory = scoreHistory.slice(0,5);
+            if (!isSilent) renderHistory();
+        }
+        
+        if (!isSilent) updateUI();
+    }
+    
+    function renderHistory() {
+        document.getElementById('history-list').innerHTML = scoreHistory.map(h=>`<li><span>${h.n}</span><b>${formatScore(h.p)}</b></li>`).join('');
+    }
+
+    function calcScore(d) {
+        const [a,b,c] = [...d].sort((x,y)=>x-y); 
+        const m = [1, upgState.yaku_none.lv, upgState.yaku_normal.lv, upgState.yaku_456.lv, upgState.yaku_arashi.lv, upgState.yaku_pin.lv].map(l => 1+(l*4));
+        
+        if (a===1 && b===1 && c===1) return [10000*m[5], "ピンゾロ", 100000];
+        
+        if (a===b && b===c) {
+            if (reincData.upgrades.privatize > 0) {
+                const baseVal = (a+b+c) * 200;
+                return [baseVal * m[4], "アラシ", baseVal];
+            }
+            return [2000*m[4], "アラシ", 2000+a];
+        }
+
+        if (a===1 && b===2 && c===3) return [0, "ヒフミ", -1];
+
+        if (a===4 && b===5 && c===6) {
+             if (reincData.upgrades.privatize > 0) {
+                const baseVal = 15 * 100;
+                return [baseVal * m[3], "シゴロ", baseVal];
+            }
+            return [1000*m[3], "シゴロ", 1000];
+        }
+
+        if (reincData.upgrades.straight > 0 && reincData.upgrades.privatize > 0) {
+            if (isStraight(d)) {
+                const baseVal = (a+b+c) * 100; 
+                return [baseVal * m[3], "ストレート", baseVal];
+            }
+        }
+
+        if (a===b) return [c*50*m[2], c+"の目", c*50];
+        if (b===c) return [a*50*m[2], a+"の目", a*50];
+        if (a===c) return [b*50*m[2], b+"の目", b*50];
+        return [10*m[1], "目なし", 10];
+    }
+
+    function isStraight(arr) {
+        for(let i=0; i<arr.length-1; i++) {
+            if (arr[i+1] !== arr[i]+1) return false;
+        }
+        return true;
+    }
+
+    function openPoolDetail() {
+        const container = document.getElementById('pool-detail-content');
+        container.innerHTML = '';
+        for (let v = 1; v <= 6; v++) {
+            const dieDiv = document.createElement('div');
+            dieDiv.className = 'pool-detail-item';
+            let html = `<div style="font-size:1.5rem; margin-bottom:5px;">${["","⚀","⚁","⚂","⚃","⚄","⚅"][v]}</div>`;
+            Object.keys(RARITIES).forEach(rKey => {
+                const count = dicePool.filter(d => d.val === v && d.rarity === rKey).length;
+                if (count > 0) { html += `<div style="color:${RARITIES[rKey].color}; font-size:0.6rem;">${RARITIES[rKey].name}: ${count}</div>`; }
+            });
+            dieDiv.innerHTML = html;
+            container.appendChild(dieDiv);
+        }
+        document.getElementById('pool-detail-modal').style.display = 'flex';
+    }
+
+    function updateUI() {
+        document.getElementById('score-board').textContent = formatScore(score);
+        document.getElementById('total-score-display').textContent = formatScore(totalScore);
+        document.getElementById('modal-score').textContent = formatScore(score);
+        
+        const reincMult = Math.max(1, reincData.maxReachedRP * 0.2);
+        document.getElementById('mult-val').textContent = (multiplier * reincMult).toFixed(1);
+
+        const rpPanel = document.getElementById('rp-display-panel');
+        if (reincData.maxReachedRP > 0) {
+            rpPanel.style.display = 'block';
+            document.getElementById('rp-val').textContent = reincData.points;
+            document.getElementById('rp-mult').textContent = reincMult.toFixed(1);
+        }
+        
+        const reincBtn = document.getElementById('reinc-btn');
+        if (totalScore >= REINC_THRESHOLD) {
+            reincBtn.style.display = 'block';
+            reincBtn.textContent = "✦ 転生可能";
+            reincBtn.classList.add('reinc-available');
+        } else if (reincData.maxReachedRP > 0) {
+            reincBtn.style.display = 'block';
+            reincBtn.textContent = "✦ 転生メニュー";
+            reincBtn.classList.remove('reinc-available');
+        } else {
+            reincBtn.style.display = 'none';
+        }
+
+        const expPanel = document.getElementById('expedition-panel');
+        expPanel.style.display = upgState.expedition.lv > 0 ? 'block' : 'none';
+        
+        const toggleBtn = document.getElementById('btn-mode-toggle');
+        if (upgState.ritual_unlock.lv > 0 || upgState.fusion_exp.lv > 0) {
+            toggleBtn.style.display = 'block';
+        }
+        
+        const title = document.getElementById('exp-title');
+        const costDisp = document.getElementById('exp-cost-display');
+        const msg = document.getElementById('exp-msg');
+        const btn = document.getElementById('exp-action-btn');
+
+        if (expMode === 'normal') {
+            expPanel.className = 'mode-normal';
+            title.textContent = "🧭 通常探索";
+            title.style.color = "var(--mode-normal)";
+            costDisp.textContent = "コスト: " + formatScore(expNextCost) + " pts";
+            if(expStatus !== 'running' && expStatus !== 'ready') {
+                msg.textContent = "新たな出目を求めて探索します";
+                btn.style.background = "var(--mode-normal)";
+            }
+        } else if (expMode === 'ritual') {
+            expPanel.className = 'mode-ritual';
+            title.textContent = "🔮 儀式探索";
+            title.style.color = "var(--mode-ritual)";
+            costDisp.textContent = "コスト: " + formatScore(ritualNextCost) + " pts";
+            if(expStatus !== 'running' && expStatus !== 'ready') {
+                msg.textContent = "不要な出目を消滅させる儀式を行います";
+                btn.style.background = "var(--mode-ritual)";
+            }
+        } else if (expMode === 'fusion') {
+            expPanel.className = 'mode-fusion';
+            title.textContent = "🔥 融合探索";
+            title.style.color = "var(--mode-fusion)";
+            costDisp.textContent = "コスト: " + formatScore(fusionNextCost) + " pts";
+            if(expStatus !== 'running' && expStatus !== 'ready') {
+                msg.textContent = "出目を融合し、強力な出目を作成します";
+                btn.style.background = "var(--mode-fusion)";
+            }
+        }
+
+        const counts = {}; dicePool.forEach(d=>counts[d.rarity]=(counts[d.rarity]||0)+1);
+        document.getElementById('pool-stats').innerHTML = Object.entries(RARITIES).map(([k,v])=>`<span style="color:${v.color}">${v.name}: ${counts[k]||0}</span>`).join('<br>');
+        
+        let upgradeCount = 0;
+        for(let k in upgState) {
+            const u = upgState[k], n = document.getElementById('node-'+k);
+            if (!n) continue;
+
+            if (u.reincReq && reincData.upgrades[u.reincReq] <= 0) {
+                n.style.display = 'none';
+                continue;
+            } else {
+                n.style.display = 'flex';
+            }
+
+            const reqs = Array.isArray(u.req) ? u.req : (u.req ? [u.req] : []);
+            const open = reqs.length === 0 || reqs.every(r => upgState[r].lv > 0);
+            
+            const canBuy = open && u.lv < u.max && score >= u.costs[u.lv];
+            if (canBuy) upgradeCount++;
+            
+            n.className = `skill-node ${open?(u.lv>0?'unlocked':'available'):'locked'} ${u.lv>=u.max?'is-max':''} ${canBuy?'can-buy':''}`;
+            document.getElementById('lv-'+k).textContent = `Lv ${u.lv}/${u.max}`;
+            
+            let tooltipHTML = `<strong>${u.name}</strong><br>${u.desc}<br>コスト: ${u.lv>=u.max?'MAX':formatScore(u.costs[u.lv])}`;
+            if (!open) {
+                const reqNames = reqs.map(r => upgState[r].name).join(', ');
+                tooltipHTML += `<br><span style="color:#e74c3c; font-size:0.7rem;">(前提: ${reqNames})</span>`;
+            }
+            document.getElementById('tip-'+k).innerHTML = tooltipHTML;
+        }
+        
+        const badge = document.getElementById('shop-badge');
+        if (upgradeCount > 0) {
+            badge.style.display = 'flex';
+            badge.textContent = upgradeCount;
+        } else {
+            badge.style.display = 'none';
+        }
+    }
+
+    function toggleModal(s) { document.getElementById('upgrade-modal').style.display = s?'flex':'none'; if(s) { updateUI(); setTimeout(drawLines, 50); } }
+
+    function drawLines() {
+        const svg = document.getElementById('tree-svg'), root = document.getElementById('tree-root').getBoundingClientRect();
+        svg.innerHTML = '';
+        const conn = [
+            ['finger','auto'], ['finger','field'],            
+            ['auto','expedition'], ['auto','history'], ['auto','speed'], ['auto','yaku_none'],
+            ['field','potential'],                            
+            ['speed','throw'],                                
+            ['expedition','digital_history'], ['expedition', 'exp_speed'], ['expedition', 'exp_amount'], ['expedition', 'ritual_unlock'],
+            ['history','digital_history'],
+            ['ritual_unlock', 'ritual_amount'], ['ritual_amount', 'fusion_exp'],
+            ['fusion_exp', 'fusion_exp_amount'],
+            ['yaku_none','yaku_normal'], ['yaku_normal','yaku_456'],
+            ['yaku_456','yaku_arashi'], ['yaku_arashi','yaku_pin'],
+            ['yaku_pin', 'yaku_straight4'], ['yaku_straight4', 'yaku_arashi4'],
+            ['yaku_arashi4', 'yaku_straight5'], ['yaku_arashi4', 'yaku_arashi5']
+        ];
+        conn.forEach(([p,c])=>{
+            const pe = document.getElementById('node-'+p), ce = document.getElementById('node-'+c);
+            if(!pe || !ce || pe.style.display === 'none' || ce.style.display === 'none') return;
+            const pr = pe.getBoundingClientRect(), cr = ce.getBoundingClientRect();
+            const l = document.createElementNS("http://www.w3.org/2000/svg","line");
+            l.setAttribute("x1", pr.left+pr.width/2-root.left); l.setAttribute("y1", pr.top+pr.height/2-root.top);
+            l.setAttribute("x2", cr.left+cr.width/2-root.left); l.setAttribute("y2", cr.top+cr.height/2-root.top);
+            l.className.baseVal = "skill-line " + (upgState[p].lv>0?'active':'');
+            svg.appendChild(l);
+        });
+    }
+
+    init();
 </script>
 </body>
 </html>
