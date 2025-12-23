@@ -1653,15 +1653,24 @@ function loadGame() {
 
         const dLvl = d.level || 1;
         let lvlInfo = "";
+        
+        // --- 変更: 倍率計算ロジック ---
+        let totalMult = RARITIES[d.rarity].mult;
+        
         if (reincData && reincData.upgrades && reincData.upgrades.tuner > 0) {
+            // チューナー有効時はレベルの2乗を掛ける
+            const lvlBonus = dLvl * dLvl;
+            totalMult *= lvlBonus;
+            
             lvlInfo = `<div style="font-size:0.8rem; color:var(--max-gold); font-weight:bold;">Lv.${dLvl}</div>`;
         }
+        // ---------------------------
 
         card.innerHTML = `
             <div class="${dieClass}" style="width:60px; height:60px; font-size:2rem; color:${faceColor}; border:1px solid #ccc;">${dieContent}</div>
             <div style="color:${RARITIES[d.rarity].color}; font-size:0.7rem; font-weight:bold;">${RARITIES[d.rarity].name}</div>
             ${lvlInfo}
-            <div style="font-size:0.6rem; color:#888;">倍率: x${formatMultiplier(RARITIES[d.rarity].mult)}</div>
+            <div style="font-size:0.6rem; color:#888;">倍率: x${formatMultiplier(totalMult)}</div>
             <div style="font-size:0.6rem; color:#aaa;">${d.val > 6 ? 'Value: '+d.val : ''}</div>
         `;
         return card;
@@ -2262,12 +2271,17 @@ function loadGame() {
             // レアリティ情報の取得
             const rInfo = RARITIES[d.rarity];
             
-            // --- 変更点: ダイスの目の色決定ロジック ---
             // コモンなら黒、それ以外ならレアリティカラーを使う
             let dieColor = (d.rarity === 'common') ? '#333' : rInfo.color;
-            // ----------------------------------------
             
             const lvl = d.level || 1;
+
+            // --- 追加: 倍率計算ロジック ---
+            let totalMult = rInfo.mult;
+            if (reincData && reincData.upgrades && reincData.upgrades.tuner > 0) {
+                 totalMult *= (lvl * lvl);
+            }
+            // ---------------------------
 
             card.innerHTML = `
                 <div class="pool-card-die-outer">
@@ -2279,7 +2293,8 @@ function loadGame() {
                     <div class="pool-card-rarity" style="color:${rInfo.color}; text-shadow: 0 0 1px rgba(0,0,0,0.1);">
                         ${rInfo.name}
                     </div>
-                    <div>Lv${lvl}</div>
+                    <div style="font-weight:bold;">Lv${lvl}</div>
+                    <div style="font-size:0.6rem; color:#666;">x${formatMultiplier(totalMult)}</div>
                 </div>
             `;
             container.appendChild(card);
