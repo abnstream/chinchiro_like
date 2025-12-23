@@ -1651,7 +1651,14 @@
             }
         }
 
-        const counts = {}; dicePool.forEach(d=>counts[d.rarity]=(counts[d.rarity]||0)+1);
+        const counts = {}; 
+        dicePool.forEach(d => {
+            // ここに null チェックを追加
+            if (d && d.rarity) {
+                counts[d.rarity] = (counts[d.rarity] || 0) + 1;
+            }
+        });
+
         document.getElementById('pool-stats').innerHTML = Object.entries(RARITIES).map(([k,v])=>`<span style="color:${v.color}">${v.name}: ${counts[k]||0}</span>`).join('<br>');
         
         let upgradeCount = 0;
