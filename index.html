@@ -1017,18 +1017,16 @@ function loadGame() {
 
         const TRILLION = 1000000000000; // 1兆
         
-        // 総獲得スコアが1兆を超えているかチェック
-        if (totalScore >= TRILLION) {
+        // --- 変更箇所: 条件に「転生経験あり(maxReachedRP > 0)」を追加 ---
+        if (totalScore >= TRILLION || reincData.maxReachedRP > 0) {
             // ボーナスの選択肢を提示
-            // OKならボーナスあり、キャンセルならボーナスなし（通常リセット）
-            const wantBonus = confirm(`総獲得スコアが1兆を超えています！\n\n次回のゲーム開始時に「1兆スコア」を所持した状態でスタートしますか？\n\n[OK] 1兆スコアを持ってリセット\n[キャンセル] 0スコアで完全リセット`);
+            const wantBonus = confirm(`【ボーナス確認】\n条件を満たしています（スコア1兆超え または 転生経験あり）\n\n次回のゲーム開始時に「1兆スコア」を所持した状態でスタートしますか？\n\n[OK] 1兆スコアを持ってリセット\n[キャンセル] 0スコアで完全リセット`);
             
             isResetting = true;
             localStorage.removeItem('chinchiro_clicker_save'); // 一旦消去
 
             if (wantBonus) {
                 // 1兆スコアを持った状態の初期セーブデータを作成
-                // loadGame時に読み込まれ、他のデータ（ダイス等）はinitNewGameで初期化されます
                 const bonusData = {
                     score: TRILLION,
                     totalScore: TRILLION,
@@ -1040,8 +1038,9 @@ function loadGame() {
             location.reload();
             return;
         }
+        // -----------------------------------------------------------
 
-        // 通常リセット（1兆未満の場合）
+        // 通常リセット（条件を満たさない場合）
         isResetting = true;
         localStorage.removeItem('chinchiro_clicker_save');
         location.reload();
