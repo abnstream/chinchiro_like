@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>チンチロ・クリッカー</title>
+    <title>チンチロ・探索クリッカー v6.5 (帰還バグ修正版)</title>
     <style>
         :root {
             --bg-color: #121212;
@@ -552,7 +552,7 @@
         privatize: { lv: 0, max: 1, costs: [5], name: "数字の私物化", icon: "🔢", desc: "アラシ・シゴロ計算式変更", req: ["greedy_exp", "greedy_rit"] },
         straight: { lv: 0, max: 1, costs: [6], name: "ストレート", icon: "📏", desc: "連番(234,345等)を役として扱う", req: "privatize" },
         
-        fusion_dim: { lv: 0, max: 1, costs: [10], name: "融合次元", icon: "🌌", desc: "（未実装）次元の壁が薄くなる...？", req: "straight" },
+        fusion_dim: { lv: 0, max: 1, costs: [10], name: "融合次元", icon: "🌌", desc: "融合遠征を解放する(要:通常UG)", req: "straight" },
         fusion_limit: { lv: 0, max: 10, costs: [2], name: "融合上限", icon: "🧱", desc: "融合出目の上限+3", req: "fusion_dim", fixedCost: true },
         
         straight4: { lv: 0, max: 1, costs: [5], name: "ストレート４", icon: "4️⃣", desc: "4つの連番で役成立<br>合計*10000", req: "fusion_dim" },
@@ -609,7 +609,7 @@
             expNextCost, ritualNextCost, fusionNextCost,
             dicePool, upgLevels: {}, 
             reincData, scoreHistory,
-            ver: 6.4,
+            ver: 6.5,
             lastSaveTime: Date.now() 
         };
         for(let key in upgState) saveObj.upgLevels[key] = upgState[key].lv;
@@ -639,7 +639,6 @@
             if(saveObj.dicePool && Array.isArray(saveObj.dicePool)) dicePool = saveObj.dicePool;
             else initNewGame();
             
-            // 安全策: ロード後に空なら初期化
             if (dicePool.length === 0) initNewGame();
 
             if(saveObj.upgLevels) {
@@ -650,6 +649,9 @@
             
             if (saveObj.reincData) {
                 reincData = saveObj.reincData;
+                // データ補正: upgradesがない場合は初期化
+                if (!reincData.upgrades) reincData.upgrades = {};
+                
                 if (reincData.points === undefined) {
                     reincData.points = reincData.totalRP || 0;
                     reincData.maxReachedRP = reincData.maxRP || reincData.totalRP || 0;
@@ -989,7 +991,16 @@
     // --- 探索ロジック ---
     function toggleExpeditionMode() {
         if (expStatus === 'running' || expStatus === 'ready') return;
-        expMode = expMode === 'normal' ? 'ritual' : 'normal';
+        
+        // モードローテーション
+        const modes = ['normal'];
+        if (upgState.ritual_unlock.lv > 0) modes.push('ritual');
+        if (upgState.fusion_exp.lv > 0) modes.push('fusion');
+        
+        const currentIdx = modes.indexOf(expMode);
+        const nextIdx = (currentIdx + 1) % modes.length;
+        expMode = modes[nextIdx];
+        
         updateUI();
     }
 
@@ -1034,8 +1045,9 @@
             desc.innerHTML = "持ち帰る出目を選択してください。<br><span style='font-size:0.8rem; color:#aaa;'>※選択すると次回の探索コストが倍になります</span>";
             cancelBtn.textContent = "終了";
             
-            rewardSelectCount = 1 + reincData.upgrades.greedy_exp;
-            const choiceNum = 2 + upgState.exp_amount.lv + reincData.upgrades.greedy_exp;
+            // 修正: 値が存在しない場合のフォールバックを追加
+            rewardSelectCount = 1 + (reincData.upgrades.greedy_exp || 0);
+            const choiceNum = 2 + upgState.exp_amount.lv + (reincData.upgrades.greedy_exp || 0);
             
             for(let i=0; i<choiceNum; i++) currentRewards.push({ die: genDie(), selected: false });
 
@@ -1052,8 +1064,9 @@
             desc.innerHTML = "消滅させる出目を選択してください。<br><span style='font-size:0.8rem; color:#aaa;'>※削除すると次回の儀式コストが倍になります</span>";
             cancelBtn.textContent = "終了";
 
-            rewardSelectCount = 1 + reincData.upgrades.greedy_rit;
-            const count = 2 + upgState.ritual_amount.lv + reincData.upgrades.greedy_rit;
+            // 修正: 値が存在しない場合のフォールバックを追加
+            rewardSelectCount = 1 + (reincData.upgrades.greedy_rit || 0);
+            const count = 2 + upgState.ritual_amount.lv + (reincData.upgrades.greedy_rit || 0);
             const indices = [];
             while(indices.length < count && indices.length < dicePool.length) {
                 const r = Math.floor(Math.random() * dicePool.length);
@@ -1192,7 +1205,7 @@
         const d1 = selected[0].die;
         const d2 = selected[1].die;
         
-        const limit = 20 + (reincData.upgrades.fusion_limit * 3);
+        const limit = 20 + ((reincData.upgrades.fusion_limit || 0) * 3);
         let newVal = d1.val + d2.val;
         if(newVal > limit) newVal = limit;
         
@@ -1413,7 +1426,8 @@
 
         if (a===4 && b===5 && c===6) {
              if (reincData.upgrades.privatize > 0) {
-                const baseVal = 15 * 100;
+                const sum = 15;
+                const baseVal = sum * 100;
                 return [baseVal * m[3], "シゴロ", baseVal];
             }
             return [1000*m[3], "シゴロ", 1000];
@@ -1506,7 +1520,7 @@
                 msg.textContent = "新たな出目を求めて探索します";
                 btn.style.background = "var(--mode-normal)";
             }
-        } else if (expMode === 'ritual') {
+        } else {
             expPanel.className = 'mode-ritual';
             title.textContent = "🔮 儀式探索";
             title.style.color = "var(--mode-ritual)";
@@ -1514,15 +1528,6 @@
             if(expStatus !== 'running' && expStatus !== 'ready') {
                 msg.textContent = "不要な出目を消滅させる儀式を行います";
                 btn.style.background = "var(--mode-ritual)";
-            }
-        } else if (expMode === 'fusion') {
-            expPanel.className = 'mode-fusion';
-            title.textContent = "🔥 融合探索";
-            title.style.color = "var(--mode-fusion)";
-            costDisp.textContent = "コスト: " + formatScore(fusionNextCost) + " pts";
-            if(expStatus !== 'running' && expStatus !== 'ready') {
-                msg.textContent = "出目を融合し、強力な出目を作成します";
-                btn.style.background = "var(--mode-fusion)";
             }
         }
 
