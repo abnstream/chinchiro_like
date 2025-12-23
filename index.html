@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>チンチロ・クリッカー</title>
+    <title>チンチロクリッカー</title>
     <style>
         :root {
             --bg-color: #121212;
@@ -552,7 +552,7 @@
         privatize: { lv: 0, max: 1, costs: [5], name: "数字の私物化", icon: "🔢", desc: "アラシ・シゴロ計算式変更", req: ["greedy_exp", "greedy_rit"] },
         straight: { lv: 0, max: 1, costs: [6], name: "ストレート", icon: "📏", desc: "連番(234,345等)を役として扱う", req: "privatize" },
         
-        fusion_dim: { lv: 0, max: 1, costs: [10], name: "融合次元", icon: "🌌", desc: "融合遠征を解放する(要:通常UG)", req: "straight" },
+        fusion_dim: { lv: 0, max: 1, costs: [10], name: "融合次元", icon: "🌌", desc: "（未実装）次元の壁が薄くなる...？", req: "straight" },
         fusion_limit: { lv: 0, max: 10, costs: [2], name: "融合上限", icon: "🧱", desc: "融合出目の上限+3", req: "fusion_dim", fixedCost: true },
         
         straight4: { lv: 0, max: 1, costs: [5], name: "ストレート４", icon: "4️⃣", desc: "4つの連番で役成立<br>合計*10000", req: "fusion_dim" },
@@ -609,7 +609,7 @@
             expNextCost, ritualNextCost, fusionNextCost,
             dicePool, upgLevels: {}, 
             reincData, scoreHistory,
-            ver: 6.5,
+            ver: 6.6,
             lastSaveTime: Date.now() 
         };
         for(let key in upgState) saveObj.upgLevels[key] = upgState[key].lv;
@@ -649,7 +649,6 @@
             
             if (saveObj.reincData) {
                 reincData = saveObj.reincData;
-                // データ補正: upgradesがない場合は初期化
                 if (!reincData.upgrades) reincData.upgrades = {};
                 
                 if (reincData.points === undefined) {
@@ -856,34 +855,44 @@
     }
 
     function drawReincLines() {
-        const svg = document.getElementById('reinc-tree-svg');
-        const root = document.getElementById('reinc-tree-root').getBoundingClientRect();
-        svg.innerHTML = '';
-        
-        const conn = [
-            ['wallet','greedy_exp'], ['wallet','greedy_rit'],
-            ['greedy_exp','privatize'], ['greedy_rit','privatize'],
-            ['privatize','straight'], ['straight', 'fusion_dim'], ['fusion_dim', 'fusion_limit'],
-            ['fusion_dim', 'straight4'], ['straight4', 'arashi4'],
-            ['arashi4', 'straight5'], ['straight5', 'arashi5'], 
-            ['fusion_dim', 'rare_magic'], ['rare_magic', 'rare_epic'],
-            ['rare_epic', 'rare_legend'], ['rare_legend', 'rare_eternal']
-        ];
-        
-        conn.forEach(([p,c])=>{
-            const pe = document.getElementById('rnode-'+p), ce = document.getElementById('rnode-'+c);
-            if(!pe || !ce) return;
-            const pr = pe.getBoundingClientRect(), cr = ce.getBoundingClientRect();
-            const l = document.createElementNS("http://www.w3.org/2000/svg","line");
-            l.setAttribute("x1", pr.left+pr.width/2-root.left);
-            l.setAttribute("y1", pr.top+pr.height/2-root.top);
-            l.setAttribute("x2", cr.left+cr.width/2-root.left);
-            l.setAttribute("y2", cr.top+cr.height/2-root.top);
+        try {
+            const svg = document.getElementById('reinc-tree-svg');
+            const rootEl = document.getElementById('reinc-tree-root');
+            if (!svg || !rootEl) return;
+            const root = rootEl.getBoundingClientRect();
+            svg.innerHTML = '';
             
-            const isActive = reincData.upgrades[p] > 0;
-            l.className.baseVal = "skill-line reinc-line " + (isActive?'active':'');
-            svg.appendChild(l);
-        });
+            const conn = [
+                ['wallet','greedy_exp'], ['wallet','greedy_rit'],
+                ['greedy_exp','privatize'], ['greedy_rit','privatize'],
+                ['privatize','straight'], ['straight', 'fusion_dim'], ['fusion_dim', 'fusion_limit'],
+                ['fusion_dim', 'straight4'], ['straight4', 'arashi4'],
+                ['arashi4', 'straight5'], ['straight5', 'arashi5'], 
+                ['fusion_dim', 'rare_magic'], ['rare_magic', 'rare_epic'],
+                ['rare_epic', 'rare_legend'], ['rare_legend', 'rare_eternal']
+            ];
+            
+            conn.forEach(([p,c])=>{
+                const pe = document.getElementById('rnode-'+p), ce = document.getElementById('rnode-'+c);
+                if(!pe || !ce) return;
+                const pr = pe.getBoundingClientRect(), cr = ce.getBoundingClientRect();
+                
+                // 座標が取得できていない場合スキップ
+                if (pr.width === 0 || cr.width === 0) return;
+
+                const l = document.createElementNS("http://www.w3.org/2000/svg","line");
+                l.setAttribute("x1", pr.left+pr.width/2-root.left);
+                l.setAttribute("y1", pr.top+pr.height/2-root.top);
+                l.setAttribute("x2", cr.left+cr.width/2-root.left);
+                l.setAttribute("y2", cr.top+cr.height/2-root.top);
+                
+                const isActive = reincData.upgrades[p] > 0;
+                l.className.baseVal = "skill-line reinc-line " + (isActive?'active':'');
+                svg.appendChild(l);
+            });
+        } catch(e) {
+            console.error("ReincLines Error", e);
+        }
     }
 
     // --- メイン初期化 ---
@@ -915,63 +924,67 @@
     }
 
     function tick() {
-        const now = Date.now();
-        const dt = now - lastTickTime; // 経過時間
-        lastTickTime = now;
-        
-        const isOffline = dt > 5000; // 5秒以上判定
-        let offlineActionCount = 0;
+        try {
+            const now = Date.now();
+            const dt = now - lastTickTime; // 経過時間
+            lastTickTime = now;
+            
+            const isOffline = dt > 5000; // 5秒以上判定
+            let offlineActionCount = 0;
 
-        if (hasAutoRoll) {
-            const interval = Math.max(500, AUTO_BASE_TIME - (upgState.speed.lv * 200));
-            for (let i = 0; i < fieldCount; i++) {
-                const btn = document.getElementById(`b-${i}`);
-                
-                if (btn && !btn.disabled) {
-                    fieldTimers[i] = (fieldTimers[i] || 0) + dt;
+            if (hasAutoRoll) {
+                const interval = Math.max(500, AUTO_BASE_TIME - (upgState.speed.lv * 200));
+                for (let i = 0; i < fieldCount; i++) {
+                    const btn = document.getElementById(`b-${i}`);
                     
-                    if (isOffline) {
-                        if (fieldTimers[i] >= interval) {
-                            let rolls = Math.floor(fieldTimers[i] / interval);
-                            if (rolls > 2000) rolls = 2000; // 上限
-                            for(let r=0; r<rolls; r++) instantRoll(i);
-                            offlineActionCount += rolls;
-                            fieldTimers[i] %= interval; 
-                        }
-                    } else {
-                        if (fieldTimers[i] >= interval) {
-                            fieldTimers[i] = 0; 
-                            playGame(i);        
+                    if (btn && !btn.disabled) {
+                        fieldTimers[i] = (fieldTimers[i] || 0) + dt;
+                        
+                        if (isOffline) {
+                            if (fieldTimers[i] >= interval) {
+                                let rolls = Math.floor(fieldTimers[i] / interval);
+                                if (rolls > 2000) rolls = 2000; // 上限
+                                for(let r=0; r<rolls; r++) instantRoll(i);
+                                offlineActionCount += rolls;
+                                fieldTimers[i] %= interval; 
+                            }
+                        } else {
+                            if (fieldTimers[i] >= interval) {
+                                fieldTimers[i] = 0; 
+                                playGame(i);        
+                            }
                         }
                     }
+                    const prog = document.getElementById(`prog-${i}`);
+                    if (prog) prog.style.strokeDashoffset = 100 - (Math.min(fieldTimers[i], interval) / interval * 100);
                 }
-                const prog = document.getElementById(`prog-${i}`);
-                if (prog) prog.style.strokeDashoffset = 100 - (Math.min(fieldTimers[i], interval) / interval * 100);
             }
-        }
-        
-        if (isOffline && offlineActionCount > 0) {
-             updateUI();
-             renderHistory();
-             const notice = document.getElementById('offline-notice');
-             notice.style.opacity = 1; 
-             setTimeout(() => notice.style.opacity = 0, 4000);
-        }
-
-        if (expStatus === 'running') {
-            expTimeRemaining -= dt;
-            const duration = Math.max(20000, EXP_DURATION_BASE - (upgState.exp_speed.lv * 16000));
             
-            if (expTimeRemaining <= 0) {
-                expStatus = 'ready';
-                expTimeRemaining = 0;
-                const b = document.getElementById('exp-action-btn');
-                b.disabled = false; b.textContent = "帰還する";
-                saveGame();
+            if (isOffline && offlineActionCount > 0) {
+                 updateUI();
+                 renderHistory();
+                 const notice = document.getElementById('offline-notice');
+                 notice.style.opacity = 1; 
+                 setTimeout(() => notice.style.opacity = 0, 4000);
             }
-            const p = document.getElementById('exp-prog');
-            p.style.strokeDashoffset = (expTimeRemaining / duration) * 100;
-            document.getElementById('exp-timer-text').textContent = Math.ceil(expTimeRemaining/1000) + "s";
+
+            if (expStatus === 'running') {
+                expTimeRemaining -= dt;
+                const duration = Math.max(20000, EXP_DURATION_BASE - (upgState.exp_speed.lv * 16000));
+                
+                if (expTimeRemaining <= 0) {
+                    expStatus = 'ready';
+                    expTimeRemaining = 0;
+                    const b = document.getElementById('exp-action-btn');
+                    b.disabled = false; b.textContent = "帰還する";
+                    saveGame();
+                }
+                const p = document.getElementById('exp-prog');
+                p.style.strokeDashoffset = (expTimeRemaining / duration) * 100;
+                document.getElementById('exp-timer-text').textContent = Math.ceil(expTimeRemaining/1000) + "s";
+            }
+        } catch(e) {
+            console.error("Tick Error", e);
         }
     }
     
@@ -1045,7 +1058,7 @@
             desc.innerHTML = "持ち帰る出目を選択してください。<br><span style='font-size:0.8rem; color:#aaa;'>※選択すると次回の探索コストが倍になります</span>";
             cancelBtn.textContent = "終了";
             
-            // 修正: 値が存在しない場合のフォールバックを追加
+            // 安全策: undefined対策
             rewardSelectCount = 1 + (reincData.upgrades.greedy_exp || 0);
             const choiceNum = 2 + upgState.exp_amount.lv + (reincData.upgrades.greedy_exp || 0);
             
@@ -1064,7 +1077,6 @@
             desc.innerHTML = "消滅させる出目を選択してください。<br><span style='font-size:0.8rem; color:#aaa;'>※削除すると次回の儀式コストが倍になります</span>";
             cancelBtn.textContent = "終了";
 
-            // 修正: 値が存在しない場合のフォールバックを追加
             rewardSelectCount = 1 + (reincData.upgrades.greedy_rit || 0);
             const count = 2 + upgState.ritual_amount.lv + (reincData.upgrades.greedy_rit || 0);
             const indices = [];
@@ -1293,6 +1305,10 @@
     function buyUpgrade(type) {
         const upg = upgState[type];
         const reqs = Array.isArray(upg.req) ? upg.req : (upg.req ? [upg.req] : []);
+        
+        // 修正: 転生UG条件のチェックを追加 (不正購入防止)
+        if (upg.reincReq && (reincData.upgrades[upg.reincReq] || 0) <= 0) return;
+
         const canBuy = reqs.every(r => upgState[r].lv > 0);
         if (reqs.length > 0 && !canBuy) return;
 
@@ -1529,6 +1545,15 @@
                 msg.textContent = "不要な出目を消滅させる儀式を行います";
                 btn.style.background = "var(--mode-ritual)";
             }
+        } else if (expMode === 'fusion') {
+            expPanel.className = 'mode-fusion';
+            title.textContent = "🔥 融合探索";
+            title.style.color = "var(--mode-fusion)";
+            costDisp.textContent = "コスト: " + formatScore(fusionNextCost) + " pts";
+            if(expStatus !== 'running' && expStatus !== 'ready') {
+                msg.textContent = "出目を融合し、強力な出目を作成します";
+                btn.style.background = "var(--mode-fusion)";
+            }
         }
 
         const counts = {}; dicePool.forEach(d=>counts[d.rarity]=(counts[d.rarity]||0)+1);
@@ -1539,7 +1564,7 @@
             const u = upgState[k], n = document.getElementById('node-'+k);
             if (!n) continue;
 
-            if (u.reincReq && reincData.upgrades[u.reincReq] <= 0) {
+            if (u.reincReq && (reincData.upgrades[u.reincReq] || 0) <= 0) {
                 n.style.display = 'none';
                 continue;
             } else {
@@ -1563,6 +1588,12 @@
             document.getElementById('tip-'+k).innerHTML = tooltipHTML;
         }
         
+        // 配当表の表示制御
+        if (reincData.upgrades.straight4 > 0) document.getElementById('row-payout-s4').style.display = 'table-row';
+        if (reincData.upgrades.arashi4 > 0) document.getElementById('row-payout-a4').style.display = 'table-row';
+        if (reincData.upgrades.straight5 > 0) document.getElementById('row-payout-s5').style.display = 'table-row';
+        if (reincData.upgrades.arashi5 > 0) document.getElementById('row-payout-a5').style.display = 'table-row';
+
         const badge = document.getElementById('shop-badge');
         if (upgradeCount > 0) {
             badge.style.display = 'flex';
@@ -1575,32 +1606,47 @@
     function toggleModal(s) { document.getElementById('upgrade-modal').style.display = s?'flex':'none'; if(s) { updateUI(); setTimeout(drawLines, 50); } }
 
     function drawLines() {
-        const svg = document.getElementById('tree-svg'), root = document.getElementById('tree-root').getBoundingClientRect();
-        svg.innerHTML = '';
-        const conn = [
-            ['finger','auto'], ['finger','field'],            
-            ['auto','expedition'], ['auto','history'], ['auto','speed'], ['auto','yaku_none'],
-            ['field','potential'],                            
-            ['speed','throw'],                                
-            ['expedition','digital_history'], ['expedition', 'exp_speed'], ['expedition', 'exp_amount'], ['expedition', 'ritual_unlock'],
-            ['history','digital_history'],
-            ['ritual_unlock', 'ritual_amount'], ['ritual_amount', 'fusion_exp'],
-            ['fusion_exp', 'fusion_exp_amount'],
-            ['yaku_none','yaku_normal'], ['yaku_normal','yaku_456'],
-            ['yaku_456','yaku_arashi'], ['yaku_arashi','yaku_pin'],
-            ['yaku_pin', 'yaku_straight4'], ['yaku_straight4', 'yaku_arashi4'],
-            ['yaku_arashi4', 'yaku_straight5'], ['yaku_arashi4', 'yaku_arashi5']
-        ];
-        conn.forEach(([p,c])=>{
-            const pe = document.getElementById('node-'+p), ce = document.getElementById('node-'+c);
-            if(!pe || !ce || pe.style.display === 'none' || ce.style.display === 'none') return;
-            const pr = pe.getBoundingClientRect(), cr = ce.getBoundingClientRect();
-            const l = document.createElementNS("http://www.w3.org/2000/svg","line");
-            l.setAttribute("x1", pr.left+pr.width/2-root.left); l.setAttribute("y1", pr.top+pr.height/2-root.top);
-            l.setAttribute("x2", cr.left+cr.width/2-root.left); l.setAttribute("y2", cr.top+cr.height/2-root.top);
-            l.className.baseVal = "skill-line " + (upgState[p].lv>0?'active':'');
-            svg.appendChild(l);
-        });
+        try {
+            const svg = document.getElementById('tree-svg');
+            const rootEl = document.getElementById('tree-root');
+            if (!svg || !rootEl) return;
+            const root = rootEl.getBoundingClientRect();
+            svg.innerHTML = '';
+            
+            const conn = [
+                ['finger','auto'], ['finger','field'],            
+                ['auto','expedition'], ['auto','history'], ['auto','speed'], ['auto','yaku_none'],
+                ['field','potential'],                            
+                ['speed','throw'],                                
+                ['expedition','digital_history'], ['expedition', 'exp_speed'], ['expedition', 'exp_amount'], ['expedition', 'ritual_unlock'],
+                ['history','digital_history'],
+                ['ritual_unlock', 'ritual_amount'], ['ritual_amount', 'fusion_exp'],
+                ['fusion_exp', 'fusion_exp_amount'],
+                ['yaku_none','yaku_normal'], ['yaku_normal','yaku_456'],
+                ['yaku_456','yaku_arashi'], ['yaku_arashi','yaku_pin'],
+                ['yaku_pin', 'yaku_straight4'], ['yaku_straight4', 'yaku_arashi4'],
+                ['yaku_arashi4', 'yaku_straight5'], ['yaku_arashi4', 'yaku_arashi5']
+            ];
+            
+            conn.forEach(([p,c])=>{
+                const pe = document.getElementById('node-'+p), ce = document.getElementById('node-'+c);
+                if(!pe || !ce || pe.style.display === 'none' || ce.style.display === 'none') return;
+                const pr = pe.getBoundingClientRect(), cr = ce.getBoundingClientRect();
+                
+                // 座標が取得できていない場合スキップ
+                if (pr.width === 0 || cr.width === 0) return;
+
+                const l = document.createElementNS("http://www.w3.org/2000/svg","line");
+                l.setAttribute("x1", pr.left+pr.width/2-root.left);
+                l.setAttribute("y1", pr.top+pr.height/2-root.top);
+                l.setAttribute("x2", cr.left+cr.width/2-root.left);
+                l.setAttribute("y2", cr.top+cr.height/2-root.top);
+                l.className.baseVal = "skill-line " + (upgState[p].lv>0?'active':'');
+                svg.appendChild(l);
+            });
+        } catch(e) {
+            console.error("Lines Error", e);
+        }
     }
 
     init();
