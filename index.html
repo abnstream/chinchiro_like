@@ -566,6 +566,18 @@
         rare_eternal: { lv: 0, max: 1, costs: [10], name: "レアリティ：エターナル", icon: "∞", desc: "エターナル(x512)を追加", req: "rare_legend" }
     };
 
+    // 組み合わせ生成 (nCk)
+    function getCombinations(arr, k) {
+        if (k === 1) return arr.map(e => [e]);
+        const res = [];
+        for (let i = 0; i <= arr.length - k; i++) {
+            const head = arr[i];
+            const tailCombos = getCombinations(arr.slice(i + 1), k - 1);
+            tailCombos.forEach(c => res.push([head, ...c]));
+        }
+        return res;
+    }
+
     function updateRarityDefinitions() {
         RARITIES = {
             common: { name: "コモン", weight: 5000, mult: 1, color: "var(--rare-common)", class: "rarity-common" },
@@ -610,7 +622,7 @@
             expNextCost, ritualNextCost, fusionNextCost,
             dicePool, upgLevels: {}, 
             reincData, scoreHistory,
-            ver: 6.8,
+            ver: 7.1,
             lastSaveTime: Date.now() 
         };
         for(let key in upgState) saveObj.upgLevels[key] = upgState[key].lv;
@@ -638,7 +650,7 @@
             if (saveObj.scoreHistory) scoreHistory = saveObj.scoreHistory;
 
             if(saveObj.dicePool && Array.isArray(saveObj.dicePool)) {
-                 dicePool = saveObj.dicePool.filter(d => d !== null); // 不正データクリーニング
+                 dicePool = saveObj.dicePool.filter(d => d !== null);
             } else {
                  initNewGame();
             }
@@ -769,7 +781,6 @@
         expStatus = 'idle';
         expTimeRemaining = 0;
         
-        // 修正: モードのリセットを明示的に行う
         expMode = 'normal';
         currentRewards = [];
         rewardSelectCount = 0;
@@ -889,7 +900,6 @@
                 if(!pe || !ce) return;
                 const pr = pe.getBoundingClientRect(), cr = ce.getBoundingClientRect();
                 
-                // 座標が取得できていない場合スキップ
                 if (pr.width === 0 || cr.width === 0) return;
 
                 const l = document.createElementNS("http://www.w3.org/2000/svg","line");
@@ -1457,7 +1467,7 @@
         
         const reincMult = Math.max(1, reincData.maxReachedRP * 0.2);
         
-        const gain = best.val * multiplier * reincMult;
+        const gain = best.base * multiplier * best.b * reincMult;
         score += gain; totalScore += gain;
         
         const bonusText = best.b > 1 ? ` (x${best.b})` : "";
@@ -1516,7 +1526,7 @@
         
         if (a===b && b===c) {
             if (reincData.upgrades.privatize > 0) {
-                const baseVal = sum * 200;
+                const baseVal = (a+b+c) * 200;
                 return [baseVal * m[4], "アラシ", baseVal];
             }
             return [2000*m[4], "アラシ", 2000+a];
@@ -1534,8 +1544,8 @@
         }
 
         if (reincData.upgrades.straight > 0 && reincData.upgrades.privatize > 0) {
-            if (isStraight(vals)) {
-                const baseVal = sum * 100; 
+            if (isStraight(d)) {
+                const baseVal = (a+b+c) * 100; 
                 return [baseVal * m[3], "ストレート", baseVal];
             }
         }
@@ -1611,6 +1621,7 @@
         const msg = document.getElementById('exp-msg');
         const btn = document.getElementById('exp-action-btn');
 
+        // 修正: if-else構文エラーを修正
         if (expMode === 'normal') {
             expPanel.className = 'mode-normal';
             title.textContent = "🧭 通常探索";
@@ -1673,10 +1684,21 @@
         }
         
         // 配当表の表示制御
-        if (reincData.upgrades.straight4 > 0) document.getElementById('row-payout-s4').style.display = 'table-row';
-        if (reincData.upgrades.arashi4 > 0) document.getElementById('row-payout-a4').style.display = 'table-row';
-        if (reincData.upgrades.straight5 > 0) document.getElementById('row-payout-s5').style.display = 'table-row';
-        if (reincData.upgrades.arashi5 > 0) document.getElementById('row-payout-a5').style.display = 'table-row';
+        if (reincData.upgrades.straight4 > 0) {
+            document.getElementById('row-payout-s4').style.display = 'table-row';
+            document.getElementById('row-yaku-s4').style.display = 'flex';
+        }
+        if (reincData.upgrades.arashi4 > 0) {
+            document.getElementById('row-payout-a4').style.display = 'table-row';
+            document.getElementById('row-yaku-a4').style.display = 'flex';
+        }
+        if (reincData.upgrades.straight5 > 0) {
+            document.getElementById('row-payout-s5').style.display = 'table-row';
+            document.getElementById('row-yaku-5').style.display = 'flex';
+        }
+        if (reincData.upgrades.arashi5 > 0) {
+            document.getElementById('row-payout-a5').style.display = 'table-row';
+        }
 
         const badge = document.getElementById('shop-badge');
         if (upgradeCount > 0) {
