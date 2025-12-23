@@ -1564,20 +1564,34 @@
     }
 
     function openPoolDetail() {
-        const container = document.getElementById('pool-detail-content');
-        container.innerHTML = '';
-        for (let v = 1; v <= 6; v++) {
-            const dieDiv = document.createElement('div');
-            dieDiv.className = 'pool-detail-item';
-            let html = `<div style="font-size:1.5rem; margin-bottom:5px;">${["","⚀","⚁","⚂","⚃","⚄","⚅"][v]}</div>`;
-            Object.keys(RARITIES).forEach(rKey => {
-                const count = dicePool.filter(d => d.val === v && d.rarity === rKey).length;
-                if (count > 0) { html += `<div style="color:${RARITIES[rKey].color}; font-size:0.6rem;">${RARITIES[rKey].name}: ${count}</div>`; }
-            });
+    const container = document.getElementById('pool-detail-content');
+    container.innerHTML = '';
+
+    // プール内にある最大の目の値を取得（最低でも6まで表示）
+    const maxVal = dicePool.reduce((max, d) => (d && d.val > max ? d.val : max), 6);
+
+    for (let v = 1; v <= maxVal; v++) {
+        const dieDiv = document.createElement('div');
+        dieDiv.className = 'pool-detail-item';
+        
+        // 7以上の場合は数字を、6以下の場合は絵文字を表示
+        let face = v <= 6 ? ["","⚀","⚁","⚂","⚃","⚄","⚅"][v] : v;
+        let html = `<div style="font-size:1.5rem; margin-bottom:5px;">${face}</div>`;
+        
+        Object.keys(RARITIES).forEach(rKey => {
+            const count = dicePool.filter(d => d && d.val === v && d.rarity === rKey).length;
+            if (count > 0) { 
+                html += `<div style="color:${RARITIES[rKey].color}; font-size:0.6rem;">${RARITIES[rKey].name}: ${count}</div>`;
+            }
+        });
+        
+        // その数字のダイスが1つでも存在する場合のみ表示（または全て表示ならifなし）
+        if (dicePool.some(d => d && d.val === v)) {
             dieDiv.innerHTML = html;
             container.appendChild(dieDiv);
         }
-        document.getElementById('pool-detail-modal').style.display = 'flex';
+    }
+    document.getElementById('pool-detail-modal').style.display = 'flex';
     }
 
     function updateUI() {
