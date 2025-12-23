@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>チンチロクリッカー</title>
+    <title>チンチロ・クリッカー</title>
     <style>
         :root {
             --bg-color: #121212;
@@ -130,11 +130,10 @@
         
         /* 転生ボタン */
         #reinc-btn {
-            position: absolute; top: 20px; right: 20px;
             background: linear-gradient(135deg, #a723e7, #5f27cd);
-            color: white; padding: 8px 15px; border: 1px solid #e056fd; border-radius: 20px;
+            color: white; padding: 12px 10px; border: 1px solid #e056fd; border-radius: 10px;
             cursor: pointer; font-weight: bold; box-shadow: 0 0 10px rgba(224, 86, 253, 0.5);
-            display: none; z-index: 10; font-size: 0.9rem;
+            display: none; width: 100%; margin-bottom: 20px; font-size: 1rem; position: relative; z-index: 10;
         }
         .reinc-available { animation: pulse-reinc 2s infinite; }
         @keyframes pulse-reinc { 0% {box-shadow: 0 0 10px rgba(224, 86, 253, 0.5);} 50% {box-shadow: 0 0 20px rgba(224, 86, 253, 0.8);} 100% {box-shadow: 0 0 10px rgba(224, 86, 253, 0.5);} }
@@ -217,9 +216,9 @@
 <body>
 
 <div class="container">
-    <button id="reinc-btn" onclick="openReincarnationModal()">✦ 転生メニュー</button>
-
     <div class="sidebar">
+        <button id="reinc-btn" onclick="openReincarnationModal()">✦ 転生メニュー</button>
+
         <div class="panel">
             <h3>配当表</h3>
             <table id="payout-table">
@@ -576,10 +575,12 @@
             ultra: { name: "ウルトラレア", weight: 150, mult: 32, color: "var(--rare-ultra)", class: "rarity-ultra" }
         };
         
-        if (reincData.upgrades.rare_magic > 0) RARITIES.magic = { name: "マジック", weight: 100, mult: 64, color: "var(--rare-magic)", class: "rarity-magic" };
-        if (reincData.upgrades.rare_epic > 0) RARITIES.epic = { name: "エピック", weight: 50, mult: 128, color: "var(--rare-epic)", class: "rarity-epic" };
-        if (reincData.upgrades.rare_legend > 0) RARITIES.legendary = { name: "レジェンダリー", weight: 25, mult: 256, color: "var(--rare-legendary)", class: "rarity-legendary" };
-        if (reincData.upgrades.rare_eternal > 0) RARITIES.eternal = { name: "エターナル", weight: 10, mult: 512, color: "#fff", class: "rarity-eternal" };
+        if (reincData && reincData.upgrades) {
+            if (reincData.upgrades.rare_magic > 0) RARITIES.magic = { name: "マジック", weight: 100, mult: 64, color: "var(--rare-magic)", class: "rarity-magic" };
+            if (reincData.upgrades.rare_epic > 0) RARITIES.epic = { name: "エピック", weight: 50, mult: 128, color: "var(--rare-epic)", class: "rarity-epic" };
+            if (reincData.upgrades.rare_legend > 0) RARITIES.legendary = { name: "レジェンダリー", weight: 25, mult: 256, color: "var(--rare-legendary)", class: "rarity-legendary" };
+            if (reincData.upgrades.rare_eternal > 0) RARITIES.eternal = { name: "エターナル", weight: 10, mult: 512, color: "#fff", class: "rarity-eternal" };
+        }
     }
 
     function formatScore(num) {
@@ -609,7 +610,7 @@
             expNextCost, ritualNextCost, fusionNextCost,
             dicePool, upgLevels: {}, 
             reincData, scoreHistory,
-            ver: 6.6,
+            ver: 6.8,
             lastSaveTime: Date.now() 
         };
         for(let key in upgState) saveObj.upgLevels[key] = upgState[key].lv;
@@ -636,8 +637,11 @@
             
             if (saveObj.scoreHistory) scoreHistory = saveObj.scoreHistory;
 
-            if(saveObj.dicePool && Array.isArray(saveObj.dicePool)) dicePool = saveObj.dicePool;
-            else initNewGame();
+            if(saveObj.dicePool && Array.isArray(saveObj.dicePool)) {
+                 dicePool = saveObj.dicePool.filter(d => d !== null); // 不正データクリーニング
+            } else {
+                 initNewGame();
+            }
             
             if (dicePool.length === 0) initNewGame();
 
@@ -651,8 +655,11 @@
                 reincData = saveObj.reincData;
                 if (!reincData.upgrades) reincData.upgrades = {};
                 
-                if (reincData.points === undefined) {
+                if (reincData.points === undefined || isNaN(reincData.points)) {
                     reincData.points = reincData.totalRP || 0;
+                }
+                
+                if (reincData.maxReachedRP === undefined || isNaN(reincData.maxReachedRP)) {
                     reincData.maxReachedRP = reincData.maxRP || reincData.totalRP || 0;
                     if (reincData.maxReachedRP < reincData.points) reincData.maxReachedRP = reincData.points;
                 }
@@ -761,6 +768,11 @@
         hasAutoRoll = false;
         expStatus = 'idle';
         expTimeRemaining = 0;
+        
+        // 修正: モードのリセットを明示的に行う
+        expMode = 'normal';
+        currentRewards = [];
+        rewardSelectCount = 0;
         
         initNewGame(); 
         
@@ -926,7 +938,7 @@
     function tick() {
         try {
             const now = Date.now();
-            const dt = now - lastTickTime; // 経過時間
+            const dt = Math.max(0, now - lastTickTime); // 時間逆行防止
             lastTickTime = now;
             
             const isOffline = dt > 5000; // 5秒以上判定
@@ -1008,11 +1020,19 @@
         // モードローテーション
         const modes = ['normal'];
         if (upgState.ritual_unlock.lv > 0) modes.push('ritual');
-        if (upgState.fusion_exp.lv > 0) modes.push('fusion');
+        // 修正: 転生UG条件を厳密にチェック
+        if (reincData && reincData.upgrades && reincData.upgrades.fusion_dim > 0 && upgState.fusion_exp.lv > 0) {
+             modes.push('fusion');
+        }
         
         const currentIdx = modes.indexOf(expMode);
-        const nextIdx = (currentIdx + 1) % modes.length;
-        expMode = modes[nextIdx];
+        // 現在のモードが有効でない場合（転生後など）はnormalに戻す
+        if (currentIdx === -1) {
+             expMode = 'normal';
+        } else {
+             const nextIdx = (currentIdx + 1) % modes.length;
+             expMode = modes[nextIdx];
+        }
         
         updateUI();
     }
@@ -1381,27 +1401,63 @@
 
     function processResult(dice, id, isSilent) {
         let best = { val: -1, yaku: "目なし", base: 10, idx: [0,1,2], b: 1 };
-        for(let i=0; i<dice.length; i++) for(let j=i+1; j<dice.length; j++) for(let k=j+1; k<dice.length; k++) {
-            const trio = [dice[i], dice[j], dice[k]];
-            const [base, yaku, scoreVal] = calcScore([trio[0].val, trio[1].val, trio[2].val]);
-            let rarityMult = 1;
-            if (yaku !== "目なし" && yaku !== "ヒフミ") {
-                rarityMult = RARITIES[trio[0].rarity].mult * RARITIES[trio[1].rarity].mult * RARITIES[trio[2].rarity].mult;
+        const diceWithIdx = dice.map((d, i) => ({...d, origIdx: i}));
+
+        // 5枚役チェック
+        if (dice.length >= 5 && (reincData.upgrades.straight5 > 0 || reincData.upgrades.arashi5 > 0)) {
+            const combos = getCombinations(diceWithIdx, 5);
+            for (let c of combos) {
+                const [base, yaku, scoreVal] = calcScore(c.map(d=>d.val));
+                let rarityMult = c.reduce((acc, d) => acc * RARITIES[d.rarity].mult, 1);
+                let totalVal = scoreVal * rarityMult;
+                if (totalVal > best.val) {
+                    best = { val: totalVal, yaku: yaku, base: base, b: rarityMult, idx: c.map(d=>d.origIdx) };
+                }
             }
-            const totalVal = scoreVal * rarityMult;
-            if (totalVal > best.val) best = { val: totalVal, yaku: yaku, base: base, idx: [i,j,k], b: rarityMult };
+        }
+
+        // 4枚役チェック
+        if (dice.length >= 4 && (reincData.upgrades.straight4 > 0 || reincData.upgrades.arashi4 > 0)) {
+             const combos = getCombinations(diceWithIdx, 4);
+             for (let c of combos) {
+                const [base, yaku, scoreVal] = calcScore(c.map(d=>d.val));
+                let rarityMult = c.reduce((acc, d) => acc * RARITIES[d.rarity].mult, 1);
+                let totalVal = scoreVal * rarityMult;
+                if (totalVal > best.val) {
+                    best = { val: totalVal, yaku: yaku, base: base, b: rarityMult, idx: c.map(d=>d.origIdx) };
+                }
+            }
+        }
+
+        // 3枚役チェック
+        if (true) {
+            const combos = getCombinations(diceWithIdx, 3);
+            for (let c of combos) {
+                const [base, yaku, scoreVal] = calcScore(c.map(d=>d.val));
+                let rarityMult = 1;
+                if (yaku !== "目なし" && yaku !== "ヒフミ") {
+                    rarityMult = c.reduce((acc, d) => acc * RARITIES[d.rarity].mult, 1);
+                }
+                let totalVal = scoreVal * rarityMult;
+                if (totalVal > best.val) {
+                    best = { val: totalVal, yaku: yaku, base: base, b: rarityMult, idx: c.map(d=>d.origIdx) };
+                }
+            }
         }
         
         if (!isSilent) {
             for(let i=0; i<dice.length; i++) {
                 const dieEl = document.getElementById(`d-${id}-${i}`);
-                if(dieEl && !best.idx.includes(i)) dieEl.classList.add('unused');
+                if(dieEl) {
+                    if(!best.idx.includes(i)) dieEl.classList.add('unused');
+                    else dieEl.classList.remove('unused');
+                }
             }
         }
         
         const reincMult = Math.max(1, reincData.maxReachedRP * 0.2);
         
-        const gain = best.base * multiplier * best.b * reincMult;
+        const gain = best.val * multiplier * reincMult;
         score += gain; totalScore += gain;
         
         const bonusText = best.b > 1 ? ` (x${best.b})` : "";
@@ -1425,14 +1481,42 @@
     }
 
     function calcScore(d) {
-        const [a,b,c] = [...d].sort((x,y)=>x-y); 
-        const m = [1, upgState.yaku_none.lv, upgState.yaku_normal.lv, upgState.yaku_456.lv, upgState.yaku_arashi.lv, upgState.yaku_pin.lv].map(l => 1+(l*4));
+        const vals = [...d].sort((x,y)=>x-y); 
+        const len = vals.length;
+        const sum = vals.reduce((a,c)=>a+c, 0);
+        
+        const m = [
+            1, 
+            upgState.yaku_none.lv, 
+            upgState.yaku_normal.lv, 
+            upgState.yaku_456.lv, 
+            upgState.yaku_arashi.lv, 
+            upgState.yaku_pin.lv,
+            upgState.yaku_straight4.lv, 
+            upgState.yaku_arashi4.lv,   
+            upgState.yaku_straight5.lv, 
+            upgState.yaku_arashi5.lv    
+        ].map(l => 1+(l*4));
+
+        if (len === 5) {
+            if (reincData.upgrades.arashi5 > 0 && vals[0] === vals[4]) return [sum*100000*m[9], "アラシ５", sum*100000];
+            if (reincData.upgrades.straight5 > 0 && isStraight(vals)) return [sum*50000*m[8], "ストレート５", sum*50000];
+            return [0, "不成立", 0];
+        }
+
+        if (len === 4) {
+            if (reincData.upgrades.arashi4 > 0 && vals[0] === vals[3]) return [sum*20000*m[7], "アラシ４", sum*20000];
+            if (reincData.upgrades.straight4 > 0 && isStraight(vals)) return [sum*10000*m[6], "ストレート４", sum*10000];
+            return [0, "不成立", 0];
+        }
+
+        const [a,b,c] = vals;
         
         if (a===1 && b===1 && c===1) return [10000*m[5], "ピンゾロ", 100000];
         
         if (a===b && b===c) {
             if (reincData.upgrades.privatize > 0) {
-                const baseVal = (a+b+c) * 200;
+                const baseVal = sum * 200;
                 return [baseVal * m[4], "アラシ", baseVal];
             }
             return [2000*m[4], "アラシ", 2000+a];
@@ -1450,8 +1534,8 @@
         }
 
         if (reincData.upgrades.straight > 0 && reincData.upgrades.privatize > 0) {
-            if (isStraight(d)) {
-                const baseVal = (a+b+c) * 100; 
+            if (isStraight(vals)) {
+                const baseVal = sum * 100; 
                 return [baseVal * m[3], "ストレート", baseVal];
             }
         }
@@ -1536,7 +1620,7 @@
                 msg.textContent = "新たな出目を求めて探索します";
                 btn.style.background = "var(--mode-normal)";
             }
-        } else {
+        } else if (expMode === 'ritual') {
             expPanel.className = 'mode-ritual';
             title.textContent = "🔮 儀式探索";
             title.style.color = "var(--mode-ritual)";
