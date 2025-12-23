@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>チンチロ・クリッカー v9.3 - Mode Selector</title>
+    <title>チンチロ・クリッカー</title>
     <style>
         :root {
             --bg-color: #121212;
@@ -819,10 +819,20 @@
     }
 
     function formatScore(num) {
+        if (num >= 1.0e+48) {
+            return num.toExponential(2).replace("+", "");
+        }
+
         if (num < 10000) return Math.floor(num).toLocaleString();
+        
         const units = ["", "万", "億", "兆", "京", "垓", "𥝱", "溝", "澗", "正", "載", "極"];
         let unitIdx = 0, tempNum = num;
-        while (tempNum >= 10000 && unitIdx < units.length - 1) { tempNum /= 10000; unitIdx++; }
+        
+        while (tempNum >= 10000 && unitIdx < units.length - 1) { 
+            tempNum /= 10000; 
+            unitIdx++; 
+        }
+        
         return (Math.floor(tempNum * 100) / 100) + units[unitIdx];
     }
 
