@@ -354,6 +354,32 @@
 		    from { transform: scale(1); text-shadow: 0 0 5px #e67e22; }
 		    to { transform: scale(1.1); text-shadow: 0 0 15px #e74c3c; }
 		}
+        
+		.rp-progress-container {
+		    width: 80%;
+		    height: 10px;
+		    background: #111;
+		    border: 1px solid #555;
+		    border-radius: 5px;
+		    margin: 10px auto;
+		    position: relative;
+		    overflow: hidden;
+		}
+
+		.rp-progress-bar {
+		    height: 100%;
+		    background: linear-gradient(90deg, #a723e7, #00d2d3);
+		    width: 0%;
+		    transition: width 0.5s ease-out;
+		    box-shadow: 0 0 10px rgba(167, 35, 231, 0.7);
+		}
+
+		.rp-next-info {
+		    font-size: 0.8rem;
+		    color: #ccc;
+		    margin-top: 5px;
+		    text-shadow: 0 0 2px black;
+		}
 
     </style>
 </head>
@@ -375,17 +401,19 @@
         <div class="panel">
             <h3>配当表</h3>
             <table id="payout-table">
+                <tr id="row-payout-a5" style="display:none;"><td>アラシ５</td><td class="配当">10万*</td></tr>
+                <tr id="row-payout-s5" style="display:none;"><td>ストレート５</td><td class="配当">5万*</td></tr>
+                
+                <tr id="row-payout-a4" style="display:none;"><td>アラシ４</td><td class="配当">2万*</td></tr>
+                <tr id="row-payout-s4" style="display:none;"><td>ストレート４</td><td class="配当">1万*</td></tr>
+                
                 <tr><td>ピンゾロ</td><td class="配当">1万</td></tr>
                 <tr><td>アラシ</td><td class="配当">2000*</td></tr>
                 <tr><td>シゴロ</td><td class="配当">1000*</td></tr>
-                <tr id="row-payout-s4" style="display:none;"><td>ストレート４</td><td class="配当">1万*</td></tr>
-                <tr id="row-payout-a4" style="display:none;"><td>アラシ４</td><td class="配当">2万*</td></tr>
-                <tr id="row-payout-s5" style="display:none;"><td>ストレート５</td><td class="配当">5万*</td></tr>
-                <tr id="row-payout-a5" style="display:none;"><td>アラシ５</td><td class="配当">10万*</td></tr>
+                
                 <tr><td>通常目</td><td class="配当">目×50</td></tr>
                 <tr><td>目なし</td><td class="配当">10</td></tr>
             </table>
-            <div style="font-size:0.6rem; color:#888; margin-top:5px;">*強化により変動<br>※レベル補正: (Lv^2)倍</div>
         </div>
         <div class="panel" id="panel-history" style="display:none;">
             <h3>家計簿 (TOP5)</h3>
@@ -492,8 +520,10 @@
         <div class="tree-container" id="tree-root">
             <svg class="svg-overlay" id="tree-svg"></svg>
             
-            <div class="tree-row">
+            <div class="tree-row" style="gap: 50px;">
                 <div id="node-finger" class="skill-node available" onclick="buyUpgrade('finger')"><span class="skill-icon">☝️</span><span id="lv-finger" class="lv-badge"></span><div class="skill-tooltip" id="tip-finger"></div></div>
+                
+                <div id="node-platinum_finger" class="skill-node locked" onclick="buyUpgrade('platinum_finger')"><span class="skill-icon" style="color:#e5e4e2; text-shadow:0 0 5px white;">💍</span><span id="lv-platinum_finger" class="lv-badge"></span><div class="skill-tooltip" id="tip-platinum_finger"></div></div>
             </div>
 
             <div class="tree-row" style="gap: 120px;">
@@ -578,6 +608,13 @@
         <div id="reinc-action-area" style="background:rgba(0,0,0,0.3); padding:15px; border-radius:10px; margin-bottom:20px; border:1px solid #7d3c98;">
             <p>現在のスコアに基づく獲得可能ポイント: <span id="pending-rp" style="color:white; font-weight:bold;">0</span></p>
             <p id="reinc-gain-msg" style="color:#e056fd; font-weight:bold;"></p>
+            
+            <div id="rp-progress-area" style="margin-bottom: 15px;">
+                <div class="rp-progress-container">
+                    <div id="rp-progress-bar" class="rp-progress-bar"></div>
+                </div>
+                <div id="rp-next-msg" class="rp-next-info">次のポイント(+1)まで: あと 0 スコア</div>
+            </div>
             <div style="display:flex; justify-content:center; gap:10px;">
                 <button id="do-reinc-btn" onclick="doReincarnation()" style="background:linear-gradient(135deg, #a723e7, #5f27cd); color:white; border:none; padding:10px 30px; border-radius:20px; font-weight:bold; font-size:1.1rem; cursor:pointer; margin-top:10px;">転生を実行する</button>
                 <button onclick="toggleReincModal(false)" style="background:#555; color:white; border:none; padding:10px 20px; border-radius:20px; font-weight:bold; font-size:1rem; cursor:pointer; margin-top:10px;">閉じる</button>
@@ -691,6 +728,8 @@
 
     const upgState = {
         finger: { lv: 0, max: 3, costs: [100, 1000, 3000], name: "黄金の指", icon: "☝️", desc: "獲得スコア+100%", req: null },
+        platinum_finger: { lv: 0, max: 100, costs: Array.from({length:100}, (_,i)=>1000 * Math.pow(2, i)), name: "白金の指", icon: "💍", desc: "獲得スコア+10%<br>(乗算ボーナス)", req: "finger", reqLv: 3 },
+        
         auto: { lv: 0, max: 1, costs: [3000], name: "自動ロール", icon: "🤖", desc: "自動でダイスを振る", req: "finger" },
         field: { lv: 0, max: 9, costs: [2000, 5000, 10000, 30000, 70000, 150000, 300000, 500000, 1000000], name: "場を追加", icon: "🎲", desc: "場を増やす", req: "finger" },
         expedition: { lv: 0, max: 1, costs: [15000], name: "通常探索", icon: "🧭", desc: "出目探索を解放", req: "auto" },
@@ -710,16 +749,17 @@
         synchro_exp: { lv: 0, max: 1, costs: [100000000], name: "シンクロ探索", icon: "⚛️", desc: "同じ出目をシンクロさせる探索を解放", req: "fusion_exp", reincReq: "synchro_dim" },
 
         throw: { lv: 0, max: 5, costs: [100000, 1000000, 10000000, 100000000, 1000000000], name: "投擲技術", icon: "🎯", desc: "演出短縮", req: "speed" },
-        yaku_none: { lv: 0, max: 10, costs: Array.from({length:10}, (_,i)=>2500 * Math.pow(4, i)), name: "目なし強化", icon: "❕", desc: "目なし+400%", req: "auto" },
-        yaku_normal: { lv: 0, max: 10, costs: Array.from({length:10}, (_,i)=>5000 * Math.pow(4, i)), name: "通常目強化", icon: "⚂", desc: "通常目+400%", req: "yaku_none" },
-        yaku_456: { lv: 0, max: 10, costs: Array.from({length:10}, (_,i)=>10000 * Math.pow(4, i)), name: "シゴロ強化", icon: "✨", desc: "シゴロ+400%", req: "yaku_normal" },
-        yaku_arashi: { lv: 0, max: 10, costs: Array.from({length:10}, (_,i)=>30000 * Math.pow(4, i)), name: "アラシ強化", icon: "🌀", desc: "アラシ+400%", req: "yaku_456" },
-        yaku_pin: { lv: 0, max: 10, costs: Array.from({length:10}, (_,i)=>50000 * Math.pow(4, i)), name: "ピンゾロ強化", icon: "🔥", desc: "ピンゾロ+400%", req: "yaku_arashi" },
+        
+        yaku_none: { lv: 0, max: 20, costs: Array.from({length:20}, (_,i)=>2500 * Math.pow(4, i)), name: "目なし強化", icon: "❕", desc: "目なし+400%", req: "auto" },
+        yaku_normal: { lv: 0, max: 20, costs: Array.from({length:20}, (_,i)=>5000 * Math.pow(4, i)), name: "通常目強化", icon: "⚂", desc: "通常目+400%", req: "yaku_none" },
+        yaku_456: { lv: 0, max: 20, costs: Array.from({length:20}, (_,i)=>10000 * Math.pow(4, i)), name: "シゴロ強化", icon: "✨", desc: "シゴロ+400%", req: "yaku_normal" },
+        yaku_arashi: { lv: 0, max: 20, costs: Array.from({length:20}, (_,i)=>30000 * Math.pow(4, i)), name: "アラシ強化", icon: "🌀", desc: "アラシ+400%", req: "yaku_456" },
+        yaku_pin: { lv: 0, max: 20, costs: Array.from({length:20}, (_,i)=>50000 * Math.pow(4, i)), name: "ピンゾロ強化", icon: "🔥", desc: "ピンゾロ+400%", req: "yaku_arashi" },
 
-        yaku_straight4: { lv: 0, max: 10, costs: Array.from({length:10}, (_,i)=>100000 * Math.pow(2, i)), name: "ストレート4強化", icon: "4️⃣", desc: "ストレート4+400%", req: "yaku_pin", reincReq: "straight4" },
-        yaku_arashi4: { lv: 0, max: 10, costs: Array.from({length:10}, (_,i)=>200000 * Math.pow(2, i)), name: "アラシ4強化", icon: "🌪️", desc: "アラシ4+400%", req: "yaku_straight4", reincReq: "arashi4" },
-        yaku_straight5: { lv: 0, max: 10, costs: Array.from({length:10}, (_,i)=>1000000 * Math.pow(2, i)), name: "ストレート5強化", icon: "5️⃣", desc: "ストレート5+400%", req: "yaku_arashi4", reincReq: "straight5" },
-        yaku_arashi5: { lv: 0, max: 10, costs: Array.from({length:10}, (_,i)=>2000000 * Math.pow(2, i)), name: "アラシ5強化", icon: "🌈", desc: "アラシ5+400%", req: "yaku_arashi4", reincReq: "arashi5" }
+        yaku_straight4: { lv: 0, max: 20, costs: Array.from({length:20}, (_,i)=>100000 * Math.pow(2, i)), name: "ストレート4強化", icon: "4️⃣", desc: "ストレート4+400%", req: "yaku_pin", reincReq: "straight4" },
+        yaku_arashi4: { lv: 0, max: 20, costs: Array.from({length:20}, (_,i)=>200000 * Math.pow(2, i)), name: "アラシ4強化", icon: "🌪️", desc: "アラシ4+400%", req: "yaku_straight4", reincReq: "arashi4" },
+        yaku_straight5: { lv: 0, max: 20, costs: Array.from({length:20}, (_,i)=>1000000 * Math.pow(2, i)), name: "ストレート5強化", icon: "5️⃣", desc: "ストレート5+400%", req: "yaku_arashi4", reincReq: "straight5" },
+        yaku_arashi5: { lv: 0, max: 20, costs: Array.from({length:20}, (_,i)=>2000000 * Math.pow(2, i)), name: "アラシ5強化", icon: "🌈", desc: "アラシ5+400%", req: "yaku_arashi4", reincReq: "arashi5" }
     };
     
     const reincUpgInfo = {
@@ -729,10 +769,10 @@
         privatize: { lv: 0, max: 1, costs: [5], name: "数字の私物化", icon: "🔢", desc: "アラシ・シゴロ計算式変更", req: ["greedy_exp", "greedy_rit"] },
         straight: { lv: 0, max: 1, costs: [6], name: "ストレート", icon: "📏", desc: "連番(234,345等)を役として扱う", req: "privatize" },
         
-        fusion_dim: { lv: 0, max: 1, costs: [10], name: "融合次元", icon: "🌌", desc: "（未実装）次元の壁が薄くなる...？", req: "straight" },
-        fusion_limit: { lv: 0, max: 10, costs: [2], name: "融合上限", icon: "🧱", desc: "融合出目の上限+3", req: "fusion_dim", fixedCost: true },
+        fusion_dim: { lv: 0, max: 1, costs: [10], name: "融合次元", icon: "🌌", desc: "次元の壁が薄くなる...？", req: "straight" },
+        fusion_limit: { lv: 0, max: 10, costs: [2], name: "超融合", icon: "🧱", desc: "融合出目の上限+3", req: "fusion_dim", fixedCost: true },
         
-        tuner: { lv: 0, max: 1, costs: [10], name: "チューナー", icon: "🎛️", desc: "レベルシステムを解放<br>Lv^2の補正がかかる", req: "fusion_limit", reqLv: 10 },
+        tuner: { lv: 0, max: 1, costs: [10], name: "チューナー", icon: "🎛️", desc: "レベルシステムを解放<br>Lv^2の補正がかかる", req: "fusion_limit", reqLv: 1 },
         
         // 修正: アドバンス探索の前提をシンクロ次元に変更
         adv_exp: { lv: 0, max: 1, costs: [10], name: "アドバンス探索", icon: "💎", desc: "通常探索の出目Lv1-6<br>初期コスト30万", req: "synchro_dim" },
@@ -972,7 +1012,36 @@ function loadGame() {
     }
     
     function resetGame() {
-        if(!confirm("本当にデータをリセットしますか？（転生ポイントも消えます）")) return;
+        // まずリセットの意思確認
+        if(!confirm("本当にデータをリセットしますか？\n（転生ポイントやアップグレードも含め、全てのデータが消去されます）")) return;
+
+        const TRILLION = 1000000000000; // 1兆
+        
+        // 総獲得スコアが1兆を超えているかチェック
+        if (totalScore >= TRILLION) {
+            // ボーナスの選択肢を提示
+            // OKならボーナスあり、キャンセルならボーナスなし（通常リセット）
+            const wantBonus = confirm(`総獲得スコアが1兆を超えています！\n\n次回のゲーム開始時に「1兆スコア」を所持した状態でスタートしますか？\n\n[OK] 1兆スコアを持ってリセット\n[キャンセル] 0スコアで完全リセット`);
+            
+            isResetting = true;
+            localStorage.removeItem('chinchiro_clicker_save'); // 一旦消去
+
+            if (wantBonus) {
+                // 1兆スコアを持った状態の初期セーブデータを作成
+                // loadGame時に読み込まれ、他のデータ（ダイス等）はinitNewGameで初期化されます
+                const bonusData = {
+                    score: TRILLION,
+                    totalScore: TRILLION,
+                    ver: 9.3
+                };
+                localStorage.setItem('chinchiro_clicker_save', JSON.stringify(bonusData));
+            }
+            
+            location.reload();
+            return;
+        }
+
+        // 通常リセット（1兆未満の場合）
         isResetting = true;
         localStorage.removeItem('chinchiro_clicker_save');
         location.reload();
@@ -987,6 +1056,10 @@ function loadGame() {
         return Math.floor(Math.max(0, val));
     }
 
+    function calcReqScoreForRP(rp) {
+        return Math.pow(10, (rp + 30) / 5);
+    }
+
     function openReincarnationModal() {
         const potentialRP = calcRP(totalScore);
         const gain = Math.max(0, potentialRP - reincData.maxReachedRP);
@@ -994,6 +1067,25 @@ function loadGame() {
         document.getElementById('reinc-point-disp').textContent = reincData.points;
         document.getElementById('pending-rp').textContent = potentialRP;
         
+        // --- 追加: 次のポイントへの進捗計算 ---
+        const currentLevelReq = calcReqScoreForRP(potentialRP);     // 現在のRPになった瞬間のスコア
+        const nextLevelReq = calcReqScoreForRP(potentialRP + 1);    // 次のRPになる瞬間のスコア
+        
+        // 進捗率 (現在の区間内での割合)
+        // 分母が0にならないよう対策（通常ありえないが念のため）
+        let progress = 0;
+        if (nextLevelReq > currentLevelReq) {
+            progress = (totalScore - currentLevelReq) / (nextLevelReq - currentLevelReq) * 100;
+        }
+        progress = Math.min(100, Math.max(0, progress)); // 0-100に丸める
+
+        const remaining = nextLevelReq - totalScore;
+
+        document.getElementById('rp-progress-bar').style.width = progress + '%';
+        // Remainingが巨大な数になるため formatScore を使用
+        document.getElementById('rp-next-msg').textContent = `次のポイントまで: あと ${formatScore(remaining)} スコア (${Math.floor(progress)}%)`;
+        // ------------------------------------
+
         document.getElementById('reinc-action-area').style.display = 'block';
         document.getElementById('reinc-finish-area').style.display = 'none';
 
@@ -1007,7 +1099,11 @@ function loadGame() {
             btn.style.opacity = 1;
             btn.style.cursor = "pointer";
         } else {
-            msg.textContent = "※転生にはスコア100億以上、かつ最高記録の更新が必要です";
+            if (totalScore < REINC_THRESHOLD) {
+                msg.textContent = "※転生にはスコア100億以上が必要です";
+            } else {
+                msg.textContent = "※現在の記録を更新するとポイントが増加します";
+            }
             btn.disabled = true;
             btn.style.opacity = 0.5;
             btn.style.cursor = "not-allowed";
@@ -1216,9 +1312,13 @@ function loadGame() {
     function init() {
         loadGame();
         
-        if(upgState.finger.lv > 0) multiplier = 1 + upgState.finger.lv;
-        if(upgState.auto.lv > 0) hasAutoRoll = true;
         fieldCount = 1 + upgState.field.lv;
+
+        const baseMult = 1 + upgState.finger.lv;
+        const platinumMult = 1 + (upgState.platinum_finger ? (upgState.platinum_finger.lv * 0.1) : 0);
+        multiplier = baseMult * platinumMult;
+
+        if(upgState.auto.lv > 0) hasAutoRoll = true;
         
         fieldTimers = Array(fieldCount).fill(0);
         document.getElementById('game-fields').innerHTML = '';
@@ -1828,17 +1928,25 @@ function loadGame() {
         const upg = upgState[type];
         const reqs = Array.isArray(upg.req) ? upg.req : (upg.req ? [upg.req] : []);
         
-        // 転生UG条件のチェック (不正購入防止)
         if (upg.reincReq && (reincData.upgrades[upg.reincReq] || 0) <= 0) return;
 
-        const canBuy = reqs.every(r => upgState[r].lv > 0);
+        const canBuy = reqs.every(r => {
+             const reqLvl = upg.reqLv || 1; // 指定がなければLv1
+             return upgState[r].lv >= reqLvl;
+        });
+
         if (reqs.length > 0 && !canBuy) return;
 
         if (score >= upg.costs[upg.lv] && upg.lv < upg.max) {
             score -= upg.costs[upg.lv];
             upg.lv++;
             
-            if (type === 'finger') multiplier = 1 + upg.lv;
+            if (type === 'finger' || type === 'platinum_finger') {
+                const baseMult = 1 + upgState.finger.lv;
+                const platMult = 1 + (upgState.platinum_finger.lv * 0.1);
+                multiplier = baseMult * platMult;
+            }
+
             if (type === 'auto') { hasAutoRoll = true; document.querySelectorAll('.timer-container').forEach(e => e.style.display='block'); }
             if (type === 'field' || type === 'potential') {
                 fieldCount = 1 + upgState.field.lv;
@@ -1848,12 +1956,9 @@ function loadGame() {
             if (type === 'history') document.getElementById('panel-history').style.display = 'block';
             if (type === 'digital_history') document.getElementById('btn-pool-detail').style.display = 'block';
             
-            // --- 追加箇所: 探索短縮を購入時、進行中なら残り時間を即座に減らす ---
             if (type === 'exp_speed' && expStatus === 'running') {
-                expTimeRemaining -= 16000; // 16秒短縮
-                // 残り時間が0以下になっても tick() で処理されるため問題ありません
+                expTimeRemaining -= 16000;
             }
-            // -----------------------------------------------------------
 
             saveGame();
             updateUI(); drawLines();
@@ -2044,14 +2149,24 @@ function loadGame() {
             upgState.yaku_arashi5.lv    
         ].map(l => 1+(l*4));
 
+        // 5枚役
         if (len === 5) {
-            if (reincData.upgrades.arashi5 > 0 && vals[0] === vals[4]) return [sum*100000*m[9], "アラシ５", sum*100000];
+            if (reincData.upgrades.arashi5 > 0 && vals[0] === vals[4]) {
+                // 1のアラシ5は特別高配当 (合計*20万 = 100万)
+                if (vals[0] === 1) return [sum*200000*m[9], "アラシ５", sum*200000];
+                return [sum*100000*m[9], "アラシ５", sum*100000];
+            }
             if (reincData.upgrades.straight5 > 0 && isStraight(vals)) return [sum*50000*m[8], "ストレート５", sum*50000];
             return [0, "不成立", 0];
         }
 
+        // 4枚役
         if (len === 4) {
-            if (reincData.upgrades.arashi4 > 0 && vals[0] === vals[3]) return [sum*20000*m[7], "アラシ４", sum*20000];
+            if (reincData.upgrades.arashi4 > 0 && vals[0] === vals[3]) {
+                // 1のアラシ4はピンゾロ(10万)を超えるように強化 (合計*5万 = 20万)
+                if (vals[0] === 1) return [sum*50000*m[7], "アラシ４", sum*50000];
+                return [sum*20000*m[7], "アラシ４", sum*20000];
+            }
             if (reincData.upgrades.straight4 > 0 && isStraight(vals)) return [sum*10000*m[6], "ストレート４", sum*10000];
             return [0, "不成立", 0];
         }
@@ -2346,7 +2461,8 @@ function loadGame() {
             svg.innerHTML = '';
             
             const conn = [
-                ['finger','auto'], ['finger','field'],            
+                ['finger','auto'], ['finger','field'],
+                ['finger', 'platinum_finger'],            
                 ['auto','expedition'], ['auto','history'], ['auto','speed'], ['auto','yaku_none'],
                 ['field','potential'],                            
                 ['speed','throw'],                                
