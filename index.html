@@ -559,7 +559,11 @@
             <div class="tree-row" style="gap: 15px; justify-content: flex-start; padding-left: 20px;">
                 <div id="node-ritual_amount" class="skill-node locked" onclick="buyUpgrade('ritual_amount')"><span class="skill-icon" id="icon-ritual_amount">🌑</span><span id="lv-ritual_amount" class="lv-badge"></span><div class="skill-tooltip" id="tip-ritual_amount"></div></div>
                 
-                <div style="width: 360px;"></div>
+                <div style="width: 100px;"></div>
+                
+                <div id="node-simple_fusion" class="skill-node locked" onclick="buyUpgrade('simple_fusion')"><span class="skill-icon">🍜</span><span id="lv-simple_fusion" class="lv-badge"></span><div class="skill-tooltip" id="tip-simple_fusion"></div></div>
+
+                <div style="width: 170px;"></div>
                 
                 <div id="node-yaku_456" class="skill-node locked" onclick="buyUpgrade('yaku_456')"><span class="skill-icon" id="icon-yaku_456">✨</span><span id="lv-yaku_456" class="lv-badge"></span><div class="skill-tooltip" id="tip-yaku_456"></div></div>
             </div>
@@ -738,6 +742,7 @@
         digital_history: { lv: 0, max: 1, costs: [300], name: "電子家計簿", icon: "📱", desc: "プールの詳細を確認可能にする", req: ["history", "expedition"] },
         potential: { lv: 0, max: 2, costs: [50000, 50000000], name: "ポテンシャル", icon: "💎", desc: "ダイス数+1", req: "field" },
         exp_speed: { lv: 0, max: 10, costs: Array.from({length:10}, (_,i)=>100000 * Math.pow(1.5, i)), name: "探索短縮", icon: "⏩", desc: "探索時間 -16秒", req: "expedition" },
+        simple_fusion: { lv: 0, max: 1, costs: [10000000], name: "簡易融合", icon: "🍜", desc: "探索時間を半分にする", req: "exp_speed", reqLv: 1, reincReq: "fusion_dim" },
         exp_amount: { lv: 0, max: 3, costs: [1000000, 5000000, 20000000], name: "通常探索強化", icon: "📦", desc: "探索の選択肢+1", req: "expedition" },
         
         ritual_unlock: { lv: 0, max: 1, costs: [500000], name: "儀式探索", icon: "🔮", desc: "プール削除可能な儀式を解放", req: "expedition" },
@@ -756,10 +761,10 @@
         yaku_arashi: { lv: 0, max: 20, costs: Array.from({length:20}, (_,i)=>30000 * Math.pow(4, i)), name: "アラシ強化", icon: "🌀", desc: "アラシ+400%", req: "yaku_456" },
         yaku_pin: { lv: 0, max: 20, costs: Array.from({length:20}, (_,i)=>50000 * Math.pow(4, i)), name: "ピンゾロ強化", icon: "🔥", desc: "ピンゾロ+400%", req: "yaku_arashi" },
 
-        yaku_straight4: { lv: 0, max: 20, costs: Array.from({length:20}, (_,i)=>100000 * Math.pow(2, i)), name: "ストレート4強化", icon: "4️⃣", desc: "ストレート4+400%", req: "yaku_pin", reincReq: "straight4" },
-        yaku_arashi4: { lv: 0, max: 20, costs: Array.from({length:20}, (_,i)=>200000 * Math.pow(2, i)), name: "アラシ4強化", icon: "🌪️", desc: "アラシ4+400%", req: "yaku_straight4", reincReq: "arashi4" },
-        yaku_straight5: { lv: 0, max: 20, costs: Array.from({length:20}, (_,i)=>1000000 * Math.pow(2, i)), name: "ストレート5強化", icon: "5️⃣", desc: "ストレート5+400%", req: "yaku_arashi4", reincReq: "straight5" },
-        yaku_arashi5: { lv: 0, max: 20, costs: Array.from({length:20}, (_,i)=>2000000 * Math.pow(2, i)), name: "アラシ5強化", icon: "🌈", desc: "アラシ5+400%", req: "yaku_arashi4", reincReq: "arashi5" }
+        yaku_straight4: { lv: 0, max: 20, costs: Array.from({length:20}, (_,i)=>100000 * Math.pow(4, i)), name: "ストレート4強化", icon: "4️⃣", desc: "ストレート4+400%", req: "yaku_pin", reincReq: "straight4" },
+        yaku_arashi4: { lv: 0, max: 20, costs: Array.from({length:20}, (_,i)=>200000 * Math.pow(4, i)), name: "アラシ4強化", icon: "🌪️", desc: "アラシ4+400%", req: "yaku_straight4", reincReq: "arashi4" },
+        yaku_straight5: { lv: 0, max: 20, costs: Array.from({length:20}, (_,i)=>1000000 * Math.pow(4, i)), name: "ストレート5強化", icon: "5️⃣", desc: "ストレート5+400%", req: "yaku_arashi4", reincReq: "straight5" },
+        yaku_arashi5: { lv: 0, max: 20, costs: Array.from({length:20}, (_,i)=>2000000 * Math.pow(4, i)), name: "アラシ5強化", icon: "🌈", desc: "アラシ5+400%", req: "yaku_arashi4", reincReq: "arashi5" }
     };
     
     const reincUpgInfo = {
@@ -1053,6 +1058,14 @@ function loadGame() {
         const log10000 = Math.log10(currentTotalScore) / 4;
         const val = (log10000 * 20) - 30;
         return Math.floor(Math.max(0, val));
+    }
+
+    function calcExpDuration() {
+        let duration = Math.max(20000, EXP_DURATION_BASE - (upgState.exp_speed.lv * 16000));
+        if (upgState.simple_fusion && upgState.simple_fusion.lv > 0) {
+            duration /= 2;
+        }
+        return duration;
     }
 
     function calcReqScoreForRP(rp) {
@@ -1398,7 +1411,7 @@ function loadGame() {
 
             if (expStatus === 'running') {
                 expTimeRemaining -= dt;
-                const duration = Math.max(20000, EXP_DURATION_BASE - (upgState.exp_speed.lv * 16000));
+                const duration = calcExpDuration();
                 
                 if (expTimeRemaining <= 0) {
                     if (expStatus === 'running') playSound('ready');
@@ -1480,7 +1493,7 @@ function loadGame() {
             playSound('start');
             score -= cost;
             expStatus = 'running';
-            expTimeRemaining = Math.max(20000, EXP_DURATION_BASE - (upgState.exp_speed.lv * 16000));
+            expTimeRemaining = calcExpDuration();
             
             const b = document.getElementById('exp-action-btn');
             b.disabled = true; b.textContent = "探索中...";
@@ -1979,6 +1992,9 @@ function loadGame() {
             
             if (type === 'exp_speed' && expStatus === 'running') {
                 expTimeRemaining -= 16000;
+            }
+            if (type === 'simple_fusion' && expStatus === 'running') {
+                expTimeRemaining /= 2;
             }
 
             saveGame();
@@ -2494,6 +2510,7 @@ function loadGame() {
                 ['field','potential'],                            
                 ['speed','throw'],                                
                 ['expedition','digital_history'], ['expedition', 'exp_speed'], ['expedition', 'exp_amount'], ['expedition', 'ritual_unlock'],
+                ['exp_speed', 'simple_fusion'],
                 ['history','digital_history'],
                 ['ritual_unlock', 'ritual_amount'], ['ritual_amount', 'fusion_exp'],
                 ['fusion_exp', 'fusion_exp_amount'], ['fusion_exp', 'synchro_exp'],
