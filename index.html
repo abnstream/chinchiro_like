@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>チンチロ・クリッカー</title>
+    <title>チンチロ・クリッカー v9.3 - Mode Selector</title>
     <style>
         :root {
             --bg-color: #121212;
@@ -18,6 +18,7 @@
             --mode-normal: #3498db;
             --mode-ritual: #9b59b6;
             --mode-fusion: #e74c3c;
+            --mode-synchro: #00cec9; /* シンクロ色 */
             
             /* レアリティカラー (基本) */
             --rare-common: #ffffff;
@@ -74,6 +75,7 @@
             font-size: 1.8rem; color: #333; box-shadow: 0 4px 0 #999; 
             transition: opacity 0.3s, transform 0.2s, color 0.3s, text-shadow 0.3s; 
             font-family: 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif;
+            position: relative;
         }
         .die.is-number { font-size: 1.4rem; font-weight: bold; font-family: 'Arial', sans-serif; }
 
@@ -104,11 +106,38 @@
         #expedition-panel.mode-normal { border-color: var(--mode-normal); }
         #expedition-panel.mode-ritual { border-color: var(--mode-ritual); }
         #expedition-panel.mode-fusion { border-color: var(--mode-fusion); }
+        #expedition-panel.mode-synchro { border-color: var(--mode-synchro); }
         
-        .exp-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .exp-header { display: flex; justify-content: center; align-items: center; margin-bottom: 10px; }
         .exp-title { margin: 0; font-weight: bold; font-size: 1.2rem; }
-        .exp-toggle-btn { background: #333; border: 1px solid #555; color: #aaa; padding: 4px 10px; border-radius: 5px; cursor: pointer; font-size: 0.7rem; }
-        .exp-toggle-btn:hover { background: #444; color: white; }
+
+        /* モード選択ボタン用スタイル */
+        .mode-select-btn {
+            padding: 8px;
+            border: 1px solid #444;
+            border-radius: 5px;
+            background: #222;
+            color: #888;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: all 0.2s;
+            display: none; /* 初期状態は非表示 */
+        }
+        
+        /* 選択中のスタイル */
+        .mode-select-btn.active {
+            color: white;
+            font-weight: bold;
+            border-color: white;
+            transform: scale(1.05);
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+        }
+
+        /* 各モードごとのアクセントカラー */
+        #btn-select-normal.active { background: var(--mode-normal); box-shadow: 0 0 8px var(--mode-normal); }
+        #btn-select-ritual.active { background: var(--mode-ritual); box-shadow: 0 0 8px var(--mode-ritual); }
+        #btn-select-fusion.active { background: var(--mode-fusion); box-shadow: 0 0 8px var(--mode-fusion); }
+        #btn-select-synchro.active { background: var(--mode-synchro); box-shadow: 0 0 8px var(--mode-synchro); }
 
         .exp-status { display: flex; align-items: center; justify-content: center; gap: 20px; }
         .exp-btn { color: white; border: none; padding: 10px 25px; border-radius: 8px; cursor: pointer; font-weight: bold; transition: background 0.3s; }
@@ -122,9 +151,12 @@
         .reward-card:hover { border-color: var(--accent); transform: translateY(-5px); background: #333; }
         .reward-card.remove-mode:hover { border-color: #e74c3c; background: #2c0b0b; }
         .reward-card.fusion-mode:hover { border-color: var(--mode-fusion); background: #2c0b0b; }
+        .reward-card.synchro-mode:hover { border-color: var(--mode-synchro); background: #0c3332; }
+
         .reward-card.selected { border-color: #2ecc71; background: #1b2e1b; transform: scale(0.95); opacity: 0.8; }
         .reward-card.selected.remove-mode { border-color: #e74c3c; background: #2c0b0b; }
         .reward-card.selected.fusion-mode { border-color: var(--mode-fusion); background: #3a1111; }
+        .reward-card.selected.synchro-mode { border-color: var(--mode-synchro); background: #0c3332; }
 
         #shop-trigger { position: fixed; bottom: 20px; right: 20px; background: #9b59b6; width: 60px; height: 60px; border-radius: 50%; font-size: 1.5rem; border: none; cursor: pointer; color: white; box-shadow: 0 4px 15px rgba(155, 89, 182, 0.4); z-index: 100; }
         
@@ -200,6 +232,7 @@
         #save-notice { position: fixed; bottom: 20px; left: 20px; color: #888; font-size: 0.8rem; opacity: 0; transition: opacity 0.5s; }
         #offline-notice { position: fixed; bottom: 60px; left: 20px; color: var(--accent); font-size: 0.8rem; opacity: 0; transition: opacity 1s; z-index: 1000; }
         
+
         #rp-display-panel {
             background: rgba(45, 15, 56, 0.8);
             border: 1px solid var(--reinc-color);
@@ -211,6 +244,91 @@
         #reinc-view-mode-msg {
             color: #f39c12; font-size: 0.8rem; margin-bottom: 10px; display: none;
         }
+
+        /* --- プール詳細のカード風デザイン --- */
+
+		/* グリッドレイアウトの変更 */
+		.pool-card-container {
+		    display: flex;
+		    flex-wrap: wrap;
+		    gap: 10px;
+		    justify-content: center;
+		    padding: 10px;
+		    max-height: 70vh; /* スクロールできるように */
+		    overflow-y: auto;
+		}
+
+		/* カード本体 */
+		.pool-card {
+		    background-color: #f0f0f0; /* 画像に合わせた明るい背景 */
+		    border: 1px solid #aaa;
+		    border-radius: 4px;
+		    width: 90px;  /* サイズ調整 */
+		    height: 110px;
+		    display: flex;
+		    flex-direction: column;
+		    align-items: center;
+		    justify-content: center;
+		    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+		    position: relative;
+		    transition: transform 0.2s;
+		}
+
+		.pool-card:hover {
+		    transform: translateY(-2px);
+		    box-shadow: 0 4px 8px rgba(0,0,0,0.4);
+		    z-index: 10;
+		}
+
+		/* ダイス表示部分（二重枠風） */
+		.pool-card-die-outer {
+		    width: 60px;
+		    height: 60px;
+		    background: white;
+		    border: 1px solid #ccc;
+		    padding: 3px;
+		    display: flex;
+		    justify-content: center;
+		    align-items: center;
+		    margin-bottom: 5px;
+		}
+
+		.pool-card-die-inner {
+		    width: 100%;
+		    height: 100%;
+		    border: 1px solid #eee; /* 内側の薄い枠 */
+		    display: flex;
+		    justify-content: center;
+		    align-items: center;
+		    font-size: 2.2rem;
+		    line-height: 1;
+		    font-family: 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif;
+		    color: #000; /* ダイスの目は黒（画像に準拠） */
+		}
+
+		/* 数字（7以上）の場合のフォント調整 */
+		.pool-card-die-inner.is-number {
+		    font-size: 1.5rem;
+		    font-weight: bold;
+		    font-family: 'Arial', sans-serif;
+		}
+
+		/* 下部のテキスト情報 */
+		.pool-card-info {
+		    font-size: 0.65rem;
+		    text-align: center;
+		    line-height: 1.3;
+		    color: #333;
+		    width: 100%;
+		}
+
+		.pool-card-rarity {
+		    font-weight: bold;
+		    white-space: nowrap;
+		    overflow: hidden;
+		    text-overflow: ellipsis;
+		    padding: 0 2px;
+		}
     </style>
 </head>
 <body>
@@ -232,7 +350,7 @@
                 <tr><td>通常目</td><td class="配当">目×50</td></tr>
                 <tr><td>目なし</td><td class="配当">10</td></tr>
             </table>
-            <div style="font-size:0.6rem; color:#888; margin-top:5px;">*強化により変動</div>
+            <div style="font-size:0.6rem; color:#888; margin-top:5px;">*強化により変動<br>※レベル補正: (Lv^2)倍</div>
         </div>
         <div class="panel" id="panel-history" style="display:none;">
             <h3>家計簿 (TOP5)</h3>
@@ -257,8 +375,15 @@
         <div id="expedition-panel" class="mode-normal">
             <div class="exp-header">
                 <h3 id="exp-title" class="exp-title" style="color:var(--mode-normal);">🧭 通常探索</h3>
-                <button id="btn-mode-toggle" class="exp-toggle-btn" style="display:none;" onclick="toggleExpeditionMode()">モード切替</button>
             </div>
+            
+            <div id="mode-selector" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 15px;">
+                <button id="btn-select-normal" class="mode-select-btn" onclick="setExpeditionMode('normal')">通常</button>
+                <button id="btn-select-ritual" class="mode-select-btn" onclick="setExpeditionMode('ritual')">儀式</button>
+                <button id="btn-select-fusion" class="mode-select-btn" onclick="setExpeditionMode('fusion')">融合</button>
+                <button id="btn-select-synchro" class="mode-select-btn" onclick="setExpeditionMode('synchro')">シンクロ</button>
+            </div>
+
             <div class="exp-status">
                 <div style="position: relative; width: 60px; height: 60px;">
                     <svg class="timer-svg" viewBox="0 0 36 36" style="width: 60px; height: 60px;">
@@ -296,9 +421,15 @@
         <p id="reward-desc">持ち帰る出目を選択してください。</p>
         <p id="reward-count-msg" style="color:var(--auto-color); font-weight:bold;"></p>
         <div style="display:flex; justify-content:center; gap:15px; flex-wrap:wrap;" id="reward-list"></div>
+        
         <div id="fusion-action-area" style="display:none; margin-top:20px;">
             <button id="btn-do-fuse" onclick="executeFusion()" disabled style="background:var(--mode-fusion); border:none; color:white; padding:10px 30px; border-radius:20px; font-weight:bold; font-size:1.1rem; cursor:not-allowed; opacity:0.5;">融合を実行</button>
         </div>
+        
+        <div id="synchro-action-area" style="display:none; margin-top:20px;">
+            <button id="btn-do-synchro" onclick="executeSynchro()" disabled style="background:var(--mode-synchro); border:none; color:black; padding:10px 30px; border-radius:20px; font-weight:bold; font-size:1.1rem; cursor:not-allowed; opacity:0.5;">シンクロを実行</button>
+        </div>
+
         <button id="reward-cancel-btn" onclick="discardRewards()" style="margin-top:20px; background:#444; border:none; color:white; padding:10px 20px; border-radius:5px; cursor:pointer;">終了</button>
     </div>
 </div>
@@ -377,7 +508,9 @@
             </div>
 
             <div class="tree-row" style="gap: 15px; justify-content: flex-start; padding-left: 20px;">
-                <div style="width: 450px;"></div>
+                 <div id="node-synchro_exp" class="skill-node locked" onclick="buyUpgrade('synchro_exp')" style="display:none;"><span class="skill-icon" style="color:var(--mode-synchro)">⚛️</span><span id="lv-synchro_exp" class="lv-badge"></span><div class="skill-tooltip" id="tip-synchro_exp"></div></div>
+
+                <div style="width: 350px;"></div>
                 <div id="node-yaku_pin" class="skill-node locked" onclick="buyUpgrade('yaku_pin')"><span class="skill-icon" id="icon-yaku_pin">🔥</span><span id="lv-yaku_pin" class="lv-badge"></span><div class="skill-tooltip" id="tip-yaku_pin"></div></div>
             </div>
 
@@ -409,7 +542,6 @@
         
         <div id="reinc-action-area" style="background:rgba(0,0,0,0.3); padding:15px; border-radius:10px; margin-bottom:20px; border:1px solid #7d3c98;">
             <p>現在のスコアに基づく獲得可能ポイント: <span id="pending-rp" style="color:white; font-weight:bold;">0</span></p>
-            <p style="font-size:0.8rem; color:#aaa;">(式: (log10(Score)*20)-180)</p>
             <p id="reinc-gain-msg" style="color:#e056fd; font-weight:bold;"></p>
             <div style="display:flex; justify-content:center; gap:10px;">
                 <button id="do-reinc-btn" onclick="doReincarnation()" style="background:linear-gradient(135deg, #a723e7, #5f27cd); color:white; border:none; padding:10px 30px; border-radius:20px; font-weight:bold; font-size:1.1rem; cursor:pointer; margin-top:10px;">転生を実行する</button>
@@ -447,29 +579,37 @@
                 <div id="rnode-straight" class="skill-node reinc-node locked" onclick="buyReincUpgrade('straight')"><span class="skill-icon">📏</span><span id="rlv-straight" class="lv-badge"></span><div class="skill-tooltip" id="rtip-straight"></div></div>
             </div>
 
-            <div class="tree-row">
+            <div class="tree-row" style="gap: 50px;">
                 <div id="rnode-fusion_dim" class="skill-node reinc-node locked" onclick="buyReincUpgrade('fusion_dim')"><span class="skill-icon">🌌</span><span id="rlv-fusion_dim" class="lv-badge"></span><div class="skill-tooltip" id="rtip-fusion_dim"></div></div>
                 <div id="rnode-fusion_limit" class="skill-node reinc-node locked" onclick="buyReincUpgrade('fusion_limit')"><span class="skill-icon">🧱</span><span id="rlv-fusion_limit" class="lv-badge"></span><div class="skill-tooltip" id="rtip-fusion_limit"></div></div>
+                <div id="rnode-tuner" class="skill-node reinc-node locked" onclick="buyReincUpgrade('tuner')"><span class="skill-icon">🎛️</span><span id="rlv-tuner" class="lv-badge"></span><div class="skill-tooltip" id="rtip-tuner"></div></div>
             </div>
 
-            <div class="tree-row" style="gap:150px;">
+            <div class="tree-row" style="gap: 40px;">
                 <div id="rnode-straight4" class="skill-node reinc-node locked" onclick="buyReincUpgrade('straight4')"><span class="skill-icon">4️⃣</span><span id="rlv-straight4" class="lv-badge"></span><div class="skill-tooltip" id="rtip-straight4"></div></div>
                 <div id="rnode-rare_magic" class="skill-node reinc-node locked" onclick="buyReincUpgrade('rare_magic')"><span class="skill-icon" style="color:var(--rare-magic)">M</span><span id="rlv-rare_magic" class="lv-badge"></span><div class="skill-tooltip" id="rtip-rare_magic"></div></div>
+                <div id="rnode-synchro_dim" class="skill-node reinc-node locked" onclick="buyReincUpgrade('synchro_dim')"><span class="skill-icon" style="color:var(--mode-synchro)">⚛️</span><span id="rlv-synchro_dim" class="lv-badge"></span><div class="skill-tooltip" id="rtip-synchro_dim"></div></div>
             </div>
 
-            <div class="tree-row" style="gap:150px;">
+            <div class="tree-row" style="gap: 40px;">
                 <div id="rnode-arashi4" class="skill-node reinc-node locked" onclick="buyReincUpgrade('arashi4')"><span class="skill-icon">🌪️</span><span id="rlv-arashi4" class="lv-badge"></span><div class="skill-tooltip" id="rtip-arashi4"></div></div>
                 <div id="rnode-rare_epic" class="skill-node reinc-node locked" onclick="buyReincUpgrade('rare_epic')"><span class="skill-icon" style="color:var(--rare-epic)">E</span><span id="rlv-rare_epic" class="lv-badge"></span><div class="skill-tooltip" id="rtip-rare_epic"></div></div>
+                <div id="rnode-clear_mind" class="skill-node reinc-node locked" onclick="buyReincUpgrade('clear_mind')"><span class="skill-icon">✨</span><span id="rlv-clear_mind" class="lv-badge"></span><div class="skill-tooltip" id="rtip-clear_mind"></div></div>
+                <div id="rnode-adv_exp" class="skill-node reinc-node locked" onclick="buyReincUpgrade('adv_exp')"><span class="skill-icon">💎</span><span id="rlv-adv_exp" class="lv-badge"></span><div class="skill-tooltip" id="rtip-adv_exp"></div></div>
             </div>
-
-            <div class="tree-row" style="gap:150px;">
+            
+            <div class="tree-row" style="gap: 40px;">
                 <div id="rnode-straight5" class="skill-node reinc-node locked" onclick="buyReincUpgrade('straight5')"><span class="skill-icon">5️⃣</span><span id="rlv-straight5" class="lv-badge"></span><div class="skill-tooltip" id="rtip-straight5"></div></div>
                 <div id="rnode-rare_legend" class="skill-node reinc-node locked" onclick="buyReincUpgrade('rare_legend')"><span class="skill-icon" style="color:var(--rare-legendary)">L</span><span id="rlv-rare_legend" class="lv-badge"></span><div class="skill-tooltip" id="rtip-rare_legend"></div></div>
+                <div id="rnode-top_clear_mind" class="skill-node reinc-node locked" onclick="buyReincUpgrade('top_clear_mind')"><span class="skill-icon">🌠</span><span id="rlv-top_clear_mind" class="lv-badge"></span><div class="skill-tooltip" id="rtip-top_clear_mind"></div></div>
+                <div style="width: 75px; height: 75px; visibility: hidden;"></div>
             </div>
 
-            <div class="tree-row" style="gap:150px;">
+            <div class="tree-row" style="gap: 40px;">
                 <div id="rnode-arashi5" class="skill-node reinc-node locked" onclick="buyReincUpgrade('arashi5')"><span class="skill-icon">🌈</span><span id="rlv-arashi5" class="lv-badge"></span><div class="skill-tooltip" id="rtip-arashi5"></div></div>
                 <div id="rnode-rare_eternal" class="skill-node reinc-node locked" onclick="buyReincUpgrade('rare_eternal')"><span class="skill-icon" style="color:#fff; text-shadow:0 0 5px #fff;">∞</span><span id="rlv-rare_eternal" class="lv-badge"></span><div class="skill-tooltip" id="rtip-rare_eternal"></div></div>
+                <div id="rnode-over_top_clear_mind" class="skill-node reinc-node locked" onclick="buyReincUpgrade('over_top_clear_mind')"><span class="skill-icon">🌌</span><span id="rlv-over_top_clear_mind" class="lv-badge"></span><div class="skill-tooltip" id="rtip-over_top_clear_mind"></div></div>
+                <div id="rnode-adv_adv_exp" class="skill-node reinc-node locked" onclick="buyReincUpgrade('adv_adv_exp')"><span class="skill-icon">💎</span><span id="rlv-adv_adv_exp" class="lv-badge"></span><div class="skill-tooltip" id="rtip-adv_adv_exp"></div></div>
             </div>
         </div>
     </div>
@@ -502,7 +642,8 @@
     const EXP_DURATION_BASE = 180 * 1000; 
     let expNextCost = 15000;
     let ritualNextCost = 500000; 
-    let fusionNextCost = 10000000; // 融合探索初期コスト
+    let fusionNextCost = 10000000; 
+    let synchroNextCost = 100000000;
     
     let currentRewards = []; 
     let rewardSelectCount = 1; 
@@ -531,6 +672,8 @@
         fusion_exp: { lv: 0, max: 1, costs: [10000000], name: "融合探索", icon: "🔥", desc: "出目を融合し強化する探索を解放", req: "ritual_amount", reincReq: "fusion_dim" },
         fusion_exp_amount: { lv: 0, max: 3, costs: [50000000, 5000000000, 500000000000], name: "融合探索強化", icon: "📦", desc: "融合候補の選択肢+1", req: "fusion_exp", reincReq: "fusion_dim" },
 
+        synchro_exp: { lv: 0, max: 1, costs: [100000000], name: "シンクロ探索", icon: "⚛️", desc: "同じ出目をシンクロさせる探索を解放", req: "fusion_exp", reincReq: "synchro_dim" },
+
         throw: { lv: 0, max: 5, costs: [100000, 1000000, 10000000, 100000000, 1000000000], name: "投擲技術", icon: "🎯", desc: "演出短縮", req: "speed" },
         yaku_none: { lv: 0, max: 10, costs: Array.from({length:10}, (_,i)=>2500 * Math.pow(4, i)), name: "目なし強化", icon: "❕", desc: "目なし+400%", req: "auto" },
         yaku_normal: { lv: 0, max: 10, costs: Array.from({length:10}, (_,i)=>5000 * Math.pow(4, i)), name: "通常目強化", icon: "⚂", desc: "通常目+400%", req: "yaku_none" },
@@ -554,6 +697,19 @@
         fusion_dim: { lv: 0, max: 1, costs: [10], name: "融合次元", icon: "🌌", desc: "（未実装）次元の壁が薄くなる...？", req: "straight" },
         fusion_limit: { lv: 0, max: 10, costs: [2], name: "融合上限", icon: "🧱", desc: "融合出目の上限+3", req: "fusion_dim", fixedCost: true },
         
+        tuner: { lv: 0, max: 1, costs: [10], name: "チューナー", icon: "🎛️", desc: "レベルシステムを解放<br>Lv^2の補正がかかる", req: "fusion_limit", reqLv: 10 },
+        
+        // 修正: アドバンス探索の前提をシンクロ次元に変更
+        adv_exp: { lv: 0, max: 1, costs: [10], name: "アドバンス探索", icon: "💎", desc: "通常探索の出目Lv1-6<br>初期コスト30万", req: "synchro_dim" },
+        synchro_dim: { lv: 0, max: 1, costs: [10], name: "シンクロ次元", icon: "⚛️", desc: "次元の壁がさらに薄くなる...？", req: "tuner" },
+        
+        // 修正: 上級アドバンス探索の前提をアドバンス探索とトップクリアマインドに変更
+        adv_adv_exp: { lv: 0, max: 1, costs: [15], name: "上級アドバンス探索", icon: "💎", desc: "通常探索の出目Lv5-8<br>初期コスト30万", req: ["adv_exp", "top_clear_mind"] },
+        
+        clear_mind: { lv: 0, max: 1, costs: [15], name: "クリア・マインド", icon: "✨", desc: "レベル上限解放(12→14)", req: "synchro_dim" },
+        top_clear_mind: { lv: 0, max: 1, costs: [20], name: "トップ・クリア・マインド", icon: "🌠", desc: "レベル上限解放(14→17)", req: "clear_mind" },
+        over_top_clear_mind: { lv: 0, max: 1, costs: [25], name: "オーバートップ・クリア・マインド", icon: "🌌", desc: "レベル上限解放(17→20)", req: "top_clear_mind" },
+
         straight4: { lv: 0, max: 1, costs: [5], name: "ストレート４", icon: "4️⃣", desc: "4つの連番で役成立<br>合計*10000", req: "fusion_dim" },
         arashi4: { lv: 0, max: 1, costs: [5], name: "アラシ４", icon: "🌪️", desc: "4つの同数で役成立<br>合計*20000", req: "straight4" },
         
@@ -603,6 +759,17 @@
         return (Math.floor(tempNum * 100) / 100) + units[unitIdx];
     }
 
+    // 倍率用のフォーマット関数（1万未満は小数表示、1万以上は単位表示）
+    function formatMultiplier(num) {
+        if (num < 10000) {
+            // 1万未満は小数第1位まで表示 (例: 1.5, 9999.9)
+            // parseFloatを使って "1.0" のような不要なゼロを消す
+            return parseFloat(num.toFixed(1)).toLocaleString();
+        }
+        // 1万以上はスコアと同じ単位処理（formatScore）を利用
+        return formatScore(num);
+    }
+
     const debugCode = ["KeyW", "KeyW", "KeyS", "KeyS", "KeyA", "KeyD", "KeyA", "KeyD", "KeyA", "KeyB"];
     let inputBuffer = [];
     window.addEventListener('keydown', (e) => {
@@ -619,10 +786,10 @@
         if (isResetting) return;
         const saveObj = {
             score, totalScore, multiplier,
-            expNextCost, ritualNextCost, fusionNextCost,
+            expNextCost, ritualNextCost, fusionNextCost, synchroNextCost,
             dicePool, upgLevels: {}, 
             reincData, scoreHistory,
-            ver: 7.1,
+            ver: 9.2,
             lastSaveTime: Date.now() 
         };
         for(let key in upgState) saveObj.upgLevels[key] = upgState[key].lv;
@@ -631,7 +798,7 @@
         notice.style.opacity = 1; setTimeout(() => notice.style.opacity = 0, 2000);
     }
 
-    function loadGame() {
+function loadGame() {
         const saveStr = localStorage.getItem('chinchiro_clicker_save');
         if (!saveStr) {
             initNewGame();
@@ -645,39 +812,62 @@
             expNextCost = saveObj.expNextCost || 15000;
             ritualNextCost = saveObj.ritualNextCost || 500000;
             fusionNextCost = saveObj.fusionNextCost || 10000000;
+            synchroNextCost = saveObj.synchroNextCost || 100000000;
             lastTickTime = saveObj.lastSaveTime || Date.now();
             
+            // 数値破損(NaN)対策：スコア関連
+            if (isNaN(score)) score = 0;
+            if (isNaN(totalScore)) totalScore = 0;
+            if (isNaN(multiplier)) multiplier = 1;
+
             if (saveObj.scoreHistory) scoreHistory = saveObj.scoreHistory;
 
             if(saveObj.dicePool && Array.isArray(saveObj.dicePool)) {
                  dicePool = saveObj.dicePool.filter(d => d !== null);
+                 // 互換性：レベル未定義なら1にする
+                 dicePool.forEach(d => {
+                     if (d.level === undefined) d.level = 1;
+                 });
             } else {
                  initNewGame();
             }
             
             if (dicePool.length === 0) initNewGame();
 
+            // 通常アップグレードの読み込みとNaNチェック
             if(saveObj.upgLevels) {
                 for(let key in upgState) {
-                    if (saveObj.upgLevels[key] !== undefined) upgState[key].lv = Math.min(saveObj.upgLevels[key], upgState[key].max);
+                    if (saveObj.upgLevels[key] !== undefined && !isNaN(saveObj.upgLevels[key])) {
+                        upgState[key].lv = Math.min(saveObj.upgLevels[key], upgState[key].max);
+                    } else {
+                        upgState[key].lv = 0;
+                    }
                 }
             }
             
+            // 転生データの読み込みとNaNチェック
             if (saveObj.reincData) {
                 reincData = saveObj.reincData;
                 if (!reincData.upgrades) reincData.upgrades = {};
                 
+                // ポイントのNaNチェック
                 if (reincData.points === undefined || isNaN(reincData.points)) {
                     reincData.points = reincData.totalRP || 0;
+                    if (isNaN(reincData.points)) reincData.points = 0;
                 }
                 
+                // 最大RPのNaNチェック
                 if (reincData.maxReachedRP === undefined || isNaN(reincData.maxReachedRP)) {
                     reincData.maxReachedRP = reincData.maxRP || reincData.totalRP || 0;
                     if (reincData.maxReachedRP < reincData.points) reincData.maxReachedRP = reincData.points;
+                    if (isNaN(reincData.maxReachedRP)) reincData.maxReachedRP = 0;
                 }
                 
+                // 転生アップグレードレベルのNaNチェックと修復
                 for (let k in reincUpgInfo) {
-                    if (reincData.upgrades[k] === undefined) reincData.upgrades[k] = 0;
+                    if (reincData.upgrades[k] === undefined || isNaN(reincData.upgrades[k])) {
+                        reincData.upgrades[k] = 0;
+                    }
                 }
             } else {
                 reincData = { points:0, maxReachedRP:0, upgrades:{} };
@@ -694,7 +884,7 @@
     
     function initNewGame() {
         dicePool = [];
-        for(let v=1; v<=6; v++) for(let i=0; i<3; i++) dicePool.push({ val: v, rarity: 'common' });
+        for(let v=1; v<=6; v++) for(let i=0; i<3; i++) dicePool.push({ val: v, rarity: 'common', level: 1 });
         
         if (reincData && reincData.upgrades && reincData.upgrades.wallet > 0) {
             const bonus = reincData.upgrades.wallet * 100000;
@@ -712,8 +902,11 @@
     }
 
     function calcRP(currentTotalScore) {
-        if (currentTotalScore < 100) return 0;
-        const val = (Math.log10(currentTotalScore) * 20) - 180;
+        if (currentTotalScore < 1) return 0;
+        // log10000(x) は Math.log10(x) / 4 と等価
+        // 式: (log10000(Score) * 20) - 30
+        const log10000 = Math.log10(currentTotalScore) / 4;
+        const val = (log10000 * 20) - 30;
         return Math.floor(Math.max(0, val));
     }
 
@@ -774,8 +967,12 @@
         totalScore = 0;
         multiplier = 1;
         expNextCost = 15000;
+        if (reincData.upgrades.adv_exp > 0) expNextCost = 300000;
+
         ritualNextCost = 500000;
         fusionNextCost = 10000000;
+        synchroNextCost = 100000000;
+
         for(let k in upgState) upgState[k].lv = 0;
         hasAutoRoll = false;
         expStatus = 'idle';
@@ -793,7 +990,9 @@
         addField(0);
         document.getElementById('panel-history').style.display = 'none';
         document.getElementById('btn-pool-detail').style.display = 'none';
-        document.getElementById('btn-mode-toggle').style.display = 'none';
+        
+        // document.getElementById('btn-mode-toggle').style.display = 'none'; // 旧ボタンは削除済み
+        
         document.getElementById('expedition-panel').style.display = 'none';
         
         isReincarnationPhase = true;
@@ -819,7 +1018,9 @@
 
         const upg = reincUpgInfo[type];
         const reqs = Array.isArray(upg.req) ? upg.req : (upg.req ? [upg.req] : []);
-        const unlocked = reqs.every(r => reincData.upgrades[r] > 0);
+        
+        const reqLevel = upg.reqLv || 1;
+        const unlocked = reqs.every(r => (reincData.upgrades[r] || 0) >= reqLevel);
         
         if (!unlocked) return;
         if (reincData.upgrades[type] >= upg.max) return;
@@ -844,6 +1045,10 @@
                 totalScore += 100000;
                 updateUI();
             }
+            if (type === 'adv_exp') {
+                // 購入時に即座にコスト反映（リセット後なのでまだ何もしていないはずだが念のため）
+                if(score === 0 && totalScore === 0) expNextCost = 300000;
+            }
             saveGame();
         }
     }
@@ -857,7 +1062,11 @@
             if(!n) continue;
             
             const reqs = Array.isArray(u.req) ? u.req : (u.req ? [u.req] : []);
-            const open = reqs.length === 0 || reqs.every(r => reincData.upgrades[r] > 0);
+            
+            // 修正: レベル条件 (reqLv) を考慮して判定
+            const reqLevel = u.reqLv || 1;
+            const open = reqs.length === 0 || reqs.every(r => (reincData.upgrades[r] || 0) >= reqLevel);
+            
             const isMax = reincData.upgrades[k] >= u.max;
             
             let cost = u.fixedCost ? u.costs[0] : u.costs[reincData.upgrades[k]];
@@ -869,7 +1078,10 @@
             
             let tooltipHTML = `<strong>${u.name}</strong><br>${u.desc}<br>コスト: ${isMax?'MAX':cost + ' Pt'}`;
             if (!open) {
-                const reqNames = reqs.map(r => reincUpgInfo[r].name).join(', ');
+                const reqNames = reqs.map(r => {
+                    const rName = reincUpgInfo[r].name;
+                    return u.reqLv ? `${rName} Lv${u.reqLv}` : rName;
+                }).join(', ');
                 tooltipHTML += `<br><span style="color:#e74c3c; font-size:0.7rem;">(前提: ${reqNames})</span>`;
             }
             document.getElementById('rtip-'+k).innerHTML = tooltipHTML;
@@ -888,11 +1100,16 @@
             const conn = [
                 ['wallet','greedy_exp'], ['wallet','greedy_rit'],
                 ['greedy_exp','privatize'], ['greedy_rit','privatize'],
-                ['privatize','straight'], ['straight', 'fusion_dim'], ['fusion_dim', 'fusion_limit'],
+                ['privatize','straight'], ['straight', 'fusion_dim'], ['fusion_dim', 'fusion_limit'], ['fusion_dim', 'tuner'],
+                ['tuner', 'synchro_dim'],
                 ['fusion_dim', 'straight4'], ['straight4', 'arashi4'],
                 ['arashi4', 'straight5'], ['straight5', 'arashi5'], 
                 ['fusion_dim', 'rare_magic'], ['rare_magic', 'rare_epic'],
-                ['rare_epic', 'rare_legend'], ['rare_legend', 'rare_eternal']
+                ['rare_epic', 'rare_legend'], ['rare_legend', 'rare_eternal'],
+                // New Connections
+                ['synchro_dim', 'adv_exp'], ['synchro_dim', 'clear_mind'],
+                ['adv_exp', 'adv_adv_exp'], ['top_clear_mind', 'adv_adv_exp'],
+                ['clear_mind', 'top_clear_mind'], ['top_clear_mind', 'over_top_clear_mind']
             ];
             
             conn.forEach(([p,c])=>{
@@ -1016,35 +1233,42 @@
 
         const baseNum = 3; 
         const num = baseNum + upgState.potential.lv;
-        const res = Array.from({length:num}, () => {
-            const d = dicePool[Math.floor(Math.random()*dicePool.length)];
-            return d || { val: 1, rarity: 'common' };
-        });
+
+        // --- 変更箇所 ---
+        // 重複なしでダイスを引く
+        const res = drawDice(num);
+        // ----------------
+
         processResult(res, id, true);
     }
 
     // --- 探索ロジック ---
-    function toggleExpeditionMode() {
+    
+    // --- 変更: トグル機能ではなく直接指定に変更 ---
+    function setExpeditionMode(mode) {
+        // 探索中または完了待ちの場合は切り替え不可
         if (expStatus === 'running' || expStatus === 'ready') return;
         
-        // モードローテーション
-        const modes = ['normal'];
-        if (upgState.ritual_unlock.lv > 0) modes.push('ritual');
-        // 修正: 転生UG条件を厳密にチェック
-        if (reincData && reincData.upgrades && reincData.upgrades.fusion_dim > 0 && upgState.fusion_exp.lv > 0) {
-             modes.push('fusion');
-        }
-        
-        const currentIdx = modes.indexOf(expMode);
-        // 現在のモードが有効でない場合（転生後など）はnormalに戻す
-        if (currentIdx === -1) {
-             expMode = 'normal';
-        } else {
-             const nextIdx = (currentIdx + 1) % modes.length;
-             expMode = modes[nextIdx];
-        }
-        
+        // 未開放のモードを選ぼうとした場合のガード（念のため）
+        if (mode === 'ritual' && upgState.ritual_unlock.lv <= 0) return;
+        if (mode === 'fusion' && upgState.fusion_exp.lv <= 0) return;
+        if (mode === 'synchro' && upgState.synchro_exp.lv <= 0) return;
+
+        expMode = mode;
         updateUI();
+    }
+
+    function checkSynchroAvailability() {
+        if (dicePool.length <= 10) return false;
+        
+        // 同じ値が2つ以上あるかチェック
+        const counts = {};
+        for (const d of dicePool) {
+            if(!d) continue;
+            counts[d.val] = (counts[d.val] || 0) + 1;
+            if (counts[d.val] >= 2) return true;
+        }
+        return false;
     }
 
     function handleExpedition() {
@@ -1052,9 +1276,15 @@
             let cost = expNextCost;
             if (expMode === 'ritual') cost = ritualNextCost;
             if (expMode === 'fusion') cost = fusionNextCost;
+            if (expMode === 'synchro') cost = synchroNextCost;
             
             if (expMode === 'ritual' && dicePool.length <= 10) return alert("プールが10個以下のため、儀式探索を行えません。");
             if (expMode === 'fusion' && dicePool.length <= 10) return alert("プールが10個以下のため、融合探索を行えません。");
+            
+            if (expMode === 'synchro') {
+                if (dicePool.length <= 10) return alert("プールが10個以下のため、シンクロ探索を行えません。");
+                if (!checkSynchroAvailability()) return alert("同じ数値の出目が存在しないため、シンクロ探索を行えません。");
+            }
             
             if (score < cost) return alert("スコアが足りません");
             score -= cost;
@@ -1076,6 +1306,8 @@
         currentRewards = [];
         const fusionArea = document.getElementById('fusion-action-area');
         fusionArea.style.display = 'none';
+        const synchroArea = document.getElementById('synchro-action-area');
+        synchroArea.style.display = 'none';
 
         const title = document.getElementById('reward-title');
         const desc = document.getElementById('reward-desc');
@@ -1088,7 +1320,6 @@
             desc.innerHTML = "持ち帰る出目を選択してください。<br><span style='font-size:0.8rem; color:#aaa;'>※選択すると次回の探索コストが倍になります</span>";
             cancelBtn.textContent = "終了";
             
-            // 安全策: undefined対策
             rewardSelectCount = 1 + (reincData.upgrades.greedy_exp || 0);
             const choiceNum = 2 + upgState.exp_amount.lv + (reincData.upgrades.greedy_exp || 0);
             
@@ -1145,13 +1376,60 @@
             });
 
             currentRewards.forEach((item, i) => {
-                const card = createCard(item.die, false, true); 
+                const card = createCard(item.die, false, 'fusion'); 
                 card.id = `reward-card-${i}`;
                 card.onclick = () => selectFusionReward(i);
                 list.appendChild(card);
             });
             
             fusionArea.style.display = 'block';
+        } else if (expMode === 'synchro') {
+            title.textContent = "シンクロの共鳴";
+            title.style.color = "var(--mode-synchro)";
+            desc.innerHTML = "シンクロ可能なペアが見つかりました。<br><span style='font-size:0.8rem; color:#aaa;'>※シンクロすると、レベルが合算され、レアリティが高い方に統一されます</span>";
+            cancelBtn.textContent = "中止";
+
+            rewardSelectCount = 2;
+            
+            // ペアを探す
+            let groups = {};
+            dicePool.forEach((d, idx) => {
+                if(!d) return;
+                if(!groups[d.val]) groups[d.val] = [];
+                groups[d.val].push(idx);
+            });
+            
+            let validVals = Object.keys(groups).filter(v => groups[v].length >= 2);
+            
+            if (validVals.length > 0) {
+                // ランダムに1つの値を選ぶ
+                let chosenVal = validVals[Math.floor(Math.random() * validVals.length)];
+                let indices = groups[chosenVal];
+                
+                // ランダムに2つ選ぶ
+                // シャッフル
+                for(let i = indices.length - 1; i > 0; i--){
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [indices[i], indices[j]] = [indices[j], indices[i]];
+                }
+                let pairIndices = [indices[0], indices[1]];
+                
+                pairIndices.forEach(idx => {
+                    currentRewards.push({ die: dicePool[idx], poolIndex: idx, selected: false });
+                });
+
+                currentRewards.forEach((item, i) => {
+                    const card = createCard(item.die, false, 'synchro');
+                    card.id = `reward-card-${i}`;
+                    // シンクロは自動提示されたペアを選ぶだけなので、クリックで選択トグルさせる（わかりやすく）
+                    card.onclick = () => selectSynchroReward(i);
+                    list.appendChild(card);
+                });
+                
+                synchroArea.style.display = 'block';
+            } else {
+                desc.textContent = "シンクロ可能なペアが見つかりませんでした...（エラー）";
+            }
         }
         
         updateRewardCountMsg();
@@ -1159,18 +1437,19 @@
     }
     
     function updateRewardCountMsg() {
-        if(expMode === 'fusion') {
+        if(expMode === 'fusion' || expMode === 'synchro') {
             document.getElementById('reward-count-msg').textContent = `選択中: ${2 - rewardSelectCount} / 2`;
         } else {
             document.getElementById('reward-count-msg').textContent = `残り選択可能数: ${rewardSelectCount}`;
         }
     }
 
-    function createCard(d, isRemove, isFusion) {
+    function createCard(d, isRemove, specialMode) {
         const card = document.createElement('div'); 
         let className = 'reward-card';
         if(isRemove) className += ' remove-mode';
-        if(isFusion) className += ' fusion-mode';
+        if(specialMode === 'fusion') className += ' fusion-mode';
+        if(specialMode === 'synchro') className += ' synchro-mode';
         card.className = className;
         
         const dieContent = getDieContent(d.val);
@@ -1181,10 +1460,17 @@
             faceColor = '#333333'; 
         }
 
+        const dLvl = d.level || 1;
+        let lvlInfo = "";
+        if (reincData && reincData.upgrades && reincData.upgrades.tuner > 0) {
+            lvlInfo = `<div style="font-size:0.8rem; color:var(--max-gold); font-weight:bold;">Lv.${dLvl}</div>`;
+        }
+
         card.innerHTML = `
             <div class="${dieClass}" style="width:60px; height:60px; font-size:2rem; color:${faceColor}; border:1px solid #ccc;">${dieContent}</div>
             <div style="color:${RARITIES[d.rarity].color}; font-size:0.7rem; font-weight:bold;">${RARITIES[d.rarity].name}</div>
-            <div style="font-size:0.6rem; color:#888;">倍率: x${RARITIES[d.rarity].mult}</div>
+            ${lvlInfo}
+            <div style="font-size:0.6rem; color:#888;">倍率: x${formatMultiplier(RARITIES[d.rarity].mult)}</div>
             <div style="font-size:0.6rem; color:#aaa;">${d.val > 6 ? 'Value: '+d.val : ''}</div>
         `;
         return card;
@@ -1239,6 +1525,28 @@
         document.getElementById('btn-do-fuse').style.opacity = (rewardSelectCount !== 0) ? 0.5 : 1;
         document.getElementById('btn-do-fuse').style.cursor = (rewardSelectCount !== 0) ? 'not-allowed' : 'pointer';
     }
+
+    function selectSynchroReward(index) {
+        const item = currentRewards[index];
+        const el = document.getElementById(`reward-card-${index}`);
+        
+        if (item.selected) {
+            item.selected = false;
+            el.classList.remove('selected');
+            rewardSelectCount++;
+        } else {
+            if (rewardSelectCount <= 0) return; 
+            item.selected = true;
+            el.classList.add('selected');
+            rewardSelectCount--;
+        }
+        
+        updateRewardCountMsg();
+        
+        document.getElementById('btn-do-synchro').disabled = (rewardSelectCount !== 0);
+        document.getElementById('btn-do-synchro').style.opacity = (rewardSelectCount !== 0) ? 0.5 : 1;
+        document.getElementById('btn-do-synchro').style.cursor = (rewardSelectCount !== 0) ? 'not-allowed' : 'pointer';
+    }
     
     function executeFusion() {
         const selected = currentRewards.filter(r => r.selected);
@@ -1251,6 +1559,7 @@
         let newVal = d1.val + d2.val;
         if(newVal > limit) newVal = limit;
         
+        // レアリティの決定
         let newRarityKey = 'common';
         const r1Idx = RARITY_ORDER.indexOf(d1.rarity);
         const r2Idx = RARITY_ORDER.indexOf(d2.rarity);
@@ -1272,8 +1581,12 @@
                 newRarityKey = d1.rarity; 
             }
         }
+
+        const lvl1 = d1.level || 1;
+        const lvl2 = d2.level || 1;
+        const newLevel = Math.max(lvl1, lvl2);
         
-        const newDie = { val: newVal, rarity: newRarityKey };
+        const newDie = { val: newVal, rarity: newRarityKey, level: newLevel };
         
         dicePool[selected[0].poolIndex] = null;
         dicePool[selected[1].poolIndex] = null;
@@ -1282,7 +1595,57 @@
         
         fusionNextCost *= 2;
         
-        alert(`融合成功！\n値: ${newVal} (上限${limit})\nレアリティ: ${RARITIES[newRarityKey].name}`);
+        let lvlMsg = (reincData.upgrades.tuner > 0) ? `\nレベル: ${newLevel}` : "";
+        alert(`融合成功！\n値: ${newVal} (上限${limit})\nレアリティ: ${RARITIES[newRarityKey].name}${lvlMsg}`);
+        
+        dicePool = dicePool.filter(d => d !== null);
+        document.getElementById('reward-modal').style.display = 'none';
+        closeExpeditionModal(true);
+        saveGame();
+    }
+
+    function executeSynchro() {
+        const selected = currentRewards.filter(r => r.selected);
+        if(selected.length !== 2) return;
+        
+        const d1 = selected[0].die;
+        const d2 = selected[1].die;
+        
+        // 値は変わらない
+        let newVal = d1.val;
+
+        // レベルは合算
+        const lvl1 = d1.level || 1;
+        const lvl2 = d2.level || 1;
+        let newLevel = lvl1 + lvl2;
+
+        // レベルキャップ計算 (初期12, クリアマインド等で解放)
+        let cap = 12;
+        if (reincData.upgrades.over_top_clear_mind > 0) cap = 20;
+        else if (reincData.upgrades.top_clear_mind > 0) cap = 17;
+        else if (reincData.upgrades.clear_mind > 0) cap = 14;
+
+        if (newLevel > cap) newLevel = cap;
+
+        // レアリティは高い方に揃う
+        let newRarityKey = 'common';
+        const r1Idx = RARITY_ORDER.indexOf(d1.rarity);
+        const r2Idx = RARITY_ORDER.indexOf(d2.rarity);
+        if (r1Idx >= r2Idx) {
+            newRarityKey = d1.rarity;
+        } else {
+            newRarityKey = d2.rarity;
+        }
+
+        const newDie = { val: newVal, rarity: newRarityKey, level: newLevel };
+        
+        dicePool[selected[0].poolIndex] = null;
+        dicePool[selected[1].poolIndex] = null;
+        dicePool.push(newDie);
+        
+        synchroNextCost *= 2;
+        
+        alert(`シンクロ成功！\n値: ${newVal}\nレアリティ: ${RARITIES[newRarityKey].name}\nレベル: ${newLevel} (Max:${cap})`);
         
         dicePool = dicePool.filter(d => d !== null);
         document.getElementById('reward-modal').style.display = 'none';
@@ -1316,6 +1679,7 @@
         if (expMode === 'normal') actionName = acted ? "加えました！" : "持ち帰りませんでした。";
         else if (expMode === 'ritual') actionName = acted ? "消滅させました..." : "儀式を中断しました。";
         else if (expMode === 'fusion') actionName = acted ? "融合しました！" : "融合しませんでした。";
+        else if (expMode === 'synchro') actionName = acted ? "シンクロしました！" : "シンクロしませんでした。";
         
         document.getElementById('exp-msg').textContent = acted || !acted ? `結果: ${actionName}` : "";
         
@@ -1326,9 +1690,58 @@
         const v = Math.floor(Math.random()*6)+1;
         const weights = Object.entries(RARITIES);
         const totalWeight = weights.reduce((a,b)=>a+b[1].weight, 0);
-        let r = Math.random() * totalWeight;
-        for(let [k, d] of weights) { if(r < d.weight) return {val:v, rarity:k}; r -= d.weight; }
-        return {val:v, rarity:'common'};
+        let rKey = 'common';
+        let rRand = Math.random() * totalWeight;
+        for(let [k, d] of weights) { 
+            if(rRand < d.weight) { rKey = k; break; } 
+            rRand -= d.weight; 
+        }
+
+        // レベル決定ロジック
+        let lvl = 1;
+        if (reincData && reincData.upgrades && reincData.upgrades.tuner > 0) {
+            let minLvl = 1;
+            let maxLvl = 4;
+            
+            // 上級アドバンス探索が有効ならレベル5-8
+            if (reincData.upgrades.adv_adv_exp > 0) {
+                minLvl = 5;
+                maxLvl = 8;
+            } 
+            // アドバンス探索が有効ならレベル1-6
+            else if (reincData.upgrades.adv_exp > 0) {
+                maxLvl = 6;
+            }
+            
+            lvl = Math.floor(Math.random() * (maxLvl - minLvl + 1)) + minLvl;
+        }
+
+        return {val:v, rarity:rKey, level: lvl};
+    }
+
+    function drawDice(count) {
+        // nullを除外した有効なプールを作成
+        const validPool = dicePool.filter(d => d !== null);
+
+        // プールの中身が要求数より少ない場合
+        if (validPool.length < count) {
+            // あるだけ全部出す
+            const res = [...validPool];
+            // それでも足りない分は「コモン1」で埋める（エラー防止）
+            while (res.length < count) {
+                res.push({ val: 1, rarity: 'common', level: 1 });
+            }
+            return res;
+        }
+
+        // プールをシャッフルして先頭からcount個取得（Fisher-Yates Shuffle）
+        const shuffled = [...validPool];
+        for (let i = shuffled.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+        }
+        
+        return shuffled.slice(0, count);
     }
 
     // --- ゲームエンジン ---
@@ -1336,7 +1749,7 @@
         const upg = upgState[type];
         const reqs = Array.isArray(upg.req) ? upg.req : (upg.req ? [upg.req] : []);
         
-        // 修正: 転生UG条件のチェックを追加 (不正購入防止)
+        // 転生UG条件のチェック (不正購入防止)
         if (upg.reincReq && (reincData.upgrades[upg.reincReq] || 0) <= 0) return;
 
         const canBuy = reqs.every(r => upgState[r].lv > 0);
@@ -1345,6 +1758,7 @@
         if (score >= upg.costs[upg.lv] && upg.lv < upg.max) {
             score -= upg.costs[upg.lv];
             upg.lv++;
+            
             if (type === 'finger') multiplier = 1 + upg.lv;
             if (type === 'auto') { hasAutoRoll = true; document.querySelectorAll('.timer-container').forEach(e => e.style.display='block'); }
             if (type === 'field' || type === 'potential') {
@@ -1354,8 +1768,14 @@
             }
             if (type === 'history') document.getElementById('panel-history').style.display = 'block';
             if (type === 'digital_history') document.getElementById('btn-pool-detail').style.display = 'block';
-            if (type === 'ritual_unlock' || type === 'fusion_exp') document.getElementById('btn-mode-toggle').style.display = 'block';
             
+            // --- 追加箇所: 探索短縮を購入時、進行中なら残り時間を即座に減らす ---
+            if (type === 'exp_speed' && expStatus === 'running') {
+                expTimeRemaining -= 16000; // 16秒短縮
+                // 残り時間が0以下になっても tick() で処理されるため問題ありません
+            }
+            // -----------------------------------------------------------
+
             saveGame();
             updateUI(); drawLines();
         }
@@ -1390,10 +1810,10 @@
                 // 安全策: プールが空なら緊急補充
                 if (dicePool.length === 0) initNewGame();
 
-                const res = Array.from({length:num}, () => {
-                    const d = dicePool[Math.floor(Math.random()*dicePool.length)];
-                    return d || { val: 1, rarity: 'common' };
-                });
+                // --- 変更箇所 ---
+                // 重複なしでダイスを引く
+                const res = drawDice(num);
+                // ----------------
 
                 res.forEach((d, i) => {
                     const el = document.getElementById(`d-${id}-${i}`);
@@ -1418,10 +1838,19 @@
             const combos = getCombinations(diceWithIdx, 5);
             for (let c of combos) {
                 const [base, yaku, scoreVal] = calcScore(c.map(d=>d.val));
+                
+                // レアリティ倍率
                 let rarityMult = c.reduce((acc, d) => acc * RARITIES[d.rarity].mult, 1);
-                let totalVal = scoreVal * rarityMult;
+                
+                // レベル倍率 (Lv^2)
+                let levelMult = 1;
+                if (reincData.upgrades.tuner > 0) {
+                     levelMult = c.reduce((acc, d) => acc * (d.level * d.level), 1);
+                }
+
+                let totalVal = scoreVal * rarityMult * levelMult;
                 if (totalVal > best.val) {
-                    best = { val: totalVal, yaku: yaku, base: base, b: rarityMult, idx: c.map(d=>d.origIdx) };
+                    best = { val: totalVal, yaku: yaku, base: base, b: rarityMult * levelMult, idx: c.map(d=>d.origIdx) };
                 }
             }
         }
@@ -1432,9 +1861,15 @@
              for (let c of combos) {
                 const [base, yaku, scoreVal] = calcScore(c.map(d=>d.val));
                 let rarityMult = c.reduce((acc, d) => acc * RARITIES[d.rarity].mult, 1);
-                let totalVal = scoreVal * rarityMult;
+                
+                let levelMult = 1;
+                if (reincData.upgrades.tuner > 0) {
+                     levelMult = c.reduce((acc, d) => acc * (d.level * d.level), 1);
+                }
+
+                let totalVal = scoreVal * rarityMult * levelMult;
                 if (totalVal > best.val) {
-                    best = { val: totalVal, yaku: yaku, base: base, b: rarityMult, idx: c.map(d=>d.origIdx) };
+                    best = { val: totalVal, yaku: yaku, base: base, b: rarityMult * levelMult, idx: c.map(d=>d.origIdx) };
                 }
             }
         }
@@ -1445,12 +1880,18 @@
             for (let c of combos) {
                 const [base, yaku, scoreVal] = calcScore(c.map(d=>d.val));
                 let rarityMult = 1;
+                let levelMult = 1;
+                
                 if (yaku !== "目なし" && yaku !== "ヒフミ") {
                     rarityMult = c.reduce((acc, d) => acc * RARITIES[d.rarity].mult, 1);
+                    if (reincData.upgrades.tuner > 0) {
+                        levelMult = c.reduce((acc, d) => acc * (d.level * d.level), 1);
+                    }
                 }
-                let totalVal = scoreVal * rarityMult;
+                
+                let totalVal = scoreVal * rarityMult * levelMult;
                 if (totalVal > best.val) {
-                    best = { val: totalVal, yaku: yaku, base: base, b: rarityMult, idx: c.map(d=>d.origIdx) };
+                    best = { val: totalVal, yaku: yaku, base: base, b: rarityMult * levelMult, idx: c.map(d=>d.origIdx) };
                 }
             }
         }
@@ -1564,34 +2005,65 @@
     }
 
     function openPoolDetail() {
-    const container = document.getElementById('pool-detail-content');
-    container.innerHTML = '';
-
-    // プール内にある最大の目の値を取得（最低でも6まで表示）
-    const maxVal = dicePool.reduce((max, d) => (d && d.val > max ? d.val : max), 6);
-
-    for (let v = 1; v <= maxVal; v++) {
-        const dieDiv = document.createElement('div');
-        dieDiv.className = 'pool-detail-item';
+        const container = document.getElementById('pool-detail-content');
+        container.innerHTML = '';
         
-        // 7以上の場合は数字を、6以下の場合は絵文字を表示
-        let face = v <= 6 ? ["","⚀","⚁","⚂","⚃","⚄","⚅"][v] : v;
-        let html = `<div style="font-size:1.5rem; margin-bottom:5px;">${face}</div>`;
+        // クラス名を変更して新しいCSSを適用
+        container.className = 'pool-card-container';
+
+        // 1. nullを除外し、ソート（値昇順 -> レアリティ昇順 -> レベル降順）
+        let validDice = dicePool.filter(d => d !== null);
         
-        Object.keys(RARITIES).forEach(rKey => {
-            const count = dicePool.filter(d => d && d.val === v && d.rarity === rKey).length;
-            if (count > 0) { 
-                html += `<div style="color:${RARITIES[rKey].color}; font-size:0.6rem;">${RARITIES[rKey].name}: ${count}</div>`;
-            }
+        validDice.sort((a, b) => {
+            // 値でソート
+            if (a.val !== b.val) return a.val - b.val;
+            
+            // レアリティでソート
+            const rOrder = RARITY_ORDER;
+            const rA = rOrder.indexOf(a.rarity);
+            const rB = rOrder.indexOf(b.rarity);
+            if (rA !== rB) return rA - rB;
+            
+            // レベルでソート（高い順）
+            return (b.level || 1) - (a.level || 1);
         });
-        
-        // その数字のダイスが1つでも存在する場合のみ表示（または全て表示ならifなし）
-        if (dicePool.some(d => d && d.val === v)) {
-            dieDiv.innerHTML = html;
-            container.appendChild(dieDiv);
-        }
-    }
-    document.getElementById('pool-detail-modal').style.display = 'flex';
+
+        // 2. カードを生成
+        validDice.forEach(d => {
+            const card = document.createElement('div');
+            card.className = 'pool-card';
+
+            // ダイスの見た目（7以上は数字、それ以外はサイコロ文字）
+            const content = getDieContent(d.val);
+            const isNumber = d.val > 6;
+            
+            // レアリティ情報の取得
+            const rInfo = RARITIES[d.rarity];
+            
+            // --- 変更点: ダイスの目の色決定ロジック ---
+            // コモンなら黒、それ以外ならレアリティカラーを使う
+            let dieColor = (d.rarity === 'common') ? '#333' : rInfo.color;
+            // ----------------------------------------
+            
+            const lvl = d.level || 1;
+
+            card.innerHTML = `
+                <div class="pool-card-die-outer">
+                    <div class="pool-card-die-inner ${isNumber ? 'is-number' : ''}" style="color: ${dieColor};">
+                        ${content}
+                    </div>
+                </div>
+                <div class="pool-card-info">
+                    <div class="pool-card-rarity" style="color:${rInfo.color}; text-shadow: 0 0 1px rgba(0,0,0,0.1);">
+                        ${rInfo.name}
+                    </div>
+                    <div>Lv${lvl}</div>
+                </div>
+            `;
+            container.appendChild(card);
+        });
+
+        document.getElementById('pool-detail-modal').style.display = 'flex';
     }
 
     function updateUI() {
@@ -1600,13 +2072,18 @@
         document.getElementById('modal-score').textContent = formatScore(score);
         
         const reincMult = Math.max(1, reincData.maxReachedRP * 0.2);
-        document.getElementById('mult-val').textContent = (multiplier * reincMult).toFixed(1);
+
+        // --- 変更箇所: 倍率表示に formatMultiplier を使用 ---
+        document.getElementById('mult-val').textContent = formatMultiplier(multiplier * reincMult);
+        // -----------------------------------------------
 
         const rpPanel = document.getElementById('rp-display-panel');
         if (reincData.maxReachedRP > 0) {
             rpPanel.style.display = 'block';
             document.getElementById('rp-val').textContent = reincData.points;
-            document.getElementById('rp-mult').textContent = reincMult.toFixed(1);
+            // --- 変更箇所: 転生倍率表示 ---
+            document.getElementById('rp-mult').textContent = formatMultiplier(reincMult);
+            // ---------------------------
         }
         
         const reincBtn = document.getElementById('reinc-btn');
@@ -1625,17 +2102,34 @@
         const expPanel = document.getElementById('expedition-panel');
         expPanel.style.display = upgState.expedition.lv > 0 ? 'block' : 'none';
         
-        const toggleBtn = document.getElementById('btn-mode-toggle');
-        if (upgState.ritual_unlock.lv > 0 || upgState.fusion_exp.lv > 0) {
-            toggleBtn.style.display = 'block';
-        }
+        // --- モード選択ボタンの表示制御 ---
+        const btnNormal = document.getElementById('btn-select-normal');
+        const btnRitual = document.getElementById('btn-select-ritual');
+        const btnFusion = document.getElementById('btn-select-fusion');
+        const btnSynchro = document.getElementById('btn-select-synchro');
+
+        const showRitual = upgState.ritual_unlock.lv > 0;
+        const showFusion = upgState.fusion_exp.lv > 0;
+        const showSynchro = upgState.synchro_exp.lv > 0;
+
+        btnNormal.style.display = 'block';
+        btnRitual.style.display = showRitual ? 'block' : 'none';
+        btnFusion.style.display = showFusion ? 'block' : 'none';
+        btnSynchro.style.display = showSynchro ? 'block' : 'none';
+
+        [btnNormal, btnRitual, btnFusion, btnSynchro].forEach(b => b.classList.remove('active'));
         
+        if (expMode === 'normal') btnNormal.classList.add('active');
+        if (expMode === 'ritual') btnRitual.classList.add('active');
+        if (expMode === 'fusion') btnFusion.classList.add('active');
+        if (expMode === 'synchro') btnSynchro.classList.add('active');
+
+
         const title = document.getElementById('exp-title');
         const costDisp = document.getElementById('exp-cost-display');
         const msg = document.getElementById('exp-msg');
         const btn = document.getElementById('exp-action-btn');
 
-        // 修正: if-else構文エラーを修正
         if (expMode === 'normal') {
             expPanel.className = 'mode-normal';
             title.textContent = "🧭 通常探索";
@@ -1663,11 +2157,19 @@
                 msg.textContent = "出目を融合し、強力な出目を作成します";
                 btn.style.background = "var(--mode-fusion)";
             }
+        } else if (expMode === 'synchro') {
+            expPanel.className = 'mode-synchro';
+            title.textContent = "⚛️ シンクロ探索";
+            title.style.color = "var(--mode-synchro)";
+            costDisp.textContent = "コスト: " + formatScore(synchroNextCost) + " pts";
+            if(expStatus !== 'running' && expStatus !== 'ready') {
+                msg.textContent = "同じ出目をシンクロさせ、成長させます";
+                btn.style.background = "var(--mode-synchro)";
+            }
         }
 
         const counts = {}; 
         dicePool.forEach(d => {
-            // ここに null チェックを追加
             if (d && d.rarity) {
                 counts[d.rarity] = (counts[d.rarity] || 0) + 1;
             }
@@ -1704,7 +2206,6 @@
             document.getElementById('tip-'+k).innerHTML = tooltipHTML;
         }
         
-        // 配当表の表示制御
         if (reincData.upgrades.straight4 > 0) {
             document.getElementById('row-payout-s4').style.display = 'table-row';
             document.getElementById('row-yaku-s4').style.display = 'flex';
@@ -1748,7 +2249,7 @@
                 ['expedition','digital_history'], ['expedition', 'exp_speed'], ['expedition', 'exp_amount'], ['expedition', 'ritual_unlock'],
                 ['history','digital_history'],
                 ['ritual_unlock', 'ritual_amount'], ['ritual_amount', 'fusion_exp'],
-                ['fusion_exp', 'fusion_exp_amount'],
+                ['fusion_exp', 'fusion_exp_amount'], ['fusion_exp', 'synchro_exp'],
                 ['yaku_none','yaku_normal'], ['yaku_normal','yaku_456'],
                 ['yaku_456','yaku_arashi'], ['yaku_arashi','yaku_pin'],
                 ['yaku_pin', 'yaku_straight4'], ['yaku_straight4', 'yaku_arashi4'],
