@@ -612,7 +612,15 @@
                 
                 <div id="node-simple_fusion" class="skill-node locked" onclick="buyUpgrade('simple_fusion')"><span class="skill-icon">🍜</span><span id="lv-simple_fusion" class="lv-badge"></span><div class="skill-tooltip" id="tip-simple_fusion"></div></div>
 
-                <div style="width: 170px;"></div>
+                <div style="width: 50px;"></div>
+
+                <div id="node-urgent_tuning" class="skill-node locked" onclick="buyUpgrade('urgent_tuning')" style="display:none;">
+                    <span class="skill-icon" style="color:var(--mode-synchro); text-shadow:0 0 5px #fff;">⚡</span>
+                    <span id="lv-urgent_tuning" class="lv-badge"></span>
+                    <div class="skill-tooltip" id="tip-urgent_tuning"></div>
+                </div>
+
+                <div style="width: 50px;"></div>
                 
                 <div id="node-yaku_456" class="skill-node locked" onclick="buyUpgrade('yaku_456')"><span class="skill-icon" id="icon-yaku_456">✨</span><span id="lv-yaku_456" class="lv-badge"></span><div class="skill-tooltip" id="tip-yaku_456"></div></div>
             </div>
@@ -811,6 +819,15 @@
         potential: { lv: 0, max: 2, costs: [50000, 50000000], name: "ポテンシャル", icon: "💎", desc: "ダイス数+1", req: "field" },
         exp_speed: { lv: 0, max: 10, costs: Array.from({length:10}, (_,i)=>100000 * Math.pow(1.5, i)), name: "探索短縮", icon: "⏩", desc: "探索時間 -16秒", req: "expedition" },
         simple_fusion: { lv: 0, max: 1, costs: [10000000], name: "簡易融合", icon: "🍜", desc: "探索時間を半分にする", req: "exp_speed", reqLv: 1, reincReq: "fusion_dim" },
+        urgent_tuning: {
+            lv: 0, max: 1, 
+            costs: [1000000000000], // 1兆
+            name: "緊急同調", 
+            icon: "⚡", 
+            desc: "探索時間をさらに半分にする", 
+            req: "simple_fusion", 
+            reincReq: "synchro_dim" // シンクロ次元解放済みのみ表示
+        },
         exp_amount: { lv: 0, max: 3, costs: [1000000, 5000000, 20000000], name: "通常探索強化", icon: "📦", desc: "探索の選択肢+1", req: "expedition" },
         
         ritual_unlock: { lv: 0, max: 1, costs: [500000], name: "儀式探索", icon: "🔮", desc: "プール削除可能な儀式を解放", req: "expedition" },
@@ -1153,6 +1170,9 @@ function loadGame() {
     function calcExpDuration() {
         let duration = Math.max(20000, EXP_DURATION_BASE - (upgState.exp_speed.lv * 16000));
         if (upgState.simple_fusion && upgState.simple_fusion.lv > 0) {
+            duration /= 2;
+        }
+        if (upgState.urgent_tuning && upgState.urgent_tuning.lv > 0) {
             duration /= 2;
         }
         return duration;
@@ -2229,6 +2249,9 @@ function loadGame() {
             if (type === 'simple_fusion' && expStatus === 'running') {
                 expTimeRemaining /= 2;
             }
+            if (type === 'urgent_tuning' && expStatus === 'running') {
+                expTimeRemaining /= 2;
+            }
 
             saveGame();
             updateUI(); drawLines();
@@ -2768,6 +2791,7 @@ function loadGame() {
                 ['speed','throw'],                                
                 ['expedition','digital_history'], ['expedition', 'exp_speed'], ['expedition', 'exp_amount'], ['expedition', 'ritual_unlock'],
                 ['exp_speed', 'simple_fusion'],
+                ['simple_fusion', 'urgent_tuning'],
                 ['history','digital_history'],
                 ['ritual_unlock', 'ritual_amount'], ['ritual_amount', 'fusion_exp'],
                 ['fusion_exp', 'fusion_exp_amount'], ['fusion_exp', 'synchro_exp'],
