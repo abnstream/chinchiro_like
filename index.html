@@ -329,12 +329,47 @@
 		    text-overflow: ellipsis;
 		    padding: 0 2px;
 		}
+
+	/* --- ハイスコア演出 --- */
+
+		/* フィールド上のスコア表示（通常時） */
+		.msg-area {
+		    font-size: 0.8rem;
+		    font-weight: bold;
+		    height: 1.2rem;
+		    margin-bottom: 5px;
+		    transition: color 0.3s;
+		    text-align: center;
+		}
+
+		/* TOP5更新時の強調表示（金色＋点滅＋拡大） */
+		.high-score-highlight {
+		    color: #f1c40f !important;
+		    font-size: 1.1rem !important;
+		    text-shadow: 0 0 5px #e67e22;
+		    animation: pulseText 1s infinite alternate;
+		}
+
+		@keyframes pulseText {
+		    from { transform: scale(1); text-shadow: 0 0 5px #e67e22; }
+		    to { transform: scale(1.1); text-shadow: 0 0 15px #e74c3c; }
+		}
+
     </style>
 </head>
 <body>
 
 <div class="container">
-    <div class="sidebar">
+    <div class="sidebar"><div class="panel">
+            <h3>設定</h3>
+            <div style="display:flex; flex-direction:column; gap:5px; align-items:center;">
+                <div style="display:flex; justify-content:space-between; width:100%; font-size:0.8rem;">
+                    <span>SE音量</span>
+                    <span id="vol-disp" style="color:var(--accent);">30%</span>
+                </div>
+                <input type="range" id="vol-slider" min="0" max="100" value="30" style="width:100%; cursor:pointer;" oninput="setVolume(this.value)">
+            </div>
+        </div>
         <button id="reinc-btn" onclick="openReincarnationModal()">✦ 転生メニュー</button>
 
         <div class="panel">
@@ -732,6 +767,38 @@
             tailCombos.forEach(c => res.push([head, ...c]));
         }
         return res;
+    }
+
+    const audioFiles = {
+        roll: 'se_roll.mp3',
+        start: 'se_start.mp3',
+        ready: 'se_ready.mp3',
+        record: 'se_record.mp3'
+    };
+    const sounds = {};
+    let globalVolume = 0.3; // 初期音量30%
+
+    // 音声を再生する関数
+    function playSound(key) {
+        if (!sounds[key]) {
+            sounds[key] = new Audio(audioFiles[key]);
+            sounds[key].volume = globalVolume;
+        }
+        // 連打対応：再生位置をリセット
+        sounds[key].currentTime = 0;
+        sounds[key].play().catch(e => {
+            // ブラウザの制限やファイル欠損で再生できない場合は無視
+            console.log("SE Play failed (File missing?):", e);
+        });
+    }
+
+    // 音量変更関数
+    function setVolume(val) {
+        globalVolume = val / 100;
+        document.getElementById('vol-disp').textContent = val + '%';
+        for (let key in sounds) {
+            if (sounds[key]) sounds[key].volume = globalVolume;
+        }
     }
 
     function updateRarityDefinitions() {
@@ -1212,6 +1279,7 @@ function loadGame() {
                 const duration = Math.max(20000, EXP_DURATION_BASE - (upgState.exp_speed.lv * 16000));
                 
                 if (expTimeRemaining <= 0) {
+                    if (expStatus === 'running') playSound('ready');
                     expStatus = 'ready';
                     expTimeRemaining = 0;
                     const b = document.getElementById('exp-action-btn');
@@ -1287,6 +1355,7 @@ function loadGame() {
             }
             
             if (score < cost) return alert("スコアが足りません");
+            playSound('start');
             score -= cost;
             expStatus = 'running';
             expTimeRemaining = Math.max(20000, EXP_DURATION_BASE - (upgState.exp_speed.lv * 16000));
@@ -1786,7 +1855,9 @@ function loadGame() {
         div.className = 'field';
         const num = 3 + upgState.potential.lv;
         let dHtml = ''; for(let i=0; i<num; i++) dHtml += `<div class="die" id="d-${id}-${i}">?</div>`;
-        div.innerHTML = `<div class="timer-container" style="display:${hasAutoRoll?'block':'none'}"><svg class="timer-svg" viewBox="0 0 36 36"><circle class="timer-bg" cx="18" cy="18" r="16"></circle><circle id="prog-${id}" class="timer-progress" cx="18" cy="18" r="16"></circle></svg></div><div id="m-${id}" style="font-size:0.8rem; font-weight:bold; height:1rem; margin-bottom:5px;"></div><div class="dice-row">${dHtml}</div><button class="roll-btn" id="b-${id}" onclick="playGame(${id})">ロール</button>`;
+        
+        div.innerHTML = `<div class="timer-container" style="display:${hasAutoRoll?'block':'none'}"><svg class="timer-svg" viewBox="0 0 36 36"><circle class="timer-bg" cx="18" cy="18" r="16"></circle><circle id="prog-${id}" class="timer-progress" cx="18" cy="18" r="16"></circle></svg></div><div id="m-${id}" class="msg-area"></div><div class="dice-row">${dHtml}</div><button class="roll-btn" id="b-${id}" onclick="playSound('roll'); playGame(${id})">ロール</button>`;
+
         document.getElementById('game-fields').appendChild(div);
     }
 
@@ -1838,15 +1909,9 @@ function loadGame() {
             const combos = getCombinations(diceWithIdx, 5);
             for (let c of combos) {
                 const [base, yaku, scoreVal] = calcScore(c.map(d=>d.val));
-                
-                // レアリティ倍率
                 let rarityMult = c.reduce((acc, d) => acc * RARITIES[d.rarity].mult, 1);
-                
-                // レベル倍率 (Lv^2)
                 let levelMult = 1;
-                if (reincData.upgrades.tuner > 0) {
-                     levelMult = c.reduce((acc, d) => acc * (d.level * d.level), 1);
-                }
+                if (reincData.upgrades.tuner > 0) levelMult = c.reduce((acc, d) => acc * (d.level * d.level), 1);
 
                 let totalVal = scoreVal * rarityMult * levelMult;
                 if (totalVal > best.val) {
@@ -1861,11 +1926,8 @@ function loadGame() {
              for (let c of combos) {
                 const [base, yaku, scoreVal] = calcScore(c.map(d=>d.val));
                 let rarityMult = c.reduce((acc, d) => acc * RARITIES[d.rarity].mult, 1);
-                
                 let levelMult = 1;
-                if (reincData.upgrades.tuner > 0) {
-                     levelMult = c.reduce((acc, d) => acc * (d.level * d.level), 1);
-                }
+                if (reincData.upgrades.tuner > 0) levelMult = c.reduce((acc, d) => acc * (d.level * d.level), 1);
 
                 let totalVal = scoreVal * rarityMult * levelMult;
                 if (totalVal > best.val) {
@@ -1884,9 +1946,7 @@ function loadGame() {
                 
                 if (yaku !== "目なし" && yaku !== "ヒフミ") {
                     rarityMult = c.reduce((acc, d) => acc * RARITIES[d.rarity].mult, 1);
-                    if (reincData.upgrades.tuner > 0) {
-                        levelMult = c.reduce((acc, d) => acc * (d.level * d.level), 1);
-                    }
+                    if (reincData.upgrades.tuner > 0) levelMult = c.reduce((acc, d) => acc * (d.level * d.level), 1);
                 }
                 
                 let totalVal = scoreVal * rarityMult * levelMult;
@@ -1911,18 +1971,43 @@ function loadGame() {
         const gain = best.base * multiplier * best.b * reincMult;
         score += gain; totalScore += gain;
         
-        const bonusText = best.b > 1 ? ` (x${best.b})` : "";
-        if (!isSilent) {
-            const msgEl = document.getElementById(`m-${id}`);
-            if(msgEl) msgEl.textContent = `${best.yaku}${bonusText} (+${formatScore(gain)})`;
+        const bonusText = best.b > 1 ? ` (x${formatMultiplier(best.b)})` : "";
+        
+        // --- 変更箇所: ハイスコア判定 (オーバーレイ削除、強調のみ) ---
+        let isNewRecord = false;
+        
+        if (upgState.history.lv > 0 && gain > 0) {
+            const minHistory = scoreHistory.length < 5 ? 0 : scoreHistory[scoreHistory.length - 1].p;
+            
+            if (gain > minHistory) {
+                isNewRecord = true;
+
+                if (!isSilent) playSound('record');
+                
+                scoreHistory.push({n: best.yaku + bonusText, p: gain});
+                scoreHistory.sort((a,b)=>b.p-a.p); 
+                scoreHistory = scoreHistory.slice(0,5);
+                if (!isSilent) renderHistory();
+                
+                // オーバーレイ演出のコードを削除しました
+            }
         }
 
-        if (upgState.history.lv > 0 && gain > 0) {
-            scoreHistory.push({n: best.yaku + bonusText, p: gain});
-            scoreHistory.sort((a,b)=>b.p-a.p); 
-            scoreHistory = scoreHistory.slice(0,5);
-            if (!isSilent) renderHistory();
+        if (!isSilent) {
+            const msgEl = document.getElementById(`m-${id}`);
+            if(msgEl) {
+                msgEl.textContent = `${best.yaku}${bonusText} (+${formatScore(gain)})`;
+                
+                // NEW RECORDなら強調クラスを付与
+                if (isNewRecord) {
+                    msgEl.classList.add('high-score-highlight');
+                    setTimeout(() => msgEl.classList.remove('high-score-highlight'), 2000);
+                } else {
+                    msgEl.classList.remove('high-score-highlight');
+                }
+            }
         }
+        // -----------------------------------
         
         if (!isSilent) updateUI();
     }
@@ -2081,23 +2166,32 @@ function loadGame() {
         if (reincData.maxReachedRP > 0) {
             rpPanel.style.display = 'block';
             document.getElementById('rp-val').textContent = reincData.points;
-            // --- 変更箇所: 転生倍率表示 ---
             document.getElementById('rp-mult').textContent = formatMultiplier(reincMult);
-            // ---------------------------
         }
         
         const reincBtn = document.getElementById('reinc-btn');
-        if (totalScore >= REINC_THRESHOLD) {
+        
+        // 現在のRP獲得見込みを計算
+        const currentRP = calcRP(totalScore);
+        const gain = Math.max(0, currentRP - reincData.maxReachedRP);
+
+        // --- 変更箇所: 転生可能判定の厳格化 ---
+        // 1. スコア条件(100億)を満たしている
+        // 2. かつ、獲得可能ポイントがプラスである（ハイスコア更新）
+        if (totalScore >= REINC_THRESHOLD && gain > 0) {
             reincBtn.style.display = 'block';
             reincBtn.textContent = "✦ 転生可能";
             reincBtn.classList.add('reinc-available');
         } else if (reincData.maxReachedRP > 0) {
+            // 過去に転生経験があるが、まだ今回の記録を更新していない場合
             reincBtn.style.display = 'block';
             reincBtn.textContent = "✦ 転生メニュー";
             reincBtn.classList.remove('reinc-available');
         } else {
+            // 未開放
             reincBtn.style.display = 'none';
         }
+        // ----------------------------------
 
         const expPanel = document.getElementById('expedition-panel');
         expPanel.style.display = upgState.expedition.lv > 0 ? 'block' : 'none';
