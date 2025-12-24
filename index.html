@@ -470,6 +470,108 @@
 		    transform: none !important; /* ホバーエフェクトはコンテナ側に任せる */
 		}
 
+		/* アクティブスキルパネルのスタイル */
+		#xyz-active-panel {
+		    display: none; 
+		    margin: 10px 0 20px 0; 
+		    gap: 15px; 
+		    justify-content: center;
+		    width: 100%;
+		}
+
+		.xyz-skill-card {
+		    background: linear-gradient(135deg, #1e272e, #000);
+		    border: 1px solid #485460;
+		    border-radius: 12px;
+		    padding: 10px;
+		    width: 160px;
+		    cursor: pointer;
+		    transition: all 0.2s;
+		    text-align: center;
+		    position: relative;
+		    overflow: hidden;
+		    box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+		}
+
+		.xyz-skill-card:hover:not(:disabled) {
+		    border-color: #fff;
+		    transform: translateY(-2px);
+		    box-shadow: 0 0 15px rgba(255, 255, 255, 0.2);
+		}
+
+		.xyz-skill-card:active:not(:disabled) {
+		    transform: scale(0.95);
+		}
+
+		.xyz-skill-card:disabled {
+		    opacity: 0.5;
+		    cursor: not-allowed;
+		    filter: grayscale(1);
+		}
+
+		.xyz-skill-name {
+		    font-weight: bold;
+		    font-size: 0.85rem;
+		    color: #fff;
+		    margin-bottom: 4px;
+		    display: block;
+		}
+
+		.xyz-skill-cost {
+		    font-size: 0.75rem;
+		    color: var(--oru-color);
+		    font-weight: bold;
+		    display: block;
+		}
+
+		/* 発動中（バフ適用中）の演出 */
+		.xyz-skill-card.active-buff {
+		    border-color: #2ecc71;
+		    box-shadow: 0 0 20px rgba(46, 204, 113, 0.4);
+		    animation: skill-pulse 2s infinite;
+		}
+
+		/* ペナルティ中の演出 */
+		.xyz-skill-card.active-penalty {
+		    border-color: #e74c3c;
+		    box-shadow: 0 0 20px rgba(231, 76, 60, 0.4);
+		}
+
+		@keyframes skill-pulse {
+		    0% { opacity: 1; }
+		    50% { opacity: 0.8; }
+		    100% { opacity: 1; }
+		}
+
+		/* スキルボタン内のタイマーコンテナ */
+		.xyz-timer-container {
+		    width: 100%;
+		    height: 4px;
+		    background: rgba(255, 255, 255, 0.1);
+		    margin-top: 8px;
+		    border-radius: 2px;
+		    overflow: hidden;
+		    display: none; /* 通常時は非表示 */
+		}
+
+		/* タイマーバー本体 */
+		.xyz-timer-bar {
+		    height: 100%;
+		    width: 0%;
+		    transition: width 0.1s linear;
+		}
+
+		/* 稼働中にコンテナを表示 */
+		.active-buff .xyz-timer-container,
+		.active-penalty .xyz-timer-container {
+		    display: block;
+		}
+
+		/* バフ中（緑）とペナルティ中（赤）の色 */
+		.active-buff .xyz-timer-bar { background: #2ecc71; box-shadow: 0 0 5px #2ecc71; }
+		.active-penalty .xyz-timer-bar { background: #e74c3c; box-shadow: 0 0 5px #e74c3c; }
+
+
     </style>
 </head>
 <body>
@@ -490,18 +592,18 @@
         <div class="panel">
             <h3>配当表</h3>
             <table id="payout-table">
-                <tr id="row-payout-a5" style="display:none;"><td>アラシ５</td><td class="配当">10万*</td></tr>
-                <tr id="row-payout-s5" style="display:none;"><td>ストレート５</td><td class="配当">5万*</td></tr>
+                <tr id="row-payout-a5" style="display:none;"><td>アラシ５</td><td class="配当" id="pay-a5">10万*</td></tr>
+                <tr id="row-payout-s5" style="display:none;"><td>ストレート５</td><td class="配当" id="pay-s5">5万*</td></tr>
                 
-                <tr id="row-payout-a4" style="display:none;"><td>アラシ４</td><td class="配当">2万*</td></tr>
-                <tr id="row-payout-s4" style="display:none;"><td>ストレート４</td><td class="配当">1万*</td></tr>
+                <tr id="row-payout-a4" style="display:none;"><td>アラシ４</td><td class="配当" id="pay-a4">2万*</td></tr>
+                <tr id="row-payout-s4" style="display:none;"><td>ストレート４</td><td class="配当" id="pay-s4">1万*</td></tr>
                 
-                <tr><td>ピンゾロ</td><td class="配当">1万</td></tr>
-                <tr><td>アラシ</td><td class="配当">2000*</td></tr>
-                <tr><td>シゴロ</td><td class="配当">1000*</td></tr>
+                <tr><td>ピンゾロ</td><td class="配当" id="pay-pin">1万</td></tr>
+                <tr><td>アラシ</td><td class="配当" id="pay-arashi">2000*</td></tr>
+                <tr><td>シゴロ</td><td class="配当" id="pay-456">1000*</td></tr>
                 
-                <tr><td>通常目</td><td class="配当">目×50</td></tr>
-                <tr><td>目なし</td><td class="配当">10</td></tr>
+                <tr><td>通常目</td><td class="配当" id="pay-normal">目×50</td></tr>
+                <tr><td>目なし</td><td class="配当" id="pay-none">10</td></tr>
             </table>
         </div>
         <div class="panel" id="panel-history" style="display:none;">
@@ -558,6 +660,22 @@
                 <button id="exp-action-btn" class="exp-btn" style="background:var(--mode-normal)" onclick="handleExpedition()">探索開始</button>
             </div>
         </div>
+
+        <div id="xyz-active-panel">
+		    <button id="btn-xyz-shift" class="xyz-skill-card" onclick="useXyzActive('shift')">
+			    <span class="xyz-skill-name">⏩ エクシーズ・シフト</span>
+			    <span id="cost-xyz-shift" class="xyz-skill-cost">--- ORU</span>
+			    <div class="xyz-timer-container">
+			        <div id="xyz-shift-bar" class="xyz-timer-bar"></div>
+			    </div>
+			</button>
+
+		    
+		    <button id="btn-xyz-import" class="xyz-skill-card" onclick="useXyzActive('import')">
+		        <span class="xyz-skill-name">📥 エクシーズ・インポート</span>
+		        <span id="cost-xyz-import" class="xyz-skill-cost">--- ORU</span>
+		    </button>
+		</div>
 
         <div class="score-container">
             <p class="score-label">総獲得スコア</p>
@@ -831,6 +949,39 @@
     </div>
 </div>
 
+
+
+<div id="xyz-upgrade-modal" onclick="if(event.target===this) toggleXyzModal(false)" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); justify-content: center; align-items: center; z-index: 1500;">
+    <div class="modal-content" style="border-color: #fff; background: linear-gradient(180deg, #000, #1e272e);">
+        <button class="close-modal-btn" onclick="toggleXyzModal(false)">×</button>
+        <h2 style="color:#fff; text-shadow: 0 0 10px var(--oru-color);">XYZ UPGRADE</h2>
+        <p style="color:var(--oru-color);">所持ユニット: <span id="modal-oru">0</span> ORU</p>
+        
+        <div class="tree-container" id="xyz-tree-root">
+            <svg class="svg-overlay" id="xyz-tree-svg"></svg>
+            
+            <div class="tree-row">
+                <div id="xnode-network" class="skill-node available" onclick="buyXyzUpgrade('network')"><span class="skill-icon">🌐</span><span id="xlv-network" class="lv-badge"></span><div class="skill-tooltip" id="xtip-network"></div></div>
+            </div>
+
+            <div class="tree-row" style="gap: 80px;">
+                <div id="xnode-shift_unlock" class="skill-node locked" onclick="buyXyzUpgrade('shift_unlock')"><span class="skill-icon">⏩</span><span id="xlv-shift_unlock" class="lv-badge"></span><div class="skill-tooltip" id="xtip-shift_unlock"></div></div>
+                <div id="xnode-pack_uncommon" class="skill-node locked" onclick="buyXyzUpgrade('pack_uncommon')"><span class="skill-icon">🟢</span><span id="xlv-pack_uncommon" class="lv-badge"></span><div class="skill-tooltip" id="xtip-pack_uncommon"></div></div>
+            </div>
+
+            <div class="tree-row" style="gap: 80px;">
+                <div id="xnode-import_unlock" class="skill-node locked" onclick="buyXyzUpgrade('import_unlock')"><span class="skill-icon">📥</span><span id="xlv-import_unlock" class="lv-badge"></span><div class="skill-tooltip" id="xtip-import_unlock"></div></div>
+                <div id="xnode-pack_rare" class="skill-node locked" onclick="buyXyzUpgrade('pack_rare')"><span class="skill-icon">🔵</span><span id="xlv-pack_rare" class="lv-badge"></span><div class="skill-tooltip" id="xtip-pack_rare"></div></div>
+            </div>
+        </div>
+        <button onclick="toggleXyzModal(false)" style="margin-top:30px; width:100%; padding:12px; background:#333; border:none; color:white; border-radius:8px; cursor:pointer;">閉じる</button>
+    </div>
+</div>
+
+<button id="xyz-trigger" onclick="toggleXyzModal(true)" style="display:none; position: fixed; bottom: 20px; right: 90px; background: #000; border: 2px solid #fff; width: 60px; height: 60px; border-radius: 50%; font-size: 1.5rem; cursor: pointer; color: white; box-shadow: 0 0 10px #fff; z-index: 100;">
+    ✖️
+</button>
+
 <script>
     // --- データ定義 ---
     let score = 0;
@@ -859,13 +1010,30 @@
     let expNextCost = 15000;
     let ritualNextCost = 500000; 
     let fusionNextCost = 10000000; 
-    let synchroNextCost = 100000000;let overlayUnits = 0;
+    let synchroNextCost = 100000000;
+    let overlayUnits = 0;
     let xyzNextCost = 1000000000000;
     
     let currentRewards = []; 
     let rewardSelectCount = 1; 
 
     let lastTickTime = Date.now();
+    
+
+	// エクシーズ・アップグレードの状態（転生でリセット）
+	let xyzUpgState = {
+	    network: { lv: 0, max: 100, baseCost: 10, name: "オーバーレイ・ネットワーク", icon: "🌐", desc: "最終スコア倍率 +20%", req: null },
+	    shift_unlock: { lv: 0, max: 1, baseCost: 10000, name: "エクシーズ・シフト", icon: "⏩", desc: "アクティブスキルを解放", req: "network", reqLv: 1 },
+	    pack_uncommon: { lv: 0, max: 5, costs: [1000, 2500, 5000, 10000, 30000], name: "アンコモン・パック", icon: "🟢", desc: "探索でコモンが出にくくなる", req: "network", reqLv: 1 },
+	    import_unlock: { lv: 0, max: 1, baseCost: 200000, name: "エクシーズ・インポート", icon: "📥", desc: "アクティブスキルを解放", req: "shift_unlock", reqLv: 1 },
+	    pack_rare: { lv: 0, max: 5, costs: [10000, 25000, 50000, 100000, 300000], name: "レア・パック", icon: "🔵", desc: "探索でアンコモンが出にくくなる", req: "pack_uncommon", reqLv: 5 }
+	};
+
+    
+
+	// アクティブスキルの使用回数とタイマー
+	let activeUsage = { shift: 0, import: 0 };
+	let activeTimers = { shift: 0, shiftPenalty: 0 };
 
     // レアリティ定義（順序重要）
     const RARITY_ORDER = ['common', 'uncommon', 'rare', 'super', 'ultra', 'magic', 'epic', 'legendary', 'eternal'];
@@ -912,7 +1080,7 @@
         },
 
         throw: { lv: 0, max: 5, costs: [100000, 1000000, 10000000, 100000000, 1000000000], name: "投擲技術", icon: "🎯", desc: "演出短縮", req: "speed" },
-        
+
         yaku_none: { lv: 0, max: 50, costs: Array.from({length:50}, (_,i)=>2500 * Math.pow(4, i)), name: "目なし強化", icon: "❕", desc: "目なし+400%", req: "auto" },
         yaku_normal: { lv: 0, max: 50, costs: Array.from({length:50}, (_,i)=>5000 * Math.pow(4, i)), name: "通常目強化", icon: "⚂", desc: "通常目+400%", req: "yaku_none" },
         yaku_456: { lv: 0, max: 50, costs: Array.from({length:50}, (_,i)=>10000 * Math.pow(4, i)), name: "シゴロ強化", icon: "✨", desc: "シゴロ+400%", req: "yaku_normal" },
@@ -1073,116 +1241,127 @@
     window.addEventListener('keydown', (e) => {
         inputBuffer.push(e.code);
         if (inputBuffer.length > debugCode.length) inputBuffer.shift();
+        
+        // デバッグコマンド（W W S S A D A D A B）が入力された場合
         if (JSON.stringify(inputBuffer) === JSON.stringify(debugCode)) {
-            const val = prompt("【デバッグ】スコア加算");
-            if (val) { score += parseFloat(val); totalScore += parseFloat(val); updateUI(); }
+            // スコア加算
+            const val = prompt("【デバッグ】スコア加算量（数値）を入力してください");
+            if (val && !isNaN(parseFloat(val))) { 
+                score += parseFloat(val); 
+                totalScore += parseFloat(val); 
+            }
+            
+            // オーバーレイユニット加算 (追加)
+            const oruVal = prompt("【デバッグ】オーバーレイユニット加算量を入力してください");
+            if (oruVal && !isNaN(parseFloat(oruVal))) { 
+                overlayUnits += parseFloat(oruVal); 
+            }
+            
+            updateUI();
         }
+        
+        // 探索時間の短縮デバッグ (KeyT)
         if(e.code === "KeyT" && expStatus === 'running') expTimeRemaining = 100;
     });
 
-    function saveGame() {
-        if (isResetting) return;
-        const saveObj = {
-            score, totalScore, multiplier,
-            expNextCost, ritualNextCost, fusionNextCost, synchroNextCost,
-            dicePool, upgLevels: {}, 
-            reincData, scoreHistory,
-            ver: 9.2,
-            overlayUnits,
-            xyzNextCost,
-            lastSaveTime: Date.now() 
-        };
-        for(let key in upgState) saveObj.upgLevels[key] = upgState[key].lv;
-        localStorage.setItem('chinchiro_clicker_save', JSON.stringify(saveObj));
-        const notice = document.getElementById('save-notice');
-        notice.style.opacity = 1; setTimeout(() => notice.style.opacity = 0, 2000);
-    }
+	function saveGame() {
+	    if (isResetting) return;
+	    const saveObj = {
+	        score, totalScore, multiplier,
+	        expNextCost, ritualNextCost, fusionNextCost, synchroNextCost,
+	        dicePool, upgLevels: {}, 
+	        reincData, scoreHistory,
+	        ver: 9.2,
+	        overlayUnits,
+	        xyzNextCost,
+	        xyzUpgLevels: Object.fromEntries(Object.entries(xyzUpgState).map(([k, v]) => [k, v.lv])),
+	        activeUsage,
+	        // --- 追加: タイマーの状態を保存 ---
+	        activeTimers, 
+	        lastSaveTime: Date.now() 
+	    };
+	    for(let key in upgState) saveObj.upgLevels[key] = upgState[key].lv;
+	    localStorage.setItem('chinchiro_clicker_save', JSON.stringify(saveObj));
+	    
+	    // 通知（スキルの時は静かに保存したい場合は条件分岐しても良い）
+	    const notice = document.getElementById('save-notice');
+	    if(notice) {
+	        notice.style.opacity = 1; 
+	        setTimeout(() => notice.style.opacity = 0, 2000);
+	    }
+	}   
 
-function loadGame() {
-        const saveStr = localStorage.getItem('chinchiro_clicker_save');
-        if (!saveStr) {
-            initNewGame();
-            return;
-        }
-        try {
-            const saveObj = JSON.parse(saveStr);
-            score = saveObj.score || 0;
-            totalScore = saveObj.totalScore || 0;
-            multiplier = saveObj.multiplier || 1;
-            expNextCost = saveObj.expNextCost || 15000;
-            ritualNextCost = saveObj.ritualNextCost || 500000;
-            fusionNextCost = saveObj.fusionNextCost || 10000000;
-            synchroNextCost = saveObj.synchroNextCost || 100000000;
-            overlayUnits = saveObj.overlayUnits || 0;
-            xyzNextCost = saveObj.xyzNextCost || 1000000000000;
-            lastTickTime = saveObj.lastSaveTime || Date.now();
-            
-            // 数値破損(NaN)対策：スコア関連
-            if (isNaN(score)) score = 0;
-            if (isNaN(totalScore)) totalScore = 0;
-            if (isNaN(multiplier)) multiplier = 1;
+	function loadGame() {
+	    const saveStr = localStorage.getItem('chinchiro_clicker_save');
+	    if (!saveStr) {
+	        initNewGame();
+	        return;
+	    }
+	    try {
+	        const saveObj = JSON.parse(saveStr);
+	        score = saveObj.score || 0;
+	        totalScore = saveObj.totalScore || 0;
+	        multiplier = saveObj.multiplier || 1;
+	        expNextCost = saveObj.expNextCost || 15000;
+	        ritualNextCost = saveObj.ritualNextCost || 500000;
+	        fusionNextCost = saveObj.fusionNextCost || 10000000;
+	        synchroNextCost = saveObj.synchroNextCost || 100000000;
+	        overlayUnits = saveObj.overlayUnits || 0;
+	        xyzNextCost = saveObj.xyzNextCost || 1000000000000; // 初期値を保証
+	        lastTickTime = saveObj.lastSaveTime || Date.now();
+	        
+	        if (isNaN(score)) score = 0;
+	        if (isNaN(totalScore)) totalScore = 0;
+	        if (isNaN(multiplier)) multiplier = 1;
 
-            if (saveObj.scoreHistory) scoreHistory = saveObj.scoreHistory;
+	        if (saveObj.scoreHistory) scoreHistory = saveObj.scoreHistory;
 
-            if(saveObj.dicePool && Array.isArray(saveObj.dicePool)) {
-                 dicePool = saveObj.dicePool.filter(d => d !== null);
-                 // 互換性：レベル未定義なら1にする
-                 dicePool.forEach(d => {
-                     if (d.level === undefined) d.level = 1;
-                 });
-            } else {
-                 initNewGame();
-            }
-            
-            if (dicePool.length === 0) initNewGame();
+	        if(saveObj.dicePool && Array.isArray(saveObj.dicePool)) {
+	             dicePool = saveObj.dicePool.filter(d => d !== null);
+	             dicePool.forEach(d => {
+	                 if (d.level === undefined) d.level = 1;
+	             });
+	        } else {
+	             initNewGame();
+	        }
+	        
+	        if (dicePool.length === 0) initNewGame();
 
-            // 通常アップグレードの読み込みとNaNチェック
-            if(saveObj.upgLevels) {
-                for(let key in upgState) {
-                    if (saveObj.upgLevels[key] !== undefined && !isNaN(saveObj.upgLevels[key])) {
-                        upgState[key].lv = Math.min(saveObj.upgLevels[key], upgState[key].max);
-                    } else {
-                        upgState[key].lv = 0;
-                    }
-                }
-            }
-            
-            // 転生データの読み込みとNaNチェック
-            if (saveObj.reincData) {
-                reincData = saveObj.reincData;
-                if (!reincData.upgrades) reincData.upgrades = {};
-                
-                // ポイントのNaNチェック
-                if (reincData.points === undefined || isNaN(reincData.points)) {
-                    reincData.points = reincData.totalRP || 0;
-                    if (isNaN(reincData.points)) reincData.points = 0;
-                }
-                
-                // 最大RPのNaNチェック
-                if (reincData.maxReachedRP === undefined || isNaN(reincData.maxReachedRP)) {
-                    reincData.maxReachedRP = reincData.maxRP || reincData.totalRP || 0;
-                    if (reincData.maxReachedRP < reincData.points) reincData.maxReachedRP = reincData.points;
-                    if (isNaN(reincData.maxReachedRP)) reincData.maxReachedRP = 0;
-                }
-                
-                // 転生アップグレードレベルのNaNチェックと修復
-                for (let k in reincUpgInfo) {
-                    if (reincData.upgrades[k] === undefined || isNaN(reincData.upgrades[k])) {
-                        reincData.upgrades[k] = 0;
-                    }
-                }
-            } else {
-                reincData = { points:0, maxReachedRP:0, upgrades:{} };
-                for (let k in reincUpgInfo) reincData.upgrades[k] = 0;
-            }
-            
-            updateRarityDefinitions();
+	        if(saveObj.upgLevels) {
+	            for(let key in upgState) {
+	                if (saveObj.upgLevels[key] !== undefined && !isNaN(saveObj.upgLevels[key])) {
+	                    upgState[key].lv = Math.min(saveObj.upgLevels[key], upgState[key].max);
+	                } else {
+	                    upgState[key].lv = 0;
+	                }
+	            }
+	        }
 
-        } catch(e) {
-            console.error("Save corrupted", e);
-            initNewGame();
-        }
-    }
+	        if (saveObj.xyzUpgLevels) {
+	            for (let key in xyzUpgState) {
+	                if (saveObj.xyzUpgLevels[key] !== undefined) {
+	                    xyzUpgState[key].lv = saveObj.xyzUpgLevels[key];
+	                }
+	            }
+	        }
+
+	        // デフォルト値を設定してNaNを防止
+	        activeUsage = saveObj.activeUsage || { shift: 0, import: 0 };
+	        activeTimers = saveObj.activeTimers || { shift: 0, shiftPenalty: 0 };
+	        
+	        if (saveObj.reincData) {
+	            reincData = saveObj.reincData;
+	            if (!reincData.upgrades) reincData.upgrades = {};
+	            // 各種数値のバリデーション...
+	        }
+	        
+	        updateRarityDefinitions();
+
+	    } catch(e) {
+	        console.error("Save corrupted", e);
+	        initNewGame();
+	    }
+	}
     
     function initNewGame() {
         dicePool = [];
@@ -1349,6 +1528,10 @@ function loadGame() {
         multiplier = 1;
         expNextCost = 15000;
         overlayUnits = 0;
+        xyzNextCost = 1000000000000;
+        for (let k in xyzUpgState) xyzUpgState[k].lv = 0;
+        activeUsage = { shift: 0, import: 0 };
+        activeTimers = { shift: 0, shiftPenalty: 0 };
         if (reincData.upgrades.adv_exp > 0) expNextCost = 300000;
 
         ritualNextCost = 500000;
@@ -1553,71 +1736,75 @@ function loadGame() {
         setTimeout(drawLines, 200);
     }
 
-    function tick() {
-        try {
-            const now = Date.now();
-            const dt = Math.max(0, now - lastTickTime); // 時間逆行防止
-            lastTickTime = now;
-            
-            const isOffline = dt > 5000; // 5秒以上判定
-            let offlineActionCount = 0;
+	function tick() {
+	    try {
+	        const now = Date.now();
+	        const dt = Math.max(0, now - lastTickTime);
+	        lastTickTime = now;
 
-            if (hasAutoRoll) {
-                const interval = Math.max(500, AUTO_BASE_TIME - (upgState.speed.lv * 200));
-                for (let i = 0; i < fieldCount; i++) {
-                    const btn = document.getElementById(`b-${i}`);
-                    
-                    if (btn && !btn.disabled) {
-                        fieldTimers[i] = (fieldTimers[i] || 0) + dt;
-                        
-                        if (isOffline) {
-                            if (fieldTimers[i] >= interval) {
-                                let rolls = Math.floor(fieldTimers[i] / interval);
-                                if (rolls > 2000) rolls = 2000; // 上限
-                                for(let r=0; r<rolls; r++) instantRoll(i);
-                                offlineActionCount += rolls;
-                                fieldTimers[i] %= interval; 
-                            }
-                        } else {
-                            if (fieldTimers[i] >= interval) {
-                                fieldTimers[i] = 0; 
-                                playGame(i);        
-                            }
-                        }
-                    }
-                    const prog = document.getElementById(`prog-${i}`);
-                    if (prog) prog.style.strokeDashoffset = 100 - (Math.min(fieldTimers[i], interval) / interval * 100);
-                }
-            }
-            
-            if (isOffline && offlineActionCount > 0) {
-                 updateUI();
-                 renderHistory();
-                 const notice = document.getElementById('offline-notice');
-                 notice.style.opacity = 1; 
-                 setTimeout(() => notice.style.opacity = 0, 4000);
-            }
+	        // ★修正：0未満にならないように制限
+	        if (activeTimers.shift > 0) activeTimers.shift = Math.max(0, activeTimers.shift - dt);
+	        if (activeTimers.shiftPenalty > 0) activeTimers.shiftPenalty = Math.max(0, activeTimers.shiftPenalty - dt);
+	        
+	        const isOffline = dt > 5000;
+	        let offlineActionCount = 0;
 
-            if (expStatus === 'running') {
-                expTimeRemaining -= dt;
-                const duration = calcExpDuration();
-                
-                if (expTimeRemaining <= 0) {
-                    if (expStatus === 'running') playSound('ready');
-                    expStatus = 'ready';
-                    expTimeRemaining = 0;
-                    const b = document.getElementById('exp-action-btn');
-                    b.disabled = false; b.textContent = "帰還する";
-                    saveGame();
-                }
-                const p = document.getElementById('exp-prog');
-                p.style.strokeDashoffset = (expTimeRemaining / duration) * 100;
-                document.getElementById('exp-timer-text').textContent = Math.ceil(expTimeRemaining/1000) + "s";
-            }
-        } catch(e) {
-            console.error("Tick Error", e);
-        }
-    }
+	        if (hasAutoRoll) {
+	            const interval = Math.max(500, AUTO_BASE_TIME - (upgState.speed.lv * 200));
+	            for (let i = 0; i < fieldCount; i++) {
+	                const btn = document.getElementById(`b-${i}`);
+	                
+	                if (btn && !btn.disabled) {
+	                    fieldTimers[i] = (fieldTimers[i] || 0) + dt;
+	                    
+	                    if (isOffline) {
+	                        if (fieldTimers[i] >= interval) {
+	                            let rolls = Math.floor(fieldTimers[i] / interval);
+	                            if (rolls > 2000) rolls = 2000;
+	                            for(let r=0; r<rolls; r++) instantRoll(i);
+	                            offlineActionCount += rolls;
+	                            fieldTimers[i] %= interval; 
+	                        }
+	                    } else {
+	                        if (fieldTimers[i] >= interval) {
+	                            fieldTimers[i] = 0; 
+	                            playGame(i);        
+	                        }
+	                    }
+	                }
+	                const prog = document.getElementById(`prog-${i}`);
+	                if (prog) prog.style.strokeDashoffset = 100 - (Math.min(fieldTimers[i], interval) / interval * 100);
+	            }
+	        }
+	        
+	        if (isOffline && offlineActionCount > 0) {
+	             updateUI();
+	             renderHistory();
+	             const notice = document.getElementById('offline-notice');
+	             notice.style.opacity = 1; 
+	             setTimeout(() => notice.style.opacity = 0, 4000);
+	        }
+
+	        if (expStatus === 'running') {
+	            expTimeRemaining -= dt;
+	            const duration = calcExpDuration();
+	            
+	            if (expTimeRemaining <= 0) {
+	                if (expStatus === 'running') playSound('ready');
+	                expStatus = 'ready';
+	                expTimeRemaining = 0;
+	                const b = document.getElementById('exp-action-btn');
+	                b.disabled = false; b.textContent = "帰還する";
+	                saveGame();
+	            }
+	            const p = document.getElementById('exp-prog');
+	            p.style.strokeDashoffset = (Math.max(0, expTimeRemaining) / duration) * 100;
+	            document.getElementById('exp-timer-text').textContent = Math.ceil(Math.max(0, expTimeRemaining)/1000) + "s";
+	        }
+	    } catch(e) {
+	        console.error("Tick Error", e);
+	    }
+	}
     
     function instantRoll(id) {
         // 安全策: プールが空なら緊急補充
@@ -1679,40 +1866,41 @@ function loadGame() {
 	}
     
 
-    function handleExpedition() {
-        if (expStatus === 'idle') {
-            let cost = expNextCost;
-            if (expMode === 'ritual') cost = ritualNextCost;
-            if (expMode === 'fusion') cost = fusionNextCost;
-            if (expMode === 'synchro') cost = synchroNextCost;
-            
-            if (expMode === 'ritual' && dicePool.length <= 10) return alert("プールが10個以下のため、儀式探索を行えません。");
-            if (expMode === 'fusion' && dicePool.length <= 10) return alert("プールが10個以下のため、融合探索を行えません。");
-            
-            if (expMode === 'synchro') {
-                if (dicePool.length <= 10) return alert("プールが10個以下のため、シンクロ探索を行えません。");
-                if (!checkSynchroAvailability()) return alert("同じ数値の出目が存在しないため、シンクロ探索を行えません。");
-            }
+	function handleExpedition() {
+	    if (expStatus === 'idle') {
+	        let cost = expNextCost;
+	        if (expMode === 'ritual') cost = ritualNextCost;
+	        if (expMode === 'fusion') cost = fusionNextCost;
+	        if (expMode === 'synchro') cost = synchroNextCost;
+	        if (expMode === 'xyz') cost = xyzNextCost; // ★追加：エクシーズコストの判定
 
-            if (expMode === 'xyz') {
-                if (dicePool.length <= 10) return alert("プールが10個以下のため、エクシーズ探索を行えません。");
-                if (!checkXyzAvailability()) return alert("同じレベルの出目が存在しないため、エクシーズ探索を行えません。");
-            }
-            
-            if (score < cost) return alert("スコアが足りません");
-            playSound('start');
-            score -= cost;
-            expStatus = 'running';
-            expTimeRemaining = calcExpDuration();
-            
-            const b = document.getElementById('exp-action-btn');
-            b.disabled = true; b.textContent = "探索中...";
-            updateUI();
-            saveGame();
-        } else if (expStatus === 'ready') {
-            showRewards();
-        }
-    }
+	        if (expMode === 'ritual' && dicePool.length <= 10) return alert("プールが10個以下のため、儀式探索を行えません。");
+	        if (expMode === 'fusion' && dicePool.length <= 10) return alert("プールが10個以下のため、融合探索を行えません。");
+
+	        if (expMode === 'synchro') {
+	            if (dicePool.length <= 10) return alert("プールが10個以下のため、シンクロ探索を行えません。");
+	            if (!checkSynchroAvailability()) return alert("同じ数値の出目が存在しないため、シンクロ探索を行えません。");
+	        }
+
+	        if (expMode === 'xyz') {
+	            if (dicePool.length <= 10) return alert("プールが10個以下のため、エクシーズ探索を行えません。");
+	            if (!checkXyzAvailability()) return alert("同じレベルの出目が存在しないため、エクシーズ探索を行えません。");
+	        }
+
+	        if (score < cost) return alert("スコアが足りません");
+	        playSound('start');
+	        score -= cost;
+	        expStatus = 'running';
+	        expTimeRemaining = calcExpDuration();
+
+	        const b = document.getElementById('exp-action-btn');
+	        b.disabled = true; b.textContent = "探索中...";
+	        updateUI();
+	        saveGame();
+	    } else if (expStatus === 'ready') {
+	        showRewards();
+	    }
+	}
 
     function showRewards() {
         const list = document.getElementById('reward-list');
@@ -2307,14 +2495,27 @@ function loadGame() {
 
     function genDie() {
         const v = Math.floor(Math.random()*6)+1;
-        const weights = Object.entries(RARITIES);
-        const totalWeight = weights.reduce((a,b)=>a+b[1].weight, 0);
-        let rKey = 'common';
-        let rRand = Math.random() * totalWeight;
-        for(let [k, d] of weights) { 
-            if(rRand < d.weight) { rKey = k; break; } 
-            rRand -= d.weight; 
-        }
+	    updateRarityDefinitions(); // 定義を最新に
+	    
+	    // 重みをコピーして調整
+	    let currentWeights = JSON.parse(JSON.stringify(RARITIES));
+	    
+	    if (xyzUpgState.pack_uncommon.lv > 0) {
+	        currentWeights.common.weight = Math.max(0, currentWeights.common.weight - (xyzUpgState.pack_uncommon.lv * 1000));
+	    }
+	    if (xyzUpgState.pack_rare.lv > 0) {
+	        currentWeights.uncommon.weight = Math.max(0, currentWeights.uncommon.weight - (xyzUpgState.pack_rare.lv * 1000));
+	    }
+
+	    const weightsArr = Object.entries(currentWeights);
+	    const totalWeight = weightsArr.reduce((a,b)=>a+b[1].weight, 0);
+	    
+	    let rKey = 'common';
+	    let rRand = Math.random() * totalWeight;
+	    for(let [k, d] of weightsArr) { 
+	        if(rRand < d.weight) { rKey = k; break; } 
+	        rRand -= d.weight; 
+	    }
 
         // レベル決定ロジック
         let lvl = 1;
@@ -2461,117 +2662,125 @@ function loadGame() {
         }, 100);
     }
 
-    function processResult(dice, id, isSilent) {
-        let best = { val: -1, yaku: "目なし", base: 10, idx: [0,1,2], b: 1 };
-        const diceWithIdx = dice.map((d, i) => ({...d, origIdx: i}));
+	function processResult(dice, id, isSilent) {
+	    let best = { val: -1, yaku: "目なし", base: 10, idx: [0, 1, 2], b: 1 };
+	    const diceWithIdx = dice.map((d, i) => ({ ...d, origIdx: i }));
 
-        // 5枚役チェック
-        if (dice.length >= 5 && (reincData.upgrades.straight5 > 0 || reincData.upgrades.arashi5 > 0)) {
-            const combos = getCombinations(diceWithIdx, 5);
-            for (let c of combos) {
-                const [base, yaku, scoreVal] = calcScore(c.map(d=>d.val));
-                let rarityMult = c.reduce((acc, d) => acc * RARITIES[d.rarity].mult, 1);
-                let levelMult = 1;
-                if (reincData.upgrades.tuner > 0) levelMult = c.reduce((acc, d) => acc * (d.level * d.level), 1);
+	    // 5枚役チェック
+	    if (dice.length >= 5 && (reincData.upgrades.straight5 > 0 || reincData.upgrades.arashi5 > 0)) {
+	        const combos = getCombinations(diceWithIdx, 5);
+	        for (let c of combos) {
+	            const [base, yaku, scoreVal] = calcScore(c.map(d => d.val));
+	            if (yaku === "不成立") continue;
 
-                let totalVal = scoreVal * rarityMult * levelMult;
-                if (totalVal > best.val) {
-                    best = { val: totalVal, yaku: yaku, base: base, b: rarityMult * levelMult, idx: c.map(d=>d.origIdx) };
-                }
-            }
-        }
+	            let rarityMult = c.reduce((acc, d) => acc * RARITIES[d.rarity].mult, 1);
+	            let levelMult = 1;
+	            if (reincData.upgrades.tuner > 0) levelMult = c.reduce((acc, d) => acc * (d.level * d.level), 1);
 
-        // 4枚役チェック
-        if (dice.length >= 4 && (reincData.upgrades.straight4 > 0 || reincData.upgrades.arashi4 > 0)) {
-             const combos = getCombinations(diceWithIdx, 4);
-             for (let c of combos) {
-                const [base, yaku, scoreVal] = calcScore(c.map(d=>d.val));
-                let rarityMult = c.reduce((acc, d) => acc * RARITIES[d.rarity].mult, 1);
-                let levelMult = 1;
-                if (reincData.upgrades.tuner > 0) levelMult = c.reduce((acc, d) => acc * (d.level * d.level), 1);
+	            let totalVal = scoreVal * rarityMult * levelMult;
+	            if (totalVal > best.val) {
+	                best = { val: totalVal, yaku: yaku, base: base, b: rarityMult * levelMult, idx: c.map(d => d.origIdx) };
+	            }
+	        }
+	    }
 
-                let totalVal = scoreVal * rarityMult * levelMult;
-                if (totalVal > best.val) {
-                    best = { val: totalVal, yaku: yaku, base: base, b: rarityMult * levelMult, idx: c.map(d=>d.origIdx) };
-                }
-            }
-        }
+	    // 4枚役チェック
+	    if (dice.length >= 4 && (reincData.upgrades.straight4 > 0 || reincData.upgrades.arashi4 > 0)) {
+	        const combos = getCombinations(diceWithIdx, 4);
+	        for (let c of combos) {
+	            const [base, yaku, scoreVal] = calcScore(c.map(d => d.val));
+	            if (yaku === "不成立") continue;
 
-        // 3枚役チェック
-        if (true) {
-            const combos = getCombinations(diceWithIdx, 3);
-            for (let c of combos) {
-                const [base, yaku, scoreVal] = calcScore(c.map(d=>d.val));
-                let rarityMult = 1;
-                let levelMult = 1;
-                
-                if (yaku !== "目なし" && yaku !== "ヒフミ") {
-                    rarityMult = c.reduce((acc, d) => acc * RARITIES[d.rarity].mult, 1);
-                    if (reincData.upgrades.tuner > 0) levelMult = c.reduce((acc, d) => acc * (d.level * d.level), 1);
-                }
-                
-                let totalVal = scoreVal * rarityMult * levelMult;
-                if (totalVal > best.val) {
-                    best = { val: totalVal, yaku: yaku, base: base, b: rarityMult * levelMult, idx: c.map(d=>d.origIdx) };
-                }
-            }
-        }
-        
-        if (!isSilent) {
-            for(let i=0; i<dice.length; i++) {
-                const dieEl = document.getElementById(`d-${id}-${i}`);
-                if(dieEl) {
-                    if(!best.idx.includes(i)) dieEl.classList.add('unused');
-                    else dieEl.classList.remove('unused');
-                }
-            }
-        }
-        
-        const reincMult = Math.max(1, reincData.maxReachedRP * 0.2);
-        
-        const gain = best.base * multiplier * best.b * reincMult;
-        score += gain; totalScore += gain;
-        
-        const bonusText = best.b > 1 ? ` (x${formatMultiplier(best.b)})` : "";
-        
-        // --- 変更箇所: ハイスコア判定 (オーバーレイ削除、強調のみ) ---
-        let isNewRecord = false;
-        
-        if (upgState.history.lv > 0 && gain > 0) {
-            const minHistory = scoreHistory.length < 5 ? 0 : scoreHistory[scoreHistory.length - 1].p;
-            
-            if (gain > minHistory) {
-                isNewRecord = true;
+	            let rarityMult = c.reduce((acc, d) => acc * RARITIES[d.rarity].mult, 1);
+	            let levelMult = 1;
+	            if (reincData.upgrades.tuner > 0) levelMult = c.reduce((acc, d) => acc * (d.level * d.level), 1);
 
-                if (!isSilent) playSound('record');
-                
-                scoreHistory.push({n: best.yaku + bonusText, p: gain});
-                scoreHistory.sort((a,b)=>b.p-a.p); 
-                scoreHistory = scoreHistory.slice(0,5);
-                if (!isSilent) renderHistory();
-                
-                // オーバーレイ演出のコードを削除しました
-            }
-        }
+	            let totalVal = scoreVal * rarityMult * levelMult;
+	            if (totalVal > best.val) {
+	                best = { val: totalVal, yaku: yaku, base: base, b: rarityMult * levelMult, idx: c.map(d => d.origIdx) };
+	            }
+	        }
+	    }
 
-        if (!isSilent) {
-            const msgEl = document.getElementById(`m-${id}`);
-            if(msgEl) {
-                msgEl.textContent = `${best.yaku}${bonusText} (+${formatScore(gain)})`;
-                
-                // NEW RECORDなら強調クラスを付与
-                if (isNewRecord) {
-                    msgEl.classList.add('high-score-highlight');
-                    setTimeout(() => msgEl.classList.remove('high-score-highlight'), 2000);
-                } else {
-                    msgEl.classList.remove('high-score-highlight');
-                }
-            }
-        }
-        // -----------------------------------
-        
-        if (!isSilent) updateUI();
-    }
+	    // 3枚役チェック
+	    const combos = getCombinations(diceWithIdx, 3);
+	    for (let c of combos) {
+	        const [base, yaku, scoreVal] = calcScore(c.map(d => d.val));
+	        let rarityMult = 1;
+	        let levelMult = 1;
+
+	        // 目なし・不成立・ヒフミの場合はレアリティ倍率を適用しない
+	        if (yaku !== "目なし" && yaku !== "不成立" && yaku !== "ヒフミ") {
+	            rarityMult = c.reduce((acc, d) => acc * RARITIES[d.rarity].mult, 1);
+	            if (reincData.upgrades.tuner > 0) levelMult = c.reduce((acc, d) => acc * (d.level * d.level), 1);
+	        }
+
+	        let totalVal = scoreVal * rarityMult * levelMult;
+	        if (totalVal > best.val) {
+	            best = { val: totalVal, yaku: yaku, base: base, b: rarityMult * levelMult, idx: c.map(d => d.origIdx) };
+	        }
+	    }
+
+	    // 最終的な役が「目なし」の場合、レアリティ倍率を強制的に1にする（救済措置）
+	    if (best.yaku === "目なし" || best.yaku === "不成立") {
+	        best.b = 1;
+	    }
+
+	    if (!isSilent) {
+	        for (let i = 0; i < dice.length; i++) {
+	            const dieEl = document.getElementById(`d-${id}-${i}`);
+	            if (dieEl) {
+	                if (!best.idx.includes(i)) dieEl.classList.add('unused');
+	                else dieEl.classList.remove('unused');
+	            }
+	        }
+	    }
+
+	    const reincMult = Math.max(1, reincData.maxReachedRP * 0.2);
+	    let xyzPassiveMult = 1 + (xyzUpgState.network.lv * 0.2);
+	    let activeBuff = 1;
+	    let bonusText = "";
+
+	    if (activeTimers.shift > 0) {
+	        activeBuff = 3;
+	        bonusText = " (シフト中)";
+	    } else if (activeTimers.shiftPenalty > 0) {
+	        activeBuff = 0.1;
+	        bonusText = " (低下中)";
+	    }
+
+	    const gain = best.base * multiplier * best.b * reincMult * xyzPassiveMult * activeBuff;
+
+	    score += gain;
+	    totalScore += gain;
+
+	    let isNewRecord = false;
+	    if (upgState.history.lv > 0 && gain > 0) {
+	        const minHistory = scoreHistory.length < 5 ? 0 : scoreHistory[scoreHistory.length - 1].p;
+	        if (gain > minHistory) {
+	            isNewRecord = true;
+	            if (!isSilent) playSound('record');
+	            scoreHistory.push({ n: best.yaku + bonusText, p: gain });
+	            scoreHistory.sort((a, b) => b.p - a.p);
+	            scoreHistory = scoreHistory.slice(0, 5);
+	            if (!isSilent) renderHistory();
+	        }
+	    }
+
+	    if (!isSilent) {
+	        const msgEl = document.getElementById(`m-${id}`);
+	        if (msgEl) {
+	            msgEl.textContent = `${best.yaku}${bonusText} (+${formatScore(gain)})`;
+	            if (isNewRecord) {
+	                msgEl.classList.add('high-score-highlight');
+	                setTimeout(() => msgEl.classList.remove('high-score-highlight'), 2000);
+	            } else {
+	                msgEl.classList.remove('high-score-highlight');
+	            }
+	        }
+	        updateUI();
+	    }
+	}
     
     function renderHistory() {
         document.getElementById('history-list').innerHTML = scoreHistory.map(h=>`<li><span>${h.n}</span><b>${formatScore(h.p)}</b></li>`).join('');
@@ -2729,25 +2938,15 @@ function loadGame() {
     }
 
     function updateUI() {
+        // --- 1. 基本的なスコア表示 ---
         document.getElementById('score-board').textContent = formatScore(score);
         document.getElementById('total-score-display').textContent = formatScore(totalScore);
         document.getElementById('modal-score').textContent = formatScore(score);
         
+        // 転生倍率の算出
         const reincMult = Math.max(1, reincData.maxReachedRP * 0.2);
 
-        // --- 変更箇所: 倍率表示に formatMultiplier を使用 ---
-        document.getElementById('mult-val').textContent = formatMultiplier(multiplier * reincMult);
-        // -----------------------------------------------
-
-		const oruPanel = document.getElementById('oru-display-panel');
-		if (overlayUnits > 0 || upgState.xyz_exp.lv > 0) {
-		    oruPanel.style.display = 'block';
-		    document.getElementById('oru-val').textContent = formatScore(overlayUnits);
-		} else {
-		    oruPanel.style.display = 'none';
-		}       
-
-
+        // --- 2. 転生パネルとオーバーレイユニット(ORU)パネルの表示制御 ---
         const rpPanel = document.getElementById('rp-display-panel');
         if (reincData.maxReachedRP > 0) {
             rpPanel.style.display = 'block';
@@ -2755,175 +2954,147 @@ function loadGame() {
             document.getElementById('rp-mult').textContent = formatMultiplier(reincMult);
         }
         
+        const oruPanel = document.getElementById('oru-display-panel');
+        const hasXyzExp = upgState.xyz_exp.lv > 0;
+        if (overlayUnits > 0 || hasXyzExp) {
+            oruPanel.style.display = 'block';
+            document.getElementById('oru-val').textContent = formatScore(overlayUnits);
+        } else {
+            oruPanel.style.display = 'none';
+        }       
+
+        // --- 3. 転生ボタンの状態管理 ---
         const reincBtn = document.getElementById('reinc-btn');
-        
-        // 現在のRP獲得見込みを計算
         const currentRP = calcRP(totalScore);
         const gain = Math.max(0, currentRP - reincData.maxReachedRP);
 
-        // --- 変更箇所: 転生可能判定の厳格化 ---
-        // 1. スコア条件(100億)を満たしている
-        // 2. かつ、獲得可能ポイントがプラスである（ハイスコア更新）
         if (totalScore >= REINC_THRESHOLD && gain > 0) {
             reincBtn.style.display = 'block';
             reincBtn.textContent = "✦ 転生可能";
             reincBtn.classList.add('reinc-available');
         } else if (reincData.maxReachedRP > 0) {
-            // 過去に転生経験があるが、まだ今回の記録を更新していない場合
             reincBtn.style.display = 'block';
             reincBtn.textContent = "✦ 転生メニュー";
             reincBtn.classList.remove('reinc-available');
         } else {
-            // 未開放
             reincBtn.style.display = 'none';
         }
-        // ----------------------------------
 
+        // --- 4. 探索パネルとモード選択ボタンの更新 ---
         const expPanel = document.getElementById('expedition-panel');
         expPanel.style.display = upgState.expedition.lv > 0 ? 'block' : 'none';
         
-        // --- モード選択ボタンの表示制御 ---
         const btnNormal = document.getElementById('btn-select-normal');
         const btnRitual = document.getElementById('btn-select-ritual');
         const btnFusion = document.getElementById('btn-select-fusion');
         const btnSynchro = document.getElementById('btn-select-synchro');
         const btnXyz = document.getElementById('btn-select-xyz');
 
-        const showRitual = upgState.ritual_unlock.lv > 0;
-        const showFusion = upgState.fusion_exp.lv > 0;
-        const showSynchro = upgState.synchro_exp.lv > 0;
-        const showXyz = upgState.xyz_exp.lv > 0;
-
-        btnNormal.style.display = 'block';
-        btnRitual.style.display = showRitual ? 'block' : 'none';
-        btnFusion.style.display = showFusion ? 'block' : 'none';
-        btnSynchro.style.display = showSynchro ? 'block' : 'none';
-        btnXyz.style.display = showXyz ? 'block' : 'none';
+        btnRitual.style.display = upgState.ritual_unlock.lv > 0 ? 'block' : 'none';
+        btnFusion.style.display = upgState.fusion_exp.lv > 0 ? 'block' : 'none';
+        btnSynchro.style.display = upgState.synchro_exp.lv > 0 ? 'block' : 'none';
+        btnXyz.style.display = hasXyzExp ? 'block' : 'none';
 
         [btnNormal, btnRitual, btnFusion, btnSynchro, btnXyz].forEach(b => b.classList.remove('active'));
-        
         if (expMode === 'normal') btnNormal.classList.add('active');
         if (expMode === 'ritual') btnRitual.classList.add('active');
         if (expMode === 'fusion') btnFusion.classList.add('active');
         if (expMode === 'synchro') btnSynchro.classList.add('active');
         if (expMode === 'xyz') btnXyz.classList.add('active');
 
-
         const title = document.getElementById('exp-title');
         const costDisp = document.getElementById('exp-cost-display');
-        const msg = document.getElementById('exp-msg');
         const btn = document.getElementById('exp-action-btn');
 
         if (expMode === 'normal') {
-            expPanel.className = 'mode-normal';
-            title.textContent = "🧭 通常探索";
-            title.style.color = "var(--mode-normal)";
+            expPanel.className = 'mode-normal'; title.textContent = "🧭 通常探索"; title.style.color = "var(--mode-normal)";
             costDisp.textContent = "コスト: " + formatScore(expNextCost) + " pts";
-            if(expStatus !== 'running' && expStatus !== 'ready') {
-                msg.textContent = "新たな出目を求めて探索します";
-                btn.style.background = "var(--mode-normal)";
-            }
         } else if (expMode === 'ritual') {
-            expPanel.className = 'mode-ritual';
-            title.textContent = "🔮 儀式探索";
-            title.style.color = "var(--mode-ritual)";
+            expPanel.className = 'mode-ritual'; title.textContent = "🔮 儀式探索"; title.style.color = "var(--mode-ritual)";
             costDisp.textContent = "コスト: " + formatScore(ritualNextCost) + " pts";
-            if(expStatus !== 'running' && expStatus !== 'ready') {
-                msg.textContent = "不要な出目を消滅させる儀式を行います";
-                btn.style.background = "var(--mode-ritual)";
-            }
         } else if (expMode === 'fusion') {
-            expPanel.className = 'mode-fusion';
-            title.textContent = "🔥 融合探索";
-            title.style.color = "var(--mode-fusion)";
+            expPanel.className = 'mode-fusion'; title.textContent = "🔥 融合探索"; title.style.color = "var(--mode-fusion)";
             costDisp.textContent = "コスト: " + formatScore(fusionNextCost) + " pts";
-            if(expStatus !== 'running' && expStatus !== 'ready') {
-                msg.textContent = "出目を融合し、強力な出目を作成します";
-                btn.style.background = "var(--mode-fusion)";
-            }
         } else if (expMode === 'synchro') {
-            expPanel.className = 'mode-synchro';
-            title.textContent = "⚛️ シンクロ探索";
-            title.style.color = "var(--mode-synchro)";
+            expPanel.className = 'mode-synchro'; title.textContent = "⚛️ シンクロ探索"; title.style.color = "var(--mode-synchro)";
             costDisp.textContent = "コスト: " + formatScore(synchroNextCost) + " pts";
-            if(expStatus !== 'running' && expStatus !== 'ready') {
-                msg.textContent = "同じ出目をシンクロさせ、成長させます";
-                btn.style.background = "var(--mode-synchro)";
-            }
-        }else if (expMode === 'xyz') {
-            expPanel.className = 'mode-xyz';
-            title.textContent = "✖️ エクシーズ探索";
-            title.style.color = "#fff"; // 黒背景なので白文字
-            title.style.textShadow = "0 0 5px var(--mode-xyz)";
+        } else if (expMode === 'xyz') {
+            expPanel.className = 'mode-xyz'; title.textContent = "✖️ エクシーズ探索"; title.style.color = "#fff";
             costDisp.textContent = "コスト: " + formatScore(xyzNextCost) + " pts";
-            if(expStatus !== 'running' && expStatus !== 'ready') {
-                msg.textContent = "同じレベルの出目でオーバーレイ・ネットワークを構築します";
-                btn.style.background = "var(--mode-xyz)";
-                btn.style.border = "1px solid #fff";
-            }       
         }
 
-        const counts = {}; 
-        dicePool.forEach(d => {
-            if (d && d.rarity) {
-                counts[d.rarity] = (counts[d.rarity] || 0) + 1;
-            }
-        });
-
+        // --- 5. プール統計とエクシーズ・アクティブスキルの更新 ---
+        const counts = {}; dicePool.forEach(d => { if (d && d.rarity) counts[d.rarity] = (counts[d.rarity] || 0) + 1; });
         document.getElementById('pool-stats').innerHTML = Object.entries(RARITIES).map(([k,v])=>`<span style="color:${v.color}">${v.name}: ${counts[k]||0}</span>`).join('<br>');
-        
+
+        const activePanel = document.getElementById('xyz-active-panel');
+        const btnShift = document.getElementById('btn-xyz-shift');
+        const btnImport = document.getElementById('btn-xyz-import');
+
+        if (hasXyzExp && (xyzUpgState.shift_unlock.lv > 0 || xyzUpgState.import_unlock.lv > 0)) {
+            activePanel.style.display = 'flex';
+            
+			if (xyzUpgState.shift_unlock.lv > 0) {
+			    btnShift.style.display = 'block';
+			    document.getElementById('cost-xyz-shift').textContent = formatScore(10000 * Math.pow(2, activeUsage.shift)) + " ORU";
+			    
+			    const isBuff = activeTimers.shift > 0;
+			    const isPenalty = activeTimers.shiftPenalty > 0;
+			    btnShift.classList.toggle('active-buff', isBuff);
+			    btnShift.classList.toggle('active-penalty', isPenalty);
+
+			    const bar = document.getElementById('xyz-shift-bar');
+			    // ★修正：負の値を防止
+			    if (isBuff) bar.style.width = Math.max(0, (activeTimers.shift / 180000) * 100) + "%";
+			    else if (isPenalty) bar.style.width = Math.max(0, (activeTimers.shiftPenalty / 60000) * 100) + "%";
+			    else bar.style.width = "0%";
+			} else { btnShift.style.display = 'none'; }
+
+            if (xyzUpgState.import_unlock.lv > 0) {
+                btnImport.style.display = 'block';
+                document.getElementById('cost-xyz-import').textContent = formatScore(200000 * Math.pow(2, activeUsage.import)) + " ORU";
+            } else { btnImport.style.display = 'none'; }
+        } else { activePanel.style.display = 'none'; }
+
+        // --- 6. 倍率計算への反映 (パッシブ + アクティブ) ---
+        let xyzPassiveMult = 1 + (xyzUpgState.network.lv * 0.2);
+        let activeBuff = 1;
+        if (activeTimers.shift > 0) activeBuff = 3;
+        else if (activeTimers.shiftPenalty > 0) activeBuff = 0.1;
+
+        document.getElementById('mult-val').textContent = formatMultiplier(multiplier * reincMult * xyzPassiveMult * activeBuff);
+
+        // --- 7. 通常スキルツリーのノード更新と説明文反映 ---
         let upgradeCount = 0;
         for(let k in upgState) {
             const u = upgState[k], n = document.getElementById('node-'+k);
             if (!n) continue;
-
-            if (u.reincReq && (reincData.upgrades[u.reincReq] || 0) <= 0) {
-                n.style.display = 'none';
-                continue;
-            } else {
-                n.style.display = 'flex';
-            }
+            if (u.reincReq && (reincData.upgrades[u.reincReq] || 0) <= 0) { n.style.display = 'none'; continue; } 
+            else { n.style.display = 'flex'; }
 
             const reqs = Array.isArray(u.req) ? u.req : (u.req ? [u.req] : []);
             const open = reqs.length === 0 || reqs.every(r => upgState[r].lv > 0);
-            
             const canBuy = open && u.lv < u.max && score >= u.costs[u.lv];
             if (canBuy) upgradeCount++;
             
             n.className = `skill-node ${open?(u.lv>0?'unlocked':'available'):'locked'} ${u.lv>=u.max?'is-max':''} ${canBuy?'can-buy':''}`;
             document.getElementById('lv-'+k).textContent = `Lv ${u.lv}/${u.max}`;
-            
-            let tooltipHTML = `<strong>${u.name}</strong><br>${u.desc}<br>コスト: ${u.lv>=u.max?'MAX':formatScore(u.costs[u.lv])}`;
+
+            // 説明文（ツールチップ）の更新ロジック
+            let tooltipHTML = `<strong>${u.name}</strong><br>${u.desc}<br>コスト: ${u.lv>=u.max?'MAX':formatScore(u.costs[u.lv])} pts`;
             if (!open) {
                 const reqNames = reqs.map(r => upgState[r].name).join(', ');
                 tooltipHTML += `<br><span style="color:#e74c3c; font-size:0.7rem;">(前提: ${reqNames})</span>`;
             }
-            document.getElementById('tip-'+k).innerHTML = tooltipHTML;
+            const tipEl = document.getElementById('tip-'+k);
+            if(tipEl) tipEl.innerHTML = tooltipHTML;
         }
         
-        if (reincData.upgrades.straight4 > 0) {
-            document.getElementById('row-payout-s4').style.display = 'table-row';
-            document.getElementById('row-yaku-s4').style.display = 'flex';
-        }
-        if (reincData.upgrades.arashi4 > 0) {
-            document.getElementById('row-payout-a4').style.display = 'table-row';
-            document.getElementById('row-yaku-a4').style.display = 'flex';
-        }
-        if (reincData.upgrades.straight5 > 0) {
-            document.getElementById('row-payout-s5').style.display = 'table-row';
-            document.getElementById('row-yaku-5').style.display = 'flex';
-        }
-        if (reincData.upgrades.arashi5 > 0) {
-            document.getElementById('row-payout-a5').style.display = 'table-row';
-        }
-
+        // --- 8. 補助UI要素の表示 ---
         const badge = document.getElementById('shop-badge');
-        if (upgradeCount > 0) {
-            badge.style.display = 'flex';
-            badge.textContent = upgradeCount;
-        } else {
-            badge.style.display = 'none';
-        }
+        if (upgradeCount > 0) { badge.style.display = 'flex'; badge.textContent = upgradeCount; } else { badge.style.display = 'none'; }
+
+        document.getElementById('xyz-trigger').style.display = hasXyzExp ? 'block' : 'none';
     }
 
     function toggleModal(s) { document.getElementById('upgrade-modal').style.display = s?'flex':'none'; if(s) { updateUI(); setTimeout(drawLines, 50); } }
@@ -2976,7 +3147,126 @@ function loadGame() {
         }
     }
 
+	function toggleXyzModal(show) {
+	    document.getElementById('xyz-upgrade-modal').style.display = show ? 'flex' : 'none';
+	    if(show) {
+	        updateXyzUI();
+	        setTimeout(drawXyzLines, 50);
+	    }
+	}
+
+	function buyXyzUpgrade(type) {
+	    const upg = xyzUpgState[type];
+	    const reqLevel = upg.reqLv || 1;
+	    const unlocked = !upg.req || (xyzUpgState[upg.req].lv >= reqLevel);
+
+	    if (!unlocked || upg.lv >= upg.max) return;
+
+	    let cost = upg.costs ? upg.costs[upg.lv] : Math.floor(upg.baseCost * Math.pow(1.5, upg.lv));
+	    
+	    if (overlayUnits >= cost) {
+	        overlayUnits -= cost;
+	        upg.lv++;
+	        playSound('record');
+	        updateXyzUI();
+	        updateUI();
+	        drawXyzLines();
+	    }
+	}
+
+	function updateXyzUI() {
+	    document.getElementById('modal-oru').textContent = formatScore(overlayUnits);
+	    
+	    for(let k in xyzUpgState) {
+	        const u = xyzUpgState[k];
+	        const n = document.getElementById('xnode-'+k);
+	        if(!n) continue;
+	        
+	        const open = !u.req || (xyzUpgState[u.req].lv >= (u.reqLv || 1));
+	        const cost = u.costs ? u.costs[u.lv] : Math.floor(u.baseCost * Math.pow(1.5, u.lv));
+	        const canBuy = open && u.lv < u.max && overlayUnits >= cost;
+	        
+	        n.className = `skill-node ${open?(u.lv>0?'unlocked':'available'):'locked'} ${u.lv>=u.max?'is-max':''} ${canBuy?'can-buy':''}`;
+	        document.getElementById('xlv-'+k).textContent = `Lv ${u.lv}/${u.max}`;
+	        
+	        let tooltipHTML = `<strong>${u.name}</strong><br>${u.desc}<br>コスト: ${u.lv>=u.max?'MAX':formatScore(cost)} ORU`;
+	        document.getElementById('xtip-'+k).innerHTML = tooltipHTML;
+	    }
+	}
+
+	function drawXyzLines() {
+	    const svg = document.getElementById('xyz-tree-svg');
+	    const rootEl = document.getElementById('xyz-tree-root');
+	    if (!svg || !rootEl) return;
+	    const root = rootEl.getBoundingClientRect();
+	    svg.innerHTML = '';
+	    
+	    const conn = [
+	        ['network','shift_unlock'], ['network','pack_uncommon'],
+	        ['shift_unlock','import_unlock'], ['pack_uncommon','pack_rare']
+	    ];
+	    
+	    conn.forEach(([p,c])=>{
+	        const pe = document.getElementById('xnode-'+p), ce = document.getElementById('xnode-'+c);
+	        if(!pe || !ce) return;
+	        const pr = pe.getBoundingClientRect(), cr = ce.getBoundingClientRect();
+	        const l = document.createElementNS("http://www.w3.org/2000/svg","line");
+	        l.setAttribute("x1", pr.left+pr.width/2-root.left);
+	        l.setAttribute("y1", pr.top+pr.height/2-root.top);
+	        l.setAttribute("x2", cr.left+cr.width/2-root.left);
+	        l.setAttribute("y2", cr.top+cr.height/2-root.top);
+	        l.className.baseVal = "skill-line " + (xyzUpgState[p].lv>0?'active':'');
+	        svg.appendChild(l);
+	    });
+	}
+
+	function useXyzActive(type) {
+	    let cost = 0;
+	    if (type === 'shift') {
+	        cost = 10000 * Math.pow(2, activeUsage.shift);
+	    } else if (type === 'import') {
+	        cost = 200000 * Math.pow(2, activeUsage.import);
+	    }
+
+	    if (overlayUnits < cost) return alert("オーバーレイユニットが足りません");
+	    
+	    if (!confirm(`コスト ${formatScore(cost)} ORU を消費して発動しますか？\n(30%の確率で失敗します)`)) return;
+
+	    overlayUnits -= cost;
+	    activeUsage[type]++;
+	    
+	    const isSuccess = Math.random() > 0.3;
+	    
+	    if (type === 'shift') {
+	        if (isSuccess) {
+	            alert("エクシーズ・シフト成功！\n3分間、最終倍率が3倍になります。");
+	            activeTimers.shift = 180 * 1000;
+	            activeTimers.shiftPenalty = 0;
+	        } else {
+	            alert("エクシーズ・シフト失敗！\n1分間、最終倍率が1/10になります。");
+	            activeTimers.shiftPenalty = 60 * 1000;
+	            activeTimers.shift = 0;
+	        }
+	    } else if (type === 'import') {
+	        if (isSuccess) {
+	            const gain = score * 0.3;
+	            alert(`エクシーズ・インポート成功！\n${formatScore(gain)} スコアを獲得しました。`);
+	            score += gain;
+	            totalScore += gain;
+	        } else {
+	            // ★修正：完全に0にせず、100ptsまたは現在の1%を残す（詰み防止）
+	            alert("エクシーズ・インポート失敗！\n所持スコアのほとんどを失いました。");
+	            score = Math.max(100, score * 0.01);
+	        }
+	    }
+	    saveGame();
+	    updateUI();
+	}
+
     init();
+
+
+    
 </script>
 </body>
 </html>
