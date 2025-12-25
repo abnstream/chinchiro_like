@@ -187,6 +187,19 @@
             z-index: 101;
             border: 2px solid #fff;
         }
+        #xyz-badge {
+            position: absolute;
+            top: -5px; right: -5px;
+            background: #e74c3c; color: white;
+            width: 24px; height: 24px;
+            border-radius: 50%;
+            display: none;
+            justify-content: center; align-items: center;
+            font-weight: bold; font-size: 0.9rem;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+            z-index: 101;
+            border: 2px solid #fff;
+        }
         
         .modal-content { 
             background: #1a1a1a; padding: 30px; border-radius: 20px; width: 850px; text-align: center; 
@@ -499,8 +512,49 @@
 		    transition: all 0.2s;
 		    text-align: center;
 		    position: relative;
-		    overflow: hidden;
+		    overflow: visible !important;
 		    box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+		}
+
+		/* 【追加】アクティブスキル用のツールチップスタイル */
+		.xyz-skill-tooltip {
+		    visibility: hidden;
+		    width: 240px;
+		    background: rgba(0, 0, 0, 0.95);
+		    color: #fff;
+		    padding: 12px;
+		    position: absolute;
+		    bottom: 115%; /* ボタンの上に表示 */
+		    left: 50%;
+		    transform: translateX(-50%);
+		    border-radius: 8px;
+		    font-size: 0.75rem;
+		    opacity: 0;
+		    transition: opacity 0.2s, transform 0.2s;
+		    z-index: 2000;
+		    border: 1px solid var(--oru-color); /* 枠線を赤色に */
+		    pointer-events: none;
+		    line-height: 1.5;
+		    text-align: left;
+		    white-space: normal;
+		    box-shadow: 0 4px 15px rgba(0,0,0,0.8);
+		}
+
+		/* ツールチップ内の見出し */
+		.xyz-skill-tooltip strong {
+		    color: var(--oru-color);
+		    font-size: 0.9rem;
+		    display: block;
+		    border-bottom: 1px solid #444;
+		    padding-bottom: 4px;
+		    margin-bottom: 4px;
+		}
+
+		/* ホバー時に表示 */
+		.xyz-skill-card:hover .xyz-skill-tooltip {
+		    visibility: visible;
+		    opacity: 1;
+		    transform: translateX(-50%) translateY(-5px);
 		}
 
 		.xyz-skill-card:hover:not(:disabled) {
@@ -592,6 +646,42 @@
 		    margin-top: -15px; /* 上の行との距離を縮める */
 		}
 
+        /* --- リソースモニター（3種横並び表示） --- */
+        #resource-monitor {
+            display: flex;
+            gap: 10px;
+            width: 100%;
+            margin-bottom: 20px;
+        }
+        .res-panel {
+            flex: 1;
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 10px;
+            padding: 10px 5px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 60px;
+            transition: all 0.3s;
+        }
+        .res-label { font-size: 0.7rem; margin-bottom: 2px; opacity: 0.8; }
+        .res-val { font-size: 1.1rem; font-weight: bold; }
+
+        /* 各パネルの固有色 */
+        #res-panel-total { border-color: #333; }
+        #res-panel-total .res-label { color: #888; }
+        #res-panel-total .res-val { color: var(--total-color); }
+
+        #res-panel-rp { border-color: var(--reinc-color); background: rgba(45, 15, 56, 0.3); }
+        #res-panel-rp .res-label { color: var(--reinc-color); }
+        #res-panel-rp .res-val { color: #fff; text-shadow: 0 0 5px var(--reinc-color); }
+
+        #res-panel-oru { border-color: var(--oru-color); background: rgba(30, 0, 0, 0.3); }
+        #res-panel-oru .res-label { color: var(--oru-color); }
+        #res-panel-oru .res-val { color: #fff; text-shadow: 0 0 5px var(--oru-color); }
+
     </style>
 </head>
 <body>
@@ -646,15 +736,26 @@
     </div>
 
     <div class="game-area">
-        <div id="rp-display-panel">
-            転生ポイント: <span id="rp-val">0</span> Pt (倍率: x<span id="rp-mult">1.0</span>)
-        </div>
+        <div id="resource-monitor">
+            <div class="res-panel" id="res-panel-total">
+                <div class="res-label">総獲得スコア</div>
+                <div class="res-val" id="total-score-display">0</div>
+            </div>
 
-		<div id="oru-display-panel">
-		    <span style="position:relative; z-index:2;">
-		        🌌 オーバーレイユニット: <span id="oru-val" style="color:var(--oru-color); font-size:1.2rem;">0</span>
-		    </span>
-		</div>
+            <div class="res-panel" id="res-panel-rp" style="display:none;">
+                <div class="res-label">転生ポイント</div>
+                <div class="res-val">
+                    <span id="rp-val">0</span> <span style="font-size:0.8rem; color:#ccc;">/ <span id="rp-total">0</span></span> <span style="font-size:0.7rem;">(x<span id="rp-mult">1.0</span>)</span>
+                </div>
+            </div>
+
+            <div class="res-panel" id="res-panel-oru" style="display:none;">
+                <div class="res-label">オーバーレイユニット</div>
+                <div class="res-val">
+                    <span id="oru-val">0</span>
+                </div>
+            </div>
+        </div>
 
         <div id="expedition-panel" class="mode-normal">
             <div class="exp-header">
@@ -685,26 +786,42 @@
             </div>
         </div>
 
-        <div id="xyz-active-panel">
+		<div id="xyz-active-panel">
 		    <button id="btn-xyz-shift" class="xyz-skill-card" onclick="useXyzActive('shift')">
-			    <span class="xyz-skill-name">⏩ エクシーズ・シフト</span>
-			    <span id="cost-xyz-shift" class="xyz-skill-cost">--- ORU</span>
-			    <div class="xyz-timer-container">
-			        <div id="xyz-shift-bar" class="xyz-timer-bar"></div>
-			    </div>
-			</button>
+		        <span class="xyz-skill-name">⏩ エクシーズ・シフト</span>
+		        <span id="cost-xyz-shift" class="xyz-skill-cost">--- ORU</span>
+		        <div class="xyz-timer-container">
+		            <div id="xyz-shift-bar" class="xyz-timer-bar"></div>
+		        </div>
+		        
+		        <div class="xyz-skill-tooltip">
+		            <strong>エクシーズ・シフト</strong>
+		            オーバーレイユニットを消費してモードチェンジを行う。<br>
+		            <span style="color:#2ecc71;">● 成功 (70%)</span><br>
+		            3分間、最終スコア倍率が <b>3倍</b> になる。<br>
+		            <span style="color:#e74c3c;">● 失敗 (30%)</span><br>
+		            1分間、最終スコア倍率が <b>0.1倍</b> になる。
+		        </div>
+		    </button>
 
-		    
 		    <button id="btn-xyz-import" class="xyz-skill-card" onclick="useXyzActive('import')">
 		        <span class="xyz-skill-name">📥 エクシーズ・インポート</span>
 		        <span id="cost-xyz-import" class="xyz-skill-cost">--- ORU</span>
+		        
+		        <div class="xyz-skill-tooltip">
+		            <strong>エクシーズ・インポート</strong>
+		            オーバーレイユニットを消費してスコアを吸収する。<br>
+		            <span style="color:#2ecc71;">● 成功 (70%)</span><br>
+		            現在の所持スコアの <b>30%</b> 分を追加で獲得する。<br>
+		            <span style="color:#e74c3c;">● 失敗 (30%)</span><br>
+		            現在の所持スコアの <b>99%</b> を失う。
+		        </div>
 		    </button>
 		</div>
 
-        <div class="score-container">
-            <p class="score-label">総獲得スコア</p>
-            <p id="total-score-display">0</p>
-            <p class="score-label" style="margin-top:10px;">所持スコア</p>
+
+        <div class="score-container" style="margin-top: 10px;">
+            <p class="score-label">所持スコア</p>
             <p id="score-board">0</p>
         </div>
         <span class="multiplier-tag">倍率: x<span id="mult-val">1.0</span></span>
@@ -716,7 +833,7 @@
 <div id="offline-notice">おかえりなさい！不在中の収益を獲得しました。</div>
 
 <div id="reward-modal">
-        <div class="modal-content" style="width: 600px;">
+        <div class="modal-content" style="width: 1200px; max-width: 95vw;">
         <button class="close-modal-btn" onclick="discardRewards()">×</button>
         <h2 id="reward-title" style="color:var(--accent);">探索から帰還！</h2>
         <p id="reward-desc">持ち帰る出目を選択してください。</p><button onclick="openPoolDetail()" style="margin-bottom:15px; padding:5px 15px; background:var(--skill-line); color:white; border:none; border-radius:15px; cursor:pointer; font-size:0.8rem; box-shadow: 0 2px 5px rgba(0,0,0,0.3);">
@@ -963,6 +1080,17 @@
 			        <div class="skill-tooltip" id="rtip-xyz_dim"></div>
 			    </div>
 			</div>
+            
+            <div class="tree-row" style="gap: 20px; margin-top: 40px; flex-wrap: wrap; justify-content: center;">
+                <div id="rnode-swaying_mind" class="skill-node reinc-node locked" onclick="buyReincUpgrade('swaying_mind')"><span class="skill-icon">💫</span><span id="rlv-swaying_mind" class="lv-badge"></span><div class="skill-tooltip" id="rtip-swaying_mind"></div></div>
+                <div id="rnode-path_to_go" class="skill-node reinc-node locked" onclick="buyReincUpgrade('path_to_go')"><span class="skill-icon">🛤️</span><span id="rlv-path_to_go" class="lv-badge"></span><div class="skill-tooltip" id="rtip-path_to_go"></div></div>
+                <div id="rnode-hanate" class="skill-node reinc-node locked" onclick="buyReincUpgrade('hanate')"><span class="skill-icon">🖐️</span><span id="rlv-hanate" class="lv-badge"></span><div class="skill-tooltip" id="rtip-hanate"></div></div>
+                <div id="rnode-trump_card" class="skill-node reinc-node locked" onclick="buyReincUpgrade('trump_card')"><span class="skill-icon">🃏</span><span id="rlv-trump_card" class="lv-badge"></span><div class="skill-tooltip" id="rtip-trump_card"></div></div>
+                <div id="rnode-smiles" class="skill-node reinc-node locked" onclick="buyReincUpgrade('smiles')"><span class="skill-icon">☺️</span><span id="rlv-smiles" class="lv-badge"></span><div class="skill-tooltip" id="rtip-smiles"></div></div>
+                <div id="rnode-shining_future" class="skill-node reinc-node locked" onclick="buyReincUpgrade('shining_future')"><span class="skill-icon">✨</span><span id="rlv-shining_future" class="lv-badge"></span><div class="skill-tooltip" id="rtip-shining_future"></div></div>
+            </div>
+
+            
 
         </div>
     </div>
@@ -988,10 +1116,35 @@
                 <div id="xnode-pack_uncommon" class="skill-node locked" onclick="buyXyzUpgrade('pack_uncommon')"><span class="skill-icon">🟢</span><span id="xlv-pack_uncommon" class="lv-badge"></span><div class="skill-tooltip" id="xtip-pack_uncommon"></div></div>
             </div>
 
-            <div class="tree-row" style="gap: 80px;">
-                <div id="xnode-import_unlock" class="skill-node locked" onclick="buyXyzUpgrade('import_unlock')"><span class="skill-icon">📥</span><span id="xlv-import_unlock" class="lv-badge"></span><div class="skill-tooltip" id="xtip-import_unlock"></div></div>
-                <div id="xnode-pack_rare" class="skill-node locked" onclick="buyXyzUpgrade('pack_rare')"><span class="skill-icon">🔵</span><span id="xlv-pack_rare" class="lv-badge"></span><div class="skill-tooltip" id="xtip-pack_rare"></div></div>
-            </div>
+            			<div class="tree-row" style="gap: 80px;">
+			    <div id="xnode-import_unlock" class="skill-node locked" onclick="buyXyzUpgrade('import_unlock')"><span class="skill-icon">📥</span><span id="xlv-import_unlock" class="lv-badge"></span><div class="skill-tooltip" id="xtip-import_unlock"></div></div>
+			    <div id="xnode-pack_rare" class="skill-node locked" onclick="buyXyzUpgrade('pack_rare')"><span class="skill-icon">🔵</span><span id="xlv-pack_rare" class="lv-badge"></span><div class="skill-tooltip" id="xtip-pack_rare"></div></div>
+			</div>
+
+			<div class="tree-row">
+			    <div id="xnode-pack_super" class="skill-node locked" onclick="buyXyzUpgrade('pack_super')">
+			        <span class="skill-icon">🟡</span>
+			        <span id="xlv-pack_super" class="lv-badge"></span>
+			        <div class="skill-tooltip" id="xtip-pack_super"></div>
+			    </div>
+			</div>
+
+			<div class="tree-row">
+			    <div id="xnode-pack_ultra" class="skill-node locked" onclick="buyXyzUpgrade('pack_ultra')">
+			        <span class="skill-icon">🟣</span>
+			        <span id="xlv-pack_ultra" class="lv-badge"></span>
+			        <div class="skill-tooltip" id="xtip-pack_ultra"></div>
+			    </div>
+			</div>
+
+			<div class="tree-row">
+			    <div id="xnode-pack_magic" class="skill-node locked" onclick="buyXyzUpgrade('pack_magic')">
+			        <span class="skill-icon" style="color:var(--rare-magic);">M</span>
+			        <span id="xlv-pack_magic" class="lv-badge"></span>
+			        <div class="skill-tooltip" id="xtip-pack_magic"></div>
+			    </div>
+			</div>
+
         </div>
         <button onclick="toggleXyzModal(false)" style="margin-top:30px; width:100%; padding:12px; background:#333; border:none; color:white; border-radius:8px; cursor:pointer;">閉じる</button>
     </div>
@@ -999,6 +1152,7 @@
 
 <button id="xyz-trigger" onclick="toggleXyzModal(true)" style="display:none; position: fixed; bottom: 20px; right: 90px; background: #000; border: 2px solid #fff; width: 60px; height: 60px; border-radius: 50%; font-size: 1.5rem; cursor: pointer; color: white; box-shadow: 0 0 10px #fff; z-index: 100;">
     ✖️
+    <span id="xyz-badge"></span> 
 </button>
 
 <script>
@@ -1072,7 +1226,28 @@
 	    shift_unlock: { lv: 0, max: 1, baseCost: 10000, name: "エクシーズ・シフト", icon: "⏩", desc: "アクティブスキルを解放", req: "network", reqLv: 1 },
 	    pack_uncommon: { lv: 0, max: 5, costs: [1000, 2500, 5000, 10000, 30000], name: "アンコモン・パック", icon: "🟢", desc: "探索でコモンが出にくくなる", req: "network", reqLv: 1 },
 	    import_unlock: { lv: 0, max: 1, baseCost: 200000, name: "エクシーズ・インポート", icon: "📥", desc: "アクティブスキルを解放", req: "shift_unlock", reqLv: 1 },
-	    pack_rare: { lv: 0, max: 5, costs: [10000, 25000, 50000, 100000, 300000], name: "レア・パック", icon: "🔵", desc: "探索でアンコモンが出にくくなる", req: "pack_uncommon", reqLv: 5 }
+	    pack_rare: { lv: 0, max: 5, costs: [10000, 25000, 50000, 100000, 300000], name: "レア・パック", icon: "🔵", desc: "探索でアンコモンが出にくくなる", req: "pack_uncommon", reqLv: 5 },
+        		pack_super: { 
+    	    lv: 0, max: 5, 
+    	    costs: [1000000, 2500000, 5000000, 10000000, 25000000], 
+    	    name: "スーパーレア・パック", icon: "🟡", 
+    	    desc: "探索でレアが出にくくなる", 
+    	    req: "pack_rare", reqLv: 5 
+    	},
+    	pack_ultra: { 
+    	    lv: 0, max: 5, 
+    	    costs: [50000000, 100000000, 250000000, 500000000, 1000000000], 
+    	    name: "ウルトラレア・パック", icon: "🟣", 
+    	    desc: "探索でスーパーレアが出にくくなる", 
+    	    req: "pack_super", reqLv: 5 
+    	},
+    	pack_magic: { 
+    	    lv: 0, max: 5, 
+    	    costs: [5000000000, 10000000000, 25000000000, 50000000000, 100000000000], 
+    	    name: "マジック・パック", icon: "M", 
+    	    desc: "探索でウルトラレアが出にくくなる", 
+    	    req: "pack_ultra", reqLv: 5 
+    	}
 	};
 
     
@@ -1208,7 +1383,45 @@
 		    name: "エクシーズ次元", icon: "X", 
 		    desc: "次元の壁が限りなく薄くなる<br>異なる次元の扉が開かれる", 
 		    req: ["arashi5", "rare_eternal", "over_top_clear_mind", "adv_adv_exp"] 
-		}
+		},
+
+        // --- 以下を追加 ---
+        swaying_mind: { 
+            lv: 0, max: 1, costs: [5], 
+            name: "揺れるマインド", icon: "💫", 
+            desc: "役判定時、出目の値を+1した状態も含めて<br>最も点数が高くなる組み合わせで計算する", 
+            req: "xyz_dim" 
+        },
+        path_to_go: { 
+            lv: 0, max: 1, costs: [5], 
+            name: "僕が行くべき道", icon: "🛤️", 
+            desc: "スコアが足りている場合<br>自動で安い通常アップグレードを購入する", 
+            req: "xyz_dim" 
+        },
+        hanate: { 
+            lv: 0, max: 1, costs: [5], 
+            name: "ハナテ", icon: "🖐️", 
+            desc: "通常探索の選択肢+2<br>持ち帰れる数+2", 
+            req: "xyz_dim" 
+        },
+        trump_card: { 
+            lv: 0, max: 1, costs: [5], 
+            name: "切り札", icon: "🃏", 
+            desc: "リセット直後、所持ダイスの1つが<br>確定でエターナルになる", 
+            req: "xyz_dim" 
+        },
+        smiles: { 
+            lv: 0, max: 1, costs: [5], 
+            name: "笑顔で人は強くなる", icon: "☺️", 
+            desc: "初期所持・通常探索の出目の値が<br>7～12になる", 
+            req: "xyz_dim" 
+        },
+        shining_future: { 
+            lv: 0, max: 1, costs: [5], 
+            name: "輝いた未来", icon: "✨", 
+            desc: "初期所持・通常探索の出目のレベルを強化<br>（初期Lv7 / 探索Lv+6）", 
+            req: "xyz_dim" 
+        }
     };
 
     // 組み合わせ生成 (nCk)
@@ -1430,8 +1643,29 @@
     
     function initNewGame() {
         dicePool = [];
-        for(let v=1; v<=6; v++) for(let i=0; i<3; i++) dicePool.push({ val: v, rarity: 'common', level: 1 });
         
+        // --- 修正: アップグレード状況の確認 ---
+        const isSmiles = reincData && reincData.upgrades && reincData.upgrades.smiles > 0; // 笑顔(7-12化)
+        const isFuture = reincData && reincData.upgrades && reincData.upgrades.shining_future > 0; // 未来(Lv7化)
+        
+        const initValMin = isSmiles ? 7 : 1;
+        const initValMax = isSmiles ? 12 : 6;
+        const initLvl = isFuture ? 7 : 1;
+
+        // --- 修正: 最小値～最大値を、それぞれ3個ずつプールに追加する (計18個) ---
+        for (let v = initValMin; v <= initValMax; v++) {
+            for (let k = 0; k < 3; k++) {
+                dicePool.push({ val: v, rarity: 'common', level: initLvl });
+            }
+        }
+        
+        // 「切り札」：ランダムな1つをエターナルにする
+        if (reincData && reincData.upgrades && reincData.upgrades.trump_card > 0 && dicePool.length > 0) {
+            const luckyIdx = Math.floor(Math.random() * dicePool.length);
+            dicePool[luckyIdx].rarity = 'eternal';
+        }
+
+        // 前世の財布（初期スコアボーナス）
         if (reincData && reincData.upgrades && reincData.upgrades.wallet > 0) {
             const bonus = reincData.upgrades.wallet * 100000;
             score += bonus;
@@ -1526,7 +1760,6 @@
 
         document.getElementById('rp-progress-bar').style.width = progress + '%';
         
-        // --- 追加: 残り時間の計算と表示 ---
         let timeText = "";
         if (remaining > 0 && currentSPM > 0) {
             const minsNeeded = remaining / currentSPM;
@@ -1537,17 +1770,25 @@
 
         document.getElementById('rp-next-msg').textContent = 
             `次のポイント(${nextTargetRP} Pt)まで: あと ${formatScore(remaining)} スコア (${Math.floor(progress)}%)${timeText}`;
-        // ----------------------------------
 
         const btn = document.getElementById('do-reinc-btn');
         const msg = document.getElementById('reinc-gain-msg');
         
-        if (totalScore >= REINC_THRESHOLD && gain > 0) {
-            msg.textContent = `転生すると +${gain} Pt 獲得できます！`;
+        // --- 修正: ボタン有効化条件の緩和 ---
+        // 「100億以上でポイント獲得可能」 または 「過去に転生済み(maxReachedRP > 0)」ならOK
+        if ((totalScore >= REINC_THRESHOLD && gain > 0) || reincData.maxReachedRP > 0) {
+            if (gain > 0) {
+                msg.textContent = `転生すると +${gain} Pt 獲得できます！`;
+                msg.style.color = "#e056fd";
+            } else {
+                msg.textContent = "※現在はポイントを獲得できませんが、転生可能です";
+                msg.style.color = "#ccc"; // 注意喚起のためグレーなどに
+            }
             btn.disabled = false;
             btn.style.opacity = 1;
             btn.style.cursor = "pointer";
         } else {
+            // 初回かつ条件未達の場合
             if (totalScore < REINC_THRESHOLD) {
                 msg.textContent = "※転生にはスコア100億以上が必要です";
             } else {
@@ -1557,6 +1798,7 @@
             btn.style.opacity = 0.5;
             btn.style.cursor = "not-allowed";
         }
+        // ----------------------------------
     }
 
     function openReincarnationModal() {
@@ -1600,9 +1842,15 @@
         const potentialRP = calcRP(totalScore);
         const gain = Math.max(0, potentialRP - reincData.maxReachedRP);
         
-        if (!confirm(`本当に転生しますか？\n+${gain} Pt を獲得し、スコア等はリセットされます。`)) return;
+        // --- 修正: 確認メッセージの分岐 ---
+        let confirmMsg = `本当に転生しますか？\n+${gain} Pt を獲得し、スコア等はリセットされます。`;
+        if (gain === 0) {
+            confirmMsg = `本当に転生しますか？\nポイントは獲得できませんが、スコア・所持スキル等はリセットされ最初からになります。`;
+        }
+
+        if (!confirm(confirmMsg)) return;
+        // --------------------------------
         
-        // ★実行時にタイマーを止める（スコアがリセットされるため）
         if(reincTimer) {
             clearInterval(reincTimer);
             reincTimer = null;
@@ -1660,8 +1908,33 @@
     }
     
     function finishReincarnation() {
+        dicePool = [];
+        
+        const isSmiles = reincData && reincData.upgrades && reincData.upgrades.smiles > 0;
+        const isFuture = reincData && reincData.upgrades && reincData.upgrades.shining_future > 0;
+        
+        const initValMin = isSmiles ? 7 : 1;
+        const initValMax = isSmiles ? 12 : 6;
+        const initLvl = isFuture ? 7 : 1;
+
+        // --- 修正: 転生時も同様に18個生成する ---
+        for (let v = initValMin; v <= initValMax; v++) {
+            for (let k = 0; k < 3; k++) {
+                dicePool.push({ val: v, rarity: 'common', level: initLvl });
+            }
+        }
+        
+        if (reincData && reincData.upgrades && reincData.upgrades.trump_card > 0 && dicePool.length > 0) {
+            const luckyIdx = Math.floor(Math.random() * dicePool.length);
+            dicePool[luckyIdx].rarity = 'eternal';
+        }
+        
+        updateRarityDefinitions();
+
         isReincarnationPhase = false;
         document.getElementById('reinc-modal').style.display = 'none';
+        
+        updateUI();
         saveGame();
     }
 
@@ -1769,14 +2042,21 @@
                 ['arashi4', 'straight5'], ['straight5', 'arashi5'], 
                 ['fusion_dim', 'rare_magic'], ['rare_magic', 'rare_epic'],
                 ['rare_epic', 'rare_legend'], ['rare_legend', 'rare_eternal'],
-                // New Connections
                 ['synchro_dim', 'adv_exp'], ['synchro_dim', 'clear_mind'],
                 ['adv_exp', 'adv_adv_exp'], ['top_clear_mind', 'adv_adv_exp'],
                 ['clear_mind', 'top_clear_mind'], ['top_clear_mind', 'over_top_clear_mind'],
                 ['arashi5', 'xyz_dim'],
                 ['rare_eternal', 'xyz_dim'],
                 ['over_top_clear_mind', 'xyz_dim'],
-                ['adv_adv_exp', 'xyz_dim']
+                ['adv_adv_exp', 'xyz_dim'],
+
+                // --- 追加部分 ---
+                ['xyz_dim', 'swaying_mind'],
+                ['xyz_dim', 'path_to_go'],
+                ['xyz_dim', 'hanate'],
+                ['xyz_dim', 'trump_card'],
+                ['xyz_dim', 'smiles'],
+                ['xyz_dim', 'shining_future']
             ];
             
             conn.forEach(([p,c])=>{
@@ -1839,38 +2119,75 @@
 	        const dt = Math.max(0, now - lastTickTime);
 	        lastTickTime = now;
 
+            // 1秒ごとの処理（SPM計算など）
         	spmTimer += dt;
-	        if (spmTimer >= 1000) { // 1秒ごとに実行
+	        if (spmTimer >= 1000) { 
 	            spmTimer = 0;
-	            spmSamples.push(totalScore); // 現在の総獲得スコアを保存
+	            spmSamples.push(totalScore); 
 	            
-	            // 61サンプル（60秒間＋開始点）を超えたら古いものを削除
 	            if (spmSamples.length > 61) {
 	                spmSamples.shift();
 	            }
 	            
-	            // 家計簿が解放されている場合のみ計算・表示
 	            if (spmSamples.length >= 2) {
 		            const latestScore = spmSamples[spmSamples.length - 1];
 		            const oldestScore = spmSamples[0];
 		            const diff = latestScore - oldestScore;
-		            
-		            // サンプル数に応じた経過時間（秒）
 		            const secondsElapsed = spmSamples.length - 1;
 		            
 		            if (secondsElapsed > 0) {
-		                // 1分間（60秒）あたりの獲得量に換算
 		                currentSPM = (diff / secondsElapsed) * 60;
 		            }
 
-		            // 家計簿が解放されている場合のみ画面左側に表示
 		            if (upgState.history.lv > 0) {
 		                document.getElementById('spm-display').textContent = formatScore(currentSPM);
 		            }
 		        }
 	        }
 
-	        // ★修正：0未満にならないように制限
+            // --- 修正: 自動購入の高速化 (1秒ごとの判定から毎フレーム判定に変更) ---
+            if (reincData && reincData.upgrades && reincData.upgrades.path_to_go > 0) {
+                // 購入可能な通常アップグレードを探索
+                let buyCandidates = [];
+                for(let k in upgState) {
+                    const u = upgState[k];
+                    // 未開放や最大レベルは除外
+                    if (u.lv >= u.max) continue;
+                    
+                    // 前提チェック
+                    const reqs = Array.isArray(u.req) ? u.req : (u.req ? [u.req] : []);
+                    if (u.reincReq && (reincData.upgrades[u.reincReq] || 0) <= 0) continue;
+                    const open = reqs.length === 0 || reqs.every(r => upgState[r].lv >= (u.reqLv||1));
+                    
+                    if (!open) continue;
+
+                    const cost = u.costs[u.lv];
+                    // 候補に追加
+                    buyCandidates.push({ key: k, cost: cost });
+                }
+
+                // コストの安い順にソート
+                if (buyCandidates.length > 0) {
+                    buyCandidates.sort((a, b) => a.cost - b.cost);
+                    
+                    // ★高速化: 1フレームで買えるだけ買う（最大10個制限で処理落ち防止）
+                    let boughtCount = 0;
+                    for (let cand of buyCandidates) {
+                        // 所持金再チェック（ループ中に減るため）
+                        // ※ buyUpgrade内でもチェックしているが、無駄な呼び出しを避けるためここでも確認
+                        if (score >= cand.cost) {
+                             buyUpgrade(cand.key);
+                             boughtCount++;
+                             if(boughtCount >= 10) break; // 1フレームあたりの購入上限
+                        } else {
+                            // 安い順にソート済みなので、これ以上高いものは買えない
+                            break; 
+                        }
+                    }
+                }
+            }
+            // ----------------------------------------------------
+
 	        if (activeTimers.shift > 0) activeTimers.shift = Math.max(0, activeTimers.shift - dt);
 	        if (activeTimers.shiftPenalty > 0) activeTimers.shiftPenalty = Math.max(0, activeTimers.shiftPenalty - dt);
 	        
@@ -2062,20 +2379,29 @@
 	        let bonusMsg = "";
 	        let internalDrawMulti = 1;
 
-	        // 【修正ポイント】アクセルシンクロの倍率計算ログ
+	        // ハナテ効果チェック
+	        const hanateBonus = (reincData.upgrades.hanate > 0) ? 2 : 0;
+
 	        console.group("%c🧭 通常探索 抽選レポート", "color: #f1c40f; font-weight: bold; font-size: 1.2rem;");
 	        console.log(`現在の連続パス回数: ${consecutiveNoTakeCount}`);
 
 	        if (upgState.accel_synchro.lv > 0 && consecutiveNoTakeCount > 0) {
 	            internalDrawMulti = 1 + consecutiveNoTakeCount;
 	            bonusMsg = `<br><span style='color:var(--mode-synchro); font-weight:bold;'>アクセルシンクロ発動中！ (内部抽選試行 ${internalDrawMulti}倍)</span>`;
-	            console.log(`%cアクセルシンクロ適用: 内部抽選数を ${internalDrawMulti} 倍にブーストします。`, "color: #00cec9; font-weight: bold;");
 	        }
+            
+            // ハナテ表示
+            if (hanateBonus > 0) {
+                 bonusMsg += `<br><span style='color:#f1c40f; font-weight:bold;'>ハナテ発動中！ (選択可能数+2 / 提示数+2)</span>`;
+            }
 
 	        desc.innerHTML = `持ち帰る出目を選択してください。${bonusMsg}<br><span style='font-size:0.8rem; color:#aaa;'>※決定すると次回の探索コストが2倍になります</span>`;
 	        
-	        rewardSelectCount = 1 + (reincData.upgrades.greedy_exp || 0);
-	        const choiceNum = 2 + upgState.exp_amount.lv + (reincData.upgrades.greedy_exp || 0);
+	        // 選択可能数にハナテ加算
+	        rewardSelectCount = 1 + (reincData.upgrades.greedy_exp || 0) + hanateBonus;
+	        
+	        // 提示数にハナテ加算
+	        const choiceNum = 2 + upgState.exp_amount.lv + (reincData.upgrades.greedy_exp || 0) + hanateBonus;
 	        
 	        let tempPool = [];
 	        const drawCount = choiceNum * internalDrawMulti;
@@ -2085,12 +2411,8 @@
 	            tempPool.push({ die: genDie(), selected: false });
 	        }
 
-	        console.log("【1. 内部抽選・全候補】", tempPool.map(t => `[${t.die.rarity} Lv${t.die.level}]`));
 	        tempPool.sort(sortRewardsFunc);
-	        console.log("【2. ソート後・選抜候補】", tempPool.map(t => `[${t.die.rarity} Lv${t.die.level}]`));
-
 	        currentRewards = tempPool.slice(0, choiceNum);
-	        console.log("%c【3. 最終提示（決定）】:", "color: #2ecc71; font-weight: bold;", currentRewards.map(t => `${t.die.rarity}(Lv${t.die.level})`));
 	        console.groupEnd();
 
 	        currentRewards.forEach((item, i) => {
@@ -2102,6 +2424,7 @@
 	        updateConfirmButtonState();
 
 	    } else if (expMode === 'ritual') {
+            // (省略: 変更なし)
 	        title.textContent = "儀式！";
 	        title.style.color = "#9b59b6";
 	        if (rewardActionArea) rewardActionArea.style.display = 'block';
@@ -2125,6 +2448,7 @@
 	        });
 	        updateConfirmButtonState();
 	    } else if (expMode === 'fusion') {
+            // (省略: 変更なし)
 	        title.textContent = "融合！";
 	        title.style.color = "var(--mode-fusion)";
 	        desc.innerHTML = "融合する出目を2つ選択してください。";
@@ -2146,6 +2470,7 @@
 	        document.getElementById('fusion-action-area').style.display = 'block';
 
 	    } else if (expMode === 'synchro') {
+            // (省略: 変更なし)
 	        title.textContent = "シンクロ！";
 	        title.style.color = "var(--mode-synchro)";
 	        desc.innerHTML = "シンクロさせるペアを選択してください。";
@@ -2167,14 +2492,11 @@
 	            const pairContainer = document.createElement('div');
 	            pairContainer.className = 'synchro-pair-container';
 	            pairContainer.onclick = () => selectSynchroPair(optionIdx);
-				pair.forEach((poolIdx, iInPair) => { // 第2引数に追加
+				pair.forEach((poolIdx, iInPair) => { 
 				    const currentIndex = currentRewards.length;
 				    currentRewards.push({ die: dicePool[poolIdx], poolIndex: poolIdx, selected: false, optionId: optionIdx });
 				    const card = createCard(dicePool[poolIdx], false, 'synchro');
-				    
-				    // 【重要】各カードに一意のIDを付与する
 				    card.id = `reward-card-${currentIndex}`; 
-				    
 				    pairContainer.appendChild(card);
 				});
 	            list.appendChild(pairContainer);
@@ -2182,6 +2504,7 @@
 	        document.getElementById('synchro-action-area').style.display = 'block';
 
 	    } else if (expMode === 'xyz') {
+            // (省略: 変更なし)
 	        title.textContent = "エクシーズ！";
 	        title.style.color = "var(--mode-xyz)";
 	        rewardSelectCount = 1;
@@ -2206,10 +2529,7 @@
 				    const currentIndex = currentRewards.length;
 				    currentRewards.push({ die: dicePool[poolIdx], poolIndex: poolIdx, selected: false, optionId: optionIdx });
 				    const card = createCard(dicePool[poolIdx], false, 'xyz');
-				    
-				    // 【重要】各カードに一意のIDを付与する
 				    card.id = `reward-card-${currentIndex}`; 
-				    
 				    pairContainer.appendChild(card);
 				});
 	            list.appendChild(pairContainer);
@@ -2332,28 +2652,41 @@
         const dieContent = getDieContent(d.val);
         const dieClass = typeof d.val === 'number' && d.val > 6 ? 'die is-number' : 'die';
         
-        let faceColor = RARITIES[d.rarity].color;
+        // --- 修正: レアリティごとの配色設定 ---
+        const rInfo = RARITIES[d.rarity];
+        let faceColor = rInfo.color;
+        let dieBg = 'white';
+        let dieShadow = 'none';
+        let borderStyle = '1px solid #ccc'; // デフォルトの枠線
+
         if (d.rarity === 'common') {
+            // コモン: 黒文字で見やすく
             faceColor = '#333333'; 
+            dieBg = 'white';
+        } else if (d.rarity === 'eternal') {
+            // エターナル: 黒背景＋白文字＋ネオン発光
+            faceColor = '#ffffff';
+            dieBg = 'linear-gradient(135deg, #000, #444)';
+            dieShadow = '0 0 5px #ff00de, 0 0 10px #00d2d3';
+            borderStyle = '1px solid #fff';
         }
+        // -----------------------------------
 
         const dLvl = d.level || 1;
         let lvlInfo = "";
         
-        // --- 変更: 倍率計算ロジック ---
-        let totalMult = RARITIES[d.rarity].mult;
+        let totalMult = rInfo.mult;
         
         if (reincData && reincData.upgrades && reincData.upgrades.tuner > 0) {
-            // チューナー有効時はレベルの2乗を掛ける
             const lvlBonus = dLvl * dLvl;
             totalMult *= lvlBonus;
             
             lvlInfo = `<div style="font-size:0.8rem; color:var(--max-gold); font-weight:bold;">Lv.${dLvl}</div>`;
         }
-        // ---------------------------
 
+        // style属性で背景色やテキストシャドウを直接適用
         card.innerHTML = `
-            <div class="${dieClass}" style="width:60px; height:60px; font-size:2rem; color:${faceColor}; border:1px solid #ccc;">${dieContent}</div>
+            <div class="${dieClass}" style="width:60px; height:60px; font-size:2rem; color:${faceColor}; background:${dieBg}; text-shadow:${dieShadow}; border:${borderStyle}; margin-bottom: 5px;">${dieContent}</div>
             <div style="color:${RARITIES[d.rarity].color}; font-size:0.7rem; font-weight:bold;">${RARITIES[d.rarity].name}</div>
             ${lvlInfo}
             <div style="font-size:0.6rem; color:#888;">倍率: x${formatMultiplier(totalMult)}</div>
@@ -2650,18 +2983,40 @@
     }
 
     function genDie() {
-        const v = Math.floor(Math.random()*6)+1;
-	    updateRarityDefinitions(); // 定義を最新に
+        // --- 修正: 笑顔で人は強くなる（値7-12化） ---
+        const isSmiles = reincData && reincData.upgrades && reincData.upgrades.smiles > 0;
+        let minVal = isSmiles ? 7 : 1;
+        
+        // 0-5の乱数 + 最小値
+        const v = Math.floor(Math.random() * 6) + minVal;
+        
+	    updateRarityDefinitions(); 
 	    
-	    // 重みをコピーして調整
 	    let currentWeights = JSON.parse(JSON.stringify(RARITIES));
 	    
 	    if (xyzUpgState.pack_uncommon.lv > 0) {
 	        currentWeights.common.weight = Math.max(0, currentWeights.common.weight - (xyzUpgState.pack_uncommon.lv * 1000));
 	    }
 	    if (xyzUpgState.pack_rare.lv > 0) {
-	        currentWeights.uncommon.weight = Math.max(0, currentWeights.uncommon.weight - (xyzUpgState.pack_rare.lv * 1000));
+	        currentWeights.uncommon.weight = Math.max(0, currentWeights.uncommon.weight - (xyzUpgState.pack_rare.lv * 700));
 	    }
+		if (xyzUpgState.pack_super && xyzUpgState.pack_super.lv > 0) {
+    	    if(currentWeights.rare) {
+    	        currentWeights.rare.weight = Math.max(0, currentWeights.rare.weight - (xyzUpgState.pack_super.lv * 200));
+    	    }
+    	}
+    	// スーパーレアの基本ウェイトは350。Lv5で-350(0)になるよう調整
+    	if (xyzUpgState.pack_ultra && xyzUpgState.pack_ultra.lv > 0) {
+    	    if(currentWeights.super) {
+    	        currentWeights.super.weight = Math.max(0, currentWeights.super.weight - (xyzUpgState.pack_ultra.lv * 70));
+    	    }
+    	}
+    	// ウルトラレアの基本ウェイトは150。Lv5で-150(0)になるよう調整
+    	if (xyzUpgState.pack_magic && xyzUpgState.pack_magic.lv > 0) {
+    	    if(currentWeights.ultra) {
+    	        currentWeights.ultra.weight = Math.max(0, currentWeights.ultra.weight - (xyzUpgState.pack_magic.lv * 30));
+    	    }
+    	}
 
 	    const weightsArr = Object.entries(currentWeights);
 	    const totalWeight = weightsArr.reduce((a,b)=>a+b[1].weight, 0);
@@ -2679,17 +3034,20 @@
             let minLvl = 1;
             let maxLvl = 4;
             
-            // 上級アドバンス探索が有効ならレベル5-8
             if (reincData.upgrades.adv_adv_exp > 0) {
                 minLvl = 5;
                 maxLvl = 8;
             } 
-            // アドバンス探索が有効ならレベル1-6
             else if (reincData.upgrades.adv_exp > 0) {
                 maxLvl = 6;
             }
             
             lvl = Math.floor(Math.random() * (maxLvl - minLvl + 1)) + minLvl;
+        }
+
+        // --- 修正: 輝いた未来（Lv+6） ---
+        if (reincData && reincData.upgrades && reincData.upgrades.shining_future > 0) {
+            lvl += 6;
         }
 
         return {val:v, rarity:rKey, level: lvl};
@@ -2819,6 +3177,72 @@
     }
 
 	function processResult(dice, id, isSilent) {
+        // --- 修正: 「揺れるマインド」の実装 ---
+        const hasSwayingMind = reincData && reincData.upgrades && reincData.upgrades.swaying_mind > 0;
+        
+        // ヘルパー: 与えられたダイスセット(値のみ)から最高得点とその役情報を返す
+        const getBestScoreFromValues = (valsWithInfo) => {
+            // valsWithInfo: [{val: 4, rarity:..., level:..., origIdx: 0}, ...]
+            // ここで役判定を行い、スコアを計算する
+            
+            let localBest = { val: -1, yaku: "不成立", base: 0, b: 1 };
+            
+            const rawVals = valsWithInfo.map(d => d.val);
+            const [base, yaku, scoreVal] = calcScore(rawVals);
+            
+            if (yaku !== "不成立") {
+                // 目なし、不成立、ヒフミ以外は倍率適用
+                let rarityMult = 1;
+                let levelMult = 1;
+
+                if (yaku !== "目なし" && yaku !== "ヒフミ") {
+                    rarityMult = valsWithInfo.reduce((acc, d) => acc * RARITIES[d.rarity].mult, 1);
+                    if (reincData.upgrades.tuner > 0) {
+                        levelMult = valsWithInfo.reduce((acc, d) => acc * (d.level * d.level), 1);
+                    }
+                }
+                
+                // 救済措置
+                if (yaku === "目なし") rarityMult = 1;
+
+                const totalVal = scoreVal * rarityMult * levelMult;
+                localBest = { val: totalVal, yaku: yaku, base: base, b: rarityMult * levelMult };
+            }
+            return localBest;
+        };
+
+        // 「揺れるマインド」有効時の再帰的探索関数
+        // diceList: 対象となるダイスのリスト（3個～5個）
+        const findOptimalScore = (diceList) => {
+            if (!hasSwayingMind) {
+                return getBestScoreFromValues(diceList);
+            }
+
+            // 全パターン探索 (2^n)
+            // nが最大5なので32通り。許容範囲。
+            const n = diceList.length;
+            const patterns = 1 << n; // 2^n
+            
+            let maxPatternScore = -1;
+            let bestResult = { val: -1, yaku: "不成立", base: 0, b: 1 };
+            
+            for (let i = 0; i < patterns; i++) {
+                // iのビットパターンに基づいて+1するか決定
+                const currentSet = diceList.map((d, idx) => {
+                    const shouldAdd = (i >> idx) & 1;
+                    return { ...d, val: d.val + shouldAdd }; // +1した新しいオブジェクト
+                });
+                
+                const res = getBestScoreFromValues(currentSet);
+                if (res.val > maxPatternScore) {
+                    maxPatternScore = res.val;
+                    bestResult = res;
+                }
+            }
+            return bestResult;
+        };
+        // ----------------------------------------
+
 	    let best = { val: -1, yaku: "目なし", base: 10, idx: [0, 1, 2], b: 1 };
 	    const diceWithIdx = dice.map((d, i) => ({ ...d, origIdx: i }));
 
@@ -2826,16 +3250,12 @@
 	    if (dice.length >= 5 && (reincData.upgrades.straight5 > 0 || reincData.upgrades.arashi5 > 0)) {
 	        const combos = getCombinations(diceWithIdx, 5);
 	        for (let c of combos) {
-	            const [base, yaku, scoreVal] = calcScore(c.map(d => d.val));
-	            if (yaku === "不成立") continue;
+                // 修正: findOptimalScore経由で計算
+                const res = findOptimalScore(c);
+	            if (res.yaku === "不成立") continue;
 
-	            let rarityMult = c.reduce((acc, d) => acc * RARITIES[d.rarity].mult, 1);
-	            let levelMult = 1;
-	            if (reincData.upgrades.tuner > 0) levelMult = c.reduce((acc, d) => acc * (d.level * d.level), 1);
-
-	            let totalVal = scoreVal * rarityMult * levelMult;
-	            if (totalVal > best.val) {
-	                best = { val: totalVal, yaku: yaku, base: base, b: rarityMult * levelMult, idx: c.map(d => d.origIdx) };
+	            if (res.val > best.val) {
+	                best = { ...res, idx: c.map(d => d.origIdx) };
 	            }
 	        }
 	    }
@@ -2844,16 +3264,11 @@
 	    if (dice.length >= 4 && (reincData.upgrades.straight4 > 0 || reincData.upgrades.arashi4 > 0)) {
 	        const combos = getCombinations(diceWithIdx, 4);
 	        for (let c of combos) {
-	            const [base, yaku, scoreVal] = calcScore(c.map(d => d.val));
-	            if (yaku === "不成立") continue;
+                const res = findOptimalScore(c);
+	            if (res.yaku === "不成立") continue;
 
-	            let rarityMult = c.reduce((acc, d) => acc * RARITIES[d.rarity].mult, 1);
-	            let levelMult = 1;
-	            if (reincData.upgrades.tuner > 0) levelMult = c.reduce((acc, d) => acc * (d.level * d.level), 1);
-
-	            let totalVal = scoreVal * rarityMult * levelMult;
-	            if (totalVal > best.val) {
-	                best = { val: totalVal, yaku: yaku, base: base, b: rarityMult * levelMult, idx: c.map(d => d.origIdx) };
+	            if (res.val > best.val) {
+	                best = { ...res, idx: c.map(d => d.origIdx) };
 	            }
 	        }
 	    }
@@ -2861,25 +3276,19 @@
 	    // 3枚役チェック
 	    const combos = getCombinations(diceWithIdx, 3);
 	    for (let c of combos) {
-	        const [base, yaku, scoreVal] = calcScore(c.map(d => d.val));
-	        let rarityMult = 1;
-	        let levelMult = 1;
-
-	        // 目なし・不成立・ヒフミの場合はレアリティ倍率を適用しない
-	        if (yaku !== "目なし" && yaku !== "不成立" && yaku !== "ヒフミ") {
-	            rarityMult = c.reduce((acc, d) => acc * RARITIES[d.rarity].mult, 1);
-	            if (reincData.upgrades.tuner > 0) levelMult = c.reduce((acc, d) => acc * (d.level * d.level), 1);
-	        }
-
-	        let totalVal = scoreVal * rarityMult * levelMult;
-	        if (totalVal > best.val) {
-	            best = { val: totalVal, yaku: yaku, base: base, b: rarityMult * levelMult, idx: c.map(d => d.origIdx) };
+            const res = findOptimalScore(c);
+	        
+            // ヒフミ(-1) も val判定で上書きされるので注意が必要だが、
+            // 現状ロジックでは val: -1 なので正の点数が出れば上書きされる
+	        if (res.val > best.val) {
+	            best = { ...res, idx: c.map(d => d.origIdx) };
 	        }
 	    }
 
-	    // 最終的な役が「目なし」の場合、レアリティ倍率を強制的に1にする（救済措置）
+        // 最終的な役が「目なし」の場合の救済（元のロジック維持）
 	    if (best.yaku === "目なし" || best.yaku === "不成立") {
 	        best.b = 1;
+            if (best.yaku === "不成立") best.yaku = "目なし"; // 安全策
 	    }
 
 	    if (!isSilent) {
@@ -2904,6 +3313,12 @@
 	        activeBuff = 0.1;
 	        bonusText = " (低下中)";
 	    }
+        
+        // 揺れるマインド発動中の表記追加
+        if (hasSwayingMind) {
+             // 役名が長くなりすぎないようにシンプルに
+             // bonusText += "💫"; 
+        }
 
 	    const gain = best.base * multiplier * best.b * reincMult * xyzPassiveMult * activeBuff;
 
@@ -3029,58 +3444,63 @@
         const container = document.getElementById('pool-detail-content');
         container.innerHTML = '';
         
-        // クラス名を変更して新しいCSSを適用
         container.className = 'pool-card-container';
 
-        // 1. nullを除外し、ソート（値昇順 -> レアリティ昇順 -> レベル降順）
         let validDice = dicePool.filter(d => d !== null);
         
         validDice.sort((a, b) => {
-            // 値でソート
             if (a.val !== b.val) return a.val - b.val;
-            
-            // レアリティでソート
             const rOrder = RARITY_ORDER;
             const rA = rOrder.indexOf(a.rarity);
             const rB = rOrder.indexOf(b.rarity);
             if (rA !== rB) return rA - rB;
-            
-            // レベルでソート（高い順）
             return (b.level || 1) - (a.level || 1);
         });
 
-        // 2. カードを生成
         validDice.forEach(d => {
             const card = document.createElement('div');
             card.className = 'pool-card';
 
-            // ダイスの見た目（7以上は数字、それ以外はサイコロ文字）
             const content = getDieContent(d.val);
             const isNumber = d.val > 6;
-            
-            // レアリティ情報の取得
             const rInfo = RARITIES[d.rarity];
             
-            // コモンなら黒、それ以外ならレアリティカラーを使う
-            let dieColor = (d.rarity === 'common') ? '#333' : rInfo.color;
+            // --- 修正: コモンとエターナルの差別化 ---
+            let infoTextColor = rInfo.color; // 下部の文字色
+            let dieColor = rInfo.color;      // ダイスの文字色
+            let dieBg = 'white';             // ダイスの背景色
+            let dieShadow = 'none';          // ダイスの発光
+
+            if (d.rarity === 'common') {
+                // コモン：白背景に「濃いグレー文字」
+                infoTextColor = '#333';
+                dieColor = '#333';
+                dieBg = '#fff'; 
+            } else if (d.rarity === 'eternal') {
+                // エターナル：黒グラデ背景に「白文字＋ネオン発光」
+                // 下部の情報は読みやすさ優先で黒、枠内のダイスだけ特別感を出す
+                infoTextColor = '#333'; 
+                dieColor = '#fff';
+                dieBg = 'linear-gradient(135deg, #000, #444)';
+                dieShadow = '0 0 5px #ff00de, 0 0 10px #00d2d3'; 
+            }
+            // -------------------------------------
             
             const lvl = d.level || 1;
-
-            // --- 追加: 倍率計算ロジック ---
             let totalMult = rInfo.mult;
             if (reincData && reincData.upgrades && reincData.upgrades.tuner > 0) {
                  totalMult *= (lvl * lvl);
             }
-            // ---------------------------
 
             card.innerHTML = `
                 <div class="pool-card-die-outer">
-                    <div class="pool-card-die-inner ${isNumber ? 'is-number' : ''}" style="color: ${dieColor};">
+                    <div class="pool-card-die-inner ${isNumber ? 'is-number' : ''}" 
+                         style="color: ${dieColor}; background: ${dieBg}; text-shadow: ${dieShadow}; border-radius: 4px;">
                         ${content}
                     </div>
                 </div>
                 <div class="pool-card-info">
-                    <div class="pool-card-rarity" style="color:${rInfo.color}; text-shadow: 0 0 1px rgba(0,0,0,0.1);">
+                    <div class="pool-card-rarity" style="color:${infoTextColor}; font-weight:bold;">
                         ${rInfo.name}
                     </div>
                     <div style="font-weight:bold;">Lv${lvl}</div>
@@ -3102,18 +3522,23 @@
         // 転生倍率の算出
         const reincMult = Math.max(1, reincData.maxReachedRP * 0.2);
 
-        // --- 2. 転生パネルとオーバーレイユニット(ORU)パネルの表示制御 ---
-        const rpPanel = document.getElementById('rp-display-panel');
+        // --- 2. 修正: 新しいパネルIDに対応 ---
+        // 転生パネルの表示制御
+        const rpPanel = document.getElementById('res-panel-rp');
         if (reincData.maxReachedRP > 0) {
-            rpPanel.style.display = 'block';
-            document.getElementById('rp-val').textContent = reincData.points;
+            rpPanel.style.display = 'flex';
+            document.getElementById('rp-val').textContent = reincData.points;       // 残りポイント
+            document.getElementById('rp-total').textContent = reincData.maxReachedRP; // 総ポイント
             document.getElementById('rp-mult').textContent = formatMultiplier(reincMult);
+        } else {
+            rpPanel.style.display = 'none';
         }
         
+        // オーバーレイユニット(ORU)パネルの表示制御
         const hasXyzExp = upgState.xyz_exp.lv > 0;
-        const oruPanel = document.getElementById('oru-display-panel');
+        const oruPanel = document.getElementById('res-panel-oru'); // ID変更: res-panel-oru
         if (overlayUnits > 0 || hasXyzExp) {
-            oruPanel.style.display = 'block';
+            oruPanel.style.display = 'flex'; // flexで表示
             document.getElementById('oru-val').textContent = formatScore(overlayUnits);
         } else {
             oruPanel.style.display = 'none';
@@ -3277,7 +3702,33 @@
         // --- 9. 補助UI要素の表示 ---
         const badge = document.getElementById('shop-badge');
         if (upgradeCount > 0) { badge.style.display = 'flex'; badge.textContent = upgradeCount; } else { badge.style.display = 'none'; }
-        document.getElementById('xyz-trigger').style.display = hasXyzExp ? 'block' : 'none';
+        const xyzBtn = document.getElementById('xyz-trigger');
+        xyzBtn.style.display = hasXyzExp ? 'block' : 'none';
+
+        if (hasXyzExp) {
+            let xyzBuyableCount = 0;
+            for(let k in xyzUpgState) {
+                const u = xyzUpgState[k];
+                // 前提条件チェック
+                const open = !u.req || (xyzUpgState[u.req].lv >= (u.reqLv || 1));
+                
+                // コスト計算
+                const cost = u.costs ? u.costs[u.lv] : Math.floor(u.baseCost * Math.pow(1.5, u.lv));
+                
+                // 購入可能か判定（開放済み && MAX未満 && 所持ORUが足りている）
+                if (open && u.lv < u.max && overlayUnits >= cost) {
+                    xyzBuyableCount++;
+                }
+            }
+            
+            const xyzBadge = document.getElementById('xyz-badge');
+            if (xyzBuyableCount > 0) {
+                xyzBadge.style.display = 'flex';
+                xyzBadge.textContent = xyzBuyableCount;
+            } else {
+                xyzBadge.style.display = 'none';
+            }
+        }
     }
 
     function toggleModal(s) { document.getElementById('upgrade-modal').style.display = s?'flex':'none'; if(s) { updateUI(); setTimeout(drawLines, 50); } }
@@ -3386,7 +3837,10 @@
 	    
 	    const conn = [
 	        ['network','shift_unlock'], ['network','pack_uncommon'],
-	        ['shift_unlock','import_unlock'], ['pack_uncommon','pack_rare']
+	        ['shift_unlock','import_unlock'], ['pack_uncommon','pack_rare'],
+            ['pack_rare', 'pack_super'],
+            ['pack_super', 'pack_ultra'],
+            ['pack_ultra', 'pack_magic']
 	    ];
 	    
 	    conn.forEach(([p,c])=>{
