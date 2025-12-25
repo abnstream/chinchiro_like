@@ -817,6 +817,23 @@
 		            現在の所持スコアの <b>99%</b> を失う。
 		        </div>
 		    </button>
+
+            <button id="btn-xyz-force" class="xyz-skill-card" onclick="useXyzActive('force')">
+		        <span class="xyz-skill-name">⚔️ エクシーズ・フォース</span>
+		        <span id="cost-xyz-force" class="xyz-skill-cost">--- ORU</span>
+		        <div class="xyz-timer-container">
+		            <div id="xyz-force-bar" class="xyz-timer-bar"></div>
+		        </div>
+		        
+		        <div class="xyz-skill-tooltip">
+		            <strong>エクシーズ・フォース</strong>
+		            オーバーレイユニットを消費して探索を加速させる。<br>
+		            <span style="color:#2ecc71;">● 成功 (70%)</span><br>
+		            3分間、探索時間が <b>0秒</b> になる。<br>
+		            <span style="color:#e74c3c;">● 失敗 (30%)</span><br>
+		            1分間、探索時間が <b>2倍</b> になる。
+		        </div>
+		    </button>
 		</div>
 
 
@@ -1121,6 +1138,14 @@
 			    <div id="xnode-pack_rare" class="skill-node locked" onclick="buyXyzUpgrade('pack_rare')"><span class="skill-icon">🔵</span><span id="xlv-pack_rare" class="lv-badge"></span><div class="skill-tooltip" id="xtip-pack_rare"></div></div>
 			</div>
 
+            <div class="tree-row">
+			    <div id="xnode-force_unlock" class="skill-node locked" onclick="buyXyzUpgrade('force_unlock')">
+			        <span class="skill-icon">⚔️</span>
+			        <span id="xlv-force_unlock" class="lv-badge"></span>
+			        <div class="skill-tooltip" id="xtip-force_unlock"></div>
+			    </div>
+			</div>
+
 			<div class="tree-row">
 			    <div id="xnode-pack_super" class="skill-node locked" onclick="buyXyzUpgrade('pack_super')">
 			        <span class="skill-icon">🟡</span>
@@ -1226,6 +1251,7 @@
 	    shift_unlock: { lv: 0, max: 1, baseCost: 10000, name: "エクシーズ・シフト", icon: "⏩", desc: "アクティブスキルを解放", req: "network", reqLv: 1 },
 	    pack_uncommon: { lv: 0, max: 5, costs: [1000, 2500, 5000, 10000, 30000], name: "アンコモン・パック", icon: "🟢", desc: "探索でコモンが出にくくなる", req: "network", reqLv: 1 },
 	    import_unlock: { lv: 0, max: 1, baseCost: 200000, name: "エクシーズ・インポート", icon: "📥", desc: "アクティブスキルを解放", req: "shift_unlock", reqLv: 1 },
+        force_unlock: { lv: 0, max: 1, baseCost: 5000000, name: "エクシーズ・フォース", icon: "⚔️", desc: "アクティブスキルを解放", req: "import_unlock", reqLv: 1 },
 	    pack_rare: { lv: 0, max: 5, costs: [10000, 25000, 50000, 100000, 300000], name: "レア・パック", icon: "🔵", desc: "探索でアンコモンが出にくくなる", req: "pack_uncommon", reqLv: 5 },
         		pack_super: { 
     	    lv: 0, max: 5, 
@@ -1625,7 +1651,10 @@
 
 	        // デフォルト値を設定してNaNを防止
 	        activeUsage = saveObj.activeUsage || { shift: 0, import: 0 };
+            if (activeUsage.force === undefined) activeUsage.force = 0; // 既存セーブデータ互換用
 	        activeTimers = saveObj.activeTimers || { shift: 0, shiftPenalty: 0 };
+            if (activeTimers.force === undefined) activeTimers.force = 0; // 既存セーブデータ互換用
+            if (activeTimers.forcePenalty === undefined) activeTimers.forcePenalty = 0; // 既存セーブデータ互換用
 	        
 	        if (saveObj.reincData) {
 	            reincData = saveObj.reincData;
@@ -1719,6 +1748,9 @@
     }
 
     function calcExpDuration() {
+        // フォース発動中（成功）なら即座に0秒
+        if (activeTimers.force > 0) return 0;
+
         let duration = Math.max(20000, EXP_DURATION_BASE - (upgState.exp_speed.lv * 16000));
         if (upgState.simple_fusion && upgState.simple_fusion.lv > 0) {
             duration /= 2;
@@ -1726,6 +1758,12 @@
         if (upgState.urgent_tuning && upgState.urgent_tuning.lv > 0) {
             duration /= 2;
         }
+
+        // フォース失敗中なら2倍
+        if (activeTimers.forcePenalty > 0) {
+            duration *= 2;
+        }
+
         return duration;
     }
 
@@ -1866,9 +1904,8 @@
         overlayUnits = 0;
         xyzNextCost = 1000000000000;
         for (let k in xyzUpgState) xyzUpgState[k].lv = 0;
-        activeUsage = { shift: 0, import: 0 };
-        activeTimers = { shift: 0, shiftPenalty: 0 };
-        if (reincData.upgrades.adv_exp > 0) expNextCost = 300000;
+        activeUsage = { shift: 0, import: 0, force: 0 }; // forceを追加
+        activeTimers = { shift: 0, shiftPenalty: 0, force: 0, forcePenalty: 0 }; // forceを追加        if (reincData.upgrades.adv_exp > 0) expNextCost = 300000;
 
         ritualNextCost = 500000;
         fusionNextCost = 10000000;
@@ -2190,6 +2227,8 @@
 
 	        if (activeTimers.shift > 0) activeTimers.shift = Math.max(0, activeTimers.shift - dt);
 	        if (activeTimers.shiftPenalty > 0) activeTimers.shiftPenalty = Math.max(0, activeTimers.shiftPenalty - dt);
+            if (activeTimers.force > 0) activeTimers.force = Math.max(0, activeTimers.force - dt);
+            if (activeTimers.forcePenalty > 0) activeTimers.forcePenalty = Math.max(0, activeTimers.forcePenalty - dt);
 	        
 	        const isOffline = dt > 5000;
 	        let offlineActionCount = 0;
@@ -3522,23 +3561,21 @@
         // 転生倍率の算出
         const reincMult = Math.max(1, reincData.maxReachedRP * 0.2);
 
-        // --- 2. 修正: 新しいパネルIDに対応 ---
-        // 転生パネルの表示制御
+        // --- 2. 転生パネル・ORUパネルの表示制御 ---
         const rpPanel = document.getElementById('res-panel-rp');
         if (reincData.maxReachedRP > 0) {
             rpPanel.style.display = 'flex';
-            document.getElementById('rp-val').textContent = reincData.points;       // 残りポイント
-            document.getElementById('rp-total').textContent = reincData.maxReachedRP; // 総ポイント
+            document.getElementById('rp-val').textContent = reincData.points;       
+            document.getElementById('rp-total').textContent = reincData.maxReachedRP; 
             document.getElementById('rp-mult').textContent = formatMultiplier(reincMult);
         } else {
             rpPanel.style.display = 'none';
         }
         
-        // オーバーレイユニット(ORU)パネルの表示制御
         const hasXyzExp = upgState.xyz_exp.lv > 0;
-        const oruPanel = document.getElementById('res-panel-oru'); // ID変更: res-panel-oru
+        const oruPanel = document.getElementById('res-panel-oru');
         if (overlayUnits > 0 || hasXyzExp) {
-            oruPanel.style.display = 'flex'; // flexで表示
+            oruPanel.style.display = 'flex';
             document.getElementById('oru-val').textContent = formatScore(overlayUnits);
         } else {
             oruPanel.style.display = 'none';
@@ -3605,27 +3642,23 @@
         }
 
         // --- 5. 役強化の行（Row）と配当表の表示制御 ---
-        // ストレート4
         const hasS4 = (reincData.upgrades.straight4 > 0);
         const rowS4 = document.getElementById('row-yaku-s4');
         if (rowS4) rowS4.style.display = hasS4 ? 'flex' : 'none';
         const payS4 = document.getElementById('row-payout-s4');
         if (payS4) payS4.style.display = hasS4 ? 'table-row' : 'none';
 
-        // アラシ4
         const hasA4 = (reincData.upgrades.arashi4 > 0);
         const rowA4 = document.getElementById('row-yaku-a4');
         if (rowA4) rowA4.style.display = hasA4 ? 'flex' : 'none';
         const payA4 = document.getElementById('row-payout-a4');
         if (payA4) payA4.style.display = hasA4 ? 'table-row' : 'none';
 
-		// 5枚役の表示制御
 		const payS5 = document.getElementById('row-payout-s5');
 		if (payS5) payS5.style.display = (reincData.upgrades.straight5 > 0) ? 'table-row' : 'none';
 		const payA5 = document.getElementById('row-payout-a5');
 		if (payA5) payA5.style.display = (reincData.upgrades.arashi5 > 0) ? 'table-row' : 'none';
 
-		// 行自体の表示制御を個別に設定
 		const rowS5 = document.getElementById('row-yaku-s5');
 		if (rowS5) rowS5.style.display = (reincData.upgrades.straight5 > 0) ? 'flex' : 'none';
 		const rowA5 = document.getElementById('row-yaku-a5');
@@ -3639,9 +3672,14 @@
         const activePanel = document.getElementById('xyz-active-panel');
         const btnShift = document.getElementById('btn-xyz-shift');
         const btnImport = document.getElementById('btn-xyz-import');
+        // 追加: Forceボタン要素の取得
+        const btnForce = document.getElementById('btn-xyz-force');
 
-        if (hasXyzExp && (xyzUpgState.shift_unlock.lv > 0 || xyzUpgState.import_unlock.lv > 0)) {
+        // 条件に force_unlock を追加
+        if (hasXyzExp && (xyzUpgState.shift_unlock.lv > 0 || xyzUpgState.import_unlock.lv > 0 || xyzUpgState.force_unlock.lv > 0)) {
             activePanel.style.display = 'flex';
+            
+            // --- シフトの表示制御 ---
             if (xyzUpgState.shift_unlock.lv > 0) {
                 btnShift.style.display = 'block';
                 document.getElementById('cost-xyz-shift').textContent = formatScore(10000 * Math.pow(2, activeUsage.shift)) + " ORU";
@@ -3655,10 +3693,31 @@
                 else bar.style.width = "0%";
             } else { btnShift.style.display = 'none'; }
 
+            // --- インポートの表示制御 ---
             if (xyzUpgState.import_unlock.lv > 0) {
                 btnImport.style.display = 'block';
                 document.getElementById('cost-xyz-import').textContent = formatScore(200000 * Math.pow(2, activeUsage.import)) + " ORU";
             } else { btnImport.style.display = 'none'; }
+
+            // --- フォースの表示制御 (新規追加) ---
+            if (xyzUpgState.force_unlock.lv > 0) {
+                btnForce.style.display = 'block';
+                document.getElementById('cost-xyz-force').textContent = formatScore(5000000 * Math.pow(2, activeUsage.force)) + " ORU";
+                
+                const isForceBuff = activeTimers.force > 0;
+                const isForcePenalty = activeTimers.forcePenalty > 0;
+                
+                btnForce.classList.toggle('active-buff', isForceBuff);
+                btnForce.classList.toggle('active-penalty', isForcePenalty);
+                
+                const bar = document.getElementById('xyz-force-bar');
+                if (isForceBuff) bar.style.width = Math.max(0, (activeTimers.force / 180000) * 100) + "%";
+                else if (isForcePenalty) bar.style.width = Math.max(0, (activeTimers.forcePenalty / 60000) * 100) + "%";
+                else bar.style.width = "0%";
+            } else { 
+                btnForce.style.display = 'none'; 
+            }
+
         } else { activePanel.style.display = 'none'; }
 
         // --- 7. 倍率計算への反映 (パッシブ + アクティブ) ---
@@ -3675,7 +3734,6 @@
             const u = upgState[k], n = document.getElementById('node-'+k);
             if (!n) continue;
             
-            // 転生条件のチェック
             if (u.reincReq && (reincData.upgrades[u.reincReq] || 0) <= 0) { 
                 n.style.display = 'none'; continue; 
             } else { 
@@ -3709,13 +3767,10 @@
             let xyzBuyableCount = 0;
             for(let k in xyzUpgState) {
                 const u = xyzUpgState[k];
-                // 前提条件チェック
                 const open = !u.req || (xyzUpgState[u.req].lv >= (u.reqLv || 1));
                 
-                // コスト計算
                 const cost = u.costs ? u.costs[u.lv] : Math.floor(u.baseCost * Math.pow(1.5, u.lv));
                 
-                // 購入可能か判定（開放済み && MAX未満 && 所持ORUが足りている）
                 if (open && u.lv < u.max && overlayUnits >= cost) {
                     xyzBuyableCount++;
                 }
@@ -3838,6 +3893,7 @@
 	    const conn = [
 	        ['network','shift_unlock'], ['network','pack_uncommon'],
 	        ['shift_unlock','import_unlock'], ['pack_uncommon','pack_rare'],
+            ['import_unlock', 'force_unlock'], 
             ['pack_rare', 'pack_super'],
             ['pack_super', 'pack_ultra'],
             ['pack_ultra', 'pack_magic']
@@ -3863,7 +3919,10 @@
 	        cost = 10000 * Math.pow(2, activeUsage.shift);
 	    } else if (type === 'import') {
 	        cost = 200000 * Math.pow(2, activeUsage.import);
-	    }
+	    } else if (type === 'force') {
+            // コスト設定 (例: 500万スタート)
+            cost = 5000000 * Math.pow(2, activeUsage.force);
+        }
 
 	    if (overlayUnits < cost) return alert("オーバーレイユニットが足りません");
 	    
@@ -3872,30 +3931,23 @@
 	    overlayUnits -= cost;
 	    activeUsage[type]++;
 	    
-	    const isSuccess = Math.random() > 0.3;
+	    const isSuccess = Math.random() > 0.3; // 70% 成功
 	    
 	    if (type === 'shift') {
-	        if (isSuccess) {
-	            alert("エクシーズ・シフト成功！\n3分間、最終倍率が3倍になります。");
-	            activeTimers.shift = 180 * 1000;
-	            activeTimers.shiftPenalty = 0;
-	        } else {
-	            alert("エクシーズ・シフト失敗！\n1分間、最終倍率が1/10になります。");
-	            activeTimers.shiftPenalty = 60 * 1000;
-	            activeTimers.shift = 0;
-	        }
+            // ... (既存処理)
 	    } else if (type === 'import') {
-	        if (isSuccess) {
-	            const gain = score * 0.3;
-	            alert(`エクシーズ・インポート成功！\n${formatScore(gain)} スコアを獲得しました。`);
-	            score += gain;
-	            totalScore += gain;
-	        } else {
-	            // ★修正：完全に0にせず、100ptsまたは現在の1%を残す（詰み防止）
-	            alert("エクシーズ・インポート失敗！\n所持スコアのほとんどを失いました。");
-	            score = Math.max(100, score * 0.01);
-	        }
-	    }
+            // ... (既存処理)
+	    } else if (type === 'force') {
+            if (isSuccess) {
+                alert("エクシーズ・フォース成功！\n3分間、探索時間が0秒になります。");
+                activeTimers.force = 180 * 1000;
+                activeTimers.forcePenalty = 0;
+            } else {
+                alert("エクシーズ・フォース失敗！\n1分間、探索時間が2倍になります。");
+                activeTimers.forcePenalty = 60 * 1000;
+                activeTimers.force = 0;
+            }
+        }
 	    saveGame();
 	    updateUI();
 	}
