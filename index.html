@@ -144,7 +144,10 @@
         .exp-btn:disabled { background: #444 !important; }
         
         /* モーダル */
-        #reward-modal, #pool-detail-modal, #upgrade-modal, #reinc-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); justify-content: center; align-items: center; z-index: 2000; }
+        #reward-modal, #pool-detail-modal, #upgrade-modal, #reinc-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); justify-content: center; align-items: center; z-index: 3000; }
+        #upgrade-modal, #reinc-modal { z-index: 1000; }
+        #reward-modal { z-index: 2000; }
+        #pool-detail-modal { z-index: 3000; } /* 結果画面より手前に表示 */
         #upgrade-modal, #reinc-modal { z-index: 1000; }
 
         .reward-card { background: #222; border: 2px solid #444; padding: 20px; border-radius: 15px; width: 140px; cursor: pointer; transition: 0.3s; margin: 10px; display: flex; flex-direction: column; align-items: center; gap: 10px; }
@@ -715,7 +718,9 @@
         <div class="modal-content" style="width: 600px;">
         <button class="close-modal-btn" onclick="discardRewards()">×</button>
         <h2 id="reward-title" style="color:var(--accent);">探索から帰還！</h2>
-        <p id="reward-desc">持ち帰る出目を選択してください。</p>
+        <p id="reward-desc">持ち帰る出目を選択してください。</p><button onclick="openPoolDetail()" style="margin-bottom:15px; padding:5px 15px; background:var(--skill-line); color:white; border:none; border-radius:15px; cursor:pointer; font-size:0.8rem; box-shadow: 0 2px 5px rgba(0,0,0,0.3);">
+            📋 現在のプールを確認
+        </button>
         <p id="reward-count-msg" style="color:var(--auto-color); font-weight:bold;"></p>
         <div style="display:flex; justify-content:center; gap:15px; flex-wrap:wrap;" id="reward-list"></div>
         
