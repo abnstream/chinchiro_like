@@ -1983,6 +1983,22 @@
             updateConfirmButtonState();
         }
 
+        // --- 共通ソート関数: レアリティ(高) > レベル(高) > 出目(大) ---
+        const sortRewardsFunc = (a, b) => {
+            // 1. レアリティ比較 (インデックスが大きいほど高レア)
+            const rA = RARITY_ORDER.indexOf(a.die.rarity);
+            const rB = RARITY_ORDER.indexOf(b.die.rarity);
+            if (rA !== rB) return rB - rA; // 降順
+
+            // 2. レベル比較
+            const lA = a.die.level || 1;
+            const lB = b.die.level || 1;
+            if (lA !== lB) return lB - lA; // 降順
+
+            // 3. 出目の大きさ比較
+            return b.die.val - a.die.val; // 降順 (6 > 1)
+        };
+
         if (expMode === 'normal') {
             title.textContent = "探索から帰還！";
             title.style.color = "var(--accent)";
@@ -1993,6 +2009,9 @@
             const choiceNum = 2 + upgState.exp_amount.lv + (reincData.upgrades.greedy_exp || 0);
             
             for(let i=0; i<choiceNum; i++) currentRewards.push({ die: genDie(), selected: false });
+
+            // ★追加: ソート実行
+            currentRewards.sort(sortRewardsFunc);
 
             currentRewards.forEach((item, i) => {
                 const card = createCard(item.die, false);
@@ -2019,6 +2038,9 @@
                 currentRewards.push({ die: dicePool[idx], poolIndex: idx, selected: false });
             });
 
+            // ★追加: ソート実行
+            currentRewards.sort(sortRewardsFunc);
+
             currentRewards.forEach((item, i) => {
                 const card = createCard(item.die, true);
                 card.id = `reward-card-${i}`;
@@ -2041,6 +2063,10 @@
             indices.forEach(idx => {
                 currentRewards.push({ die: dicePool[idx], poolIndex: idx, selected: false });
             });
+
+            // ★追加: 融合候補も見やすいようにソートしておきます
+            currentRewards.sort(sortRewardsFunc);
+
             currentRewards.forEach((item, i) => {
                 const card = createCard(item.die, false, 'fusion');
                 card.id = `reward-card-${i}`;
