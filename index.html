@@ -577,6 +577,16 @@
 		.active-buff .xyz-timer-bar { background: #2ecc71; box-shadow: 0 0 5px #2ecc71; }
 		.active-penalty .xyz-timer-bar { background: #e74c3c; box-shadow: 0 0 5px #e74c3c; }
 
+		/* 役強化ラインを揃えるための固定幅スペーサー */
+		.yaku-indent {
+		    width: 480px; 
+		    flex-shrink: 0;
+		}
+
+		/* 垂直方向の隙間を詰める設定 */
+		.tree-row.yaku-series {
+		    margin-top: -15px; /* 上の行との距離を縮める */
+		}
 
     </style>
 </head>
@@ -753,114 +763,98 @@
                 <div id="node-platinum_finger" class="skill-node locked" onclick="buyUpgrade('platinum_finger')"><span class="skill-icon" style="color:#e5e4e2; text-shadow:0 0 5px white;">💍</span><span id="lv-platinum_finger" class="lv-badge"></span><div class="skill-tooltip" id="tip-platinum_finger"></div></div>
             </div>
 
-            <div class="tree-row" style="gap: 120px;">
-                <div id="node-auto" class="skill-node locked" onclick="buyUpgrade('auto')"><span class="skill-icon" id="icon-auto">🤖</span><span id="lv-auto" class="lv-badge"></span><div class="skill-tooltip" id="tip-auto"></div></div>
-                <div id="node-field" class="skill-node locked" onclick="buyUpgrade('field')"><span class="skill-icon" id="icon-field">🎲</span><span id="lv-field" class="lv-badge"></span><div class="skill-tooltip" id="tip-field"></div></div>
-            </div>
+			<div class="tree-row" style="gap: 80px;">
+			    <div id="node-auto" class="skill-node locked" onclick="buyUpgrade('auto')"><span class="skill-icon" id="icon-auto">🤖</span><span id="lv-auto" class="lv-badge"></span><div class="skill-tooltip" id="tip-auto"></div></div>
+			    <div id="node-field" class="skill-node locked" onclick="buyUpgrade('field')"><span class="skill-icon" id="icon-field">🎲</span><span id="lv-field" class="lv-badge"></span><div class="skill-tooltip" id="tip-field"></div></div>
+			    <div id="node-potential" class="skill-node locked" onclick="buyUpgrade('potential')"><span class="skill-icon" id="icon-potential">💎</span><span id="lv-potential" class="lv-badge"></span><div class="skill-tooltip" id="tip-potential"></div></div>
+			</div>
 
-            <div class="tree-row" style="gap: 20px;">
-                <div style="display:flex; gap:20px; margin-right: 60px;">
-                    <div id="node-expedition" class="skill-node locked" onclick="buyUpgrade('expedition')"><span class="skill-icon" id="icon-expedition">🧭</span><span id="lv-expedition" class="lv-badge"></span><div class="skill-tooltip" id="tip-expedition"></div></div>
-                    <div id="node-history" class="skill-node locked" onclick="buyUpgrade('history')"><span class="skill-icon" id="icon-history">📖</span><span id="lv-history" class="lv-badge"></span><div class="skill-tooltip" id="tip-history"></div></div>
-                    <div id="node-speed" class="skill-node locked" onclick="buyUpgrade('speed')"><span class="skill-icon" id="icon-speed">⚡</span><span id="lv-speed" class="lv-badge"></span><div class="skill-tooltip" id="tip-speed"></div></div>
-                    <div id="node-yaku_none" class="skill-node locked" onclick="buyUpgrade('yaku_none')"><span class="skill-icon" id="icon-yaku_none">❔</span><span id="lv-yaku_none" class="lv-badge"></span><div class="skill-tooltip" id="tip-yaku_none"></div></div>
-                </div>
 
-                <div id="node-potential" class="skill-node locked" onclick="buyUpgrade('potential')"><span class="skill-icon" id="icon-potential">💎</span><span id="lv-potential" class="lv-badge"></span><div class="skill-tooltip" id="tip-potential"></div></div>
-            </div>
-
-            <div class="tree-row" style="gap: 15px; justify-content: flex-start; padding-left: 20px;">
-                <div id="node-ritual_unlock" class="skill-node locked" onclick="buyUpgrade('ritual_unlock')"><span class="skill-icon" id="icon-ritual_unlock">🔮</span><span id="lv-ritual_unlock" class="lv-badge"></span><div class="skill-tooltip" id="tip-ritual_unlock"></div></div>
-                
-                <div id="node-exp_speed" class="skill-node locked" onclick="buyUpgrade('exp_speed')"><span class="skill-icon" id="icon-exp_speed">⏩</span><span id="lv-exp_speed" class="lv-badge"></span><div class="skill-tooltip" id="tip-exp_speed"></div></div>
-
-                <div id="node-exp_amount" class="skill-node locked" onclick="buyUpgrade('exp_amount')"><span class="skill-icon" id="icon-exp_amount">📦</span><span id="lv-exp_amount" class="lv-badge"></span><div class="skill-tooltip" id="tip-exp_amount"></div></div>
-
-                <div id="node-digital_history" class="skill-node locked" onclick="buyUpgrade('digital_history')"><span class="skill-icon" id="icon-digital_history">📱</span><span id="lv-digital_history" class="lv-badge"></span><div class="skill-tooltip" id="tip-digital_history"></div></div>
-
-                <div id="node-throw" class="skill-node locked" onclick="buyUpgrade('throw')"><span class="skill-icon" id="icon-throw">🎯</span><span id="lv-throw" class="lv-badge"></span><div class="skill-tooltip" id="tip-throw"></div></div>
-
-                <div id="node-yaku_normal" class="skill-node locked" onclick="buyUpgrade('yaku_normal')"><span class="skill-icon" id="icon-yaku_normal">⚂</span><span id="lv-yaku_normal" class="lv-badge"></span><div class="skill-tooltip" id="tip-yaku_normal"></div></div>
-            </div>
-
-            <div class="tree-row" style="gap: 15px; justify-content: flex-start; padding-left: 20px;">
-                <div id="node-ritual_amount" class="skill-node locked" onclick="buyUpgrade('ritual_amount')"><span class="skill-icon" id="icon-ritual_amount">🌑</span><span id="lv-ritual_amount" class="lv-badge"></span><div class="skill-tooltip" id="tip-ritual_amount"></div></div>
-                
-                <div style="width: 100px;"></div>
-                
-                <div id="node-simple_fusion" class="skill-node locked" onclick="buyUpgrade('simple_fusion')"><span class="skill-icon">🍜</span><span id="lv-simple_fusion" class="lv-badge"></span><div class="skill-tooltip" id="tip-simple_fusion"></div></div>
-
-                <div style="width: 50px;"></div>
-
-                <div id="node-urgent_tuning" class="skill-node locked" onclick="buyUpgrade('urgent_tuning')" style="display:none;">
-                    <span class="skill-icon" style="color:var(--mode-synchro); text-shadow:0 0 5px #fff;">⚡</span>
-                    <span id="lv-urgent_tuning" class="lv-badge"></span>
-                    <div class="skill-tooltip" id="tip-urgent_tuning"></div>
-                </div>
-
-                <div style="width: 50px;"></div>
-                
-                <div id="node-yaku_456" class="skill-node locked" onclick="buyUpgrade('yaku_456')"><span class="skill-icon" id="icon-yaku_456">✨</span><span id="lv-yaku_456" class="lv-badge"></span><div class="skill-tooltip" id="tip-yaku_456"></div></div>
-            </div>
-
-            <div class="tree-row" style="gap: 15px; justify-content: flex-start; padding-left: 20px;">
-                <div id="node-fusion_exp" class="skill-node locked" onclick="buyUpgrade('fusion_exp')" style="display:none;"><span class="skill-icon" style="color:var(--mode-fusion)">🔥</span><span id="lv-fusion_exp" class="lv-badge"></span><div class="skill-tooltip" id="tip-fusion_exp"></div></div>
-                <div id="node-fusion_exp_amount" class="skill-node locked" onclick="buyUpgrade('fusion_exp_amount')" style="display:none;"><span class="skill-icon" style="color:var(--mode-fusion)">📦</span><span id="lv-fusion_exp_amount" class="lv-badge"></span><div class="skill-tooltip" id="tip-fusion_exp_amount"></div></div>
-
-                <div style="width: 290px;"></div>
-                <div id="node-yaku_arashi" class="skill-node locked" onclick="buyUpgrade('yaku_arashi')"><span class="skill-icon" id="icon-yaku_arashi">🌀</span><span id="lv-yaku_arashi" class="lv-badge"></span><div class="skill-tooltip" id="tip-yaku_arashi"></div></div>
-            </div>
-
-			<div class="tree-row" style="gap: 15px; justify-content: flex-start; padding-left: 20px;">
-			    <div id="node-synchro_exp" class="skill-node locked" onclick="buyUpgrade('synchro_exp')" style="display:none;">
-			        <span class="skill-icon" style="color:var(--mode-synchro)">⚛️</span>
-			        <span id="lv-synchro_exp" class="lv-badge"></span>
-			        <div class="skill-tooltip" id="tip-synchro_exp"></div>
-			    </div>
-			    
-			    <div id="node-tuning" class="skill-node locked" onclick="buyUpgrade('tuning')" style="display:none;">
-			        <span class="skill-icon">🎻</span>
-			        <span id="lv-tuning" class="lv-badge"></span>
-			        <div class="skill-tooltip" id="tip-tuning"></div>
+			<div class="tree-row" style="gap: 20px;">
+			    <div id="node-expedition" class="skill-node locked" onclick="buyUpgrade('expedition')">
+			        <span class="skill-icon" id="icon-expedition">🧭</span>
+			        <span id="lv-expedition" class="lv-badge"></span>
+			        <div class="skill-tooltip" id="tip-expedition"></div>
 			    </div>
 
-			    <div style="width: 250px;"></div> 
-			    <div id="node-yaku_pin" class="skill-node locked" onclick="buyUpgrade('yaku_pin')">
-			        <span class="skill-icon" id="icon-yaku_pin">🔥</span>
-			        <span id="lv-yaku_pin" class="lv-badge"></span>
-			        <div class="skill-tooltip" id="tip-yaku_pin"></div>
+			    <div style="display:flex; gap:15px; width: 385px; flex-shrink: 0; justify-content: flex-end;">
+			        <div id="node-history" class="skill-node locked" onclick="buyUpgrade('history')"><span class="skill-icon" id="icon-history">📖</span><span id="lv-history" class="lv-badge"></span><div class="skill-tooltip" id="tip-history"></div></div>
+			        <div id="node-speed" class="skill-node locked" onclick="buyUpgrade('speed')"><span class="skill-icon" id="icon-speed">⚡</span><span id="lv-speed" class="lv-badge"></span><div class="skill-tooltip" id="tip-speed"></div></div>
+			    </div>
+
+			    <div id="node-yaku_none" class="skill-node locked" onclick="buyUpgrade('yaku_none')">
+			        <span class="skill-icon" id="icon-yaku_none">❔</span>
+			        <span id="lv-yaku_none" class="lv-badge"></span>
+			        <div class="skill-tooltip" id="tip-yaku_none"></div>
 			    </div>
 			</div>
 
-			<div class="tree-row" style="gap: 15px; justify-content: flex-start; padding-left: 20px;">
-                <div id="node-xyz_exp" class="skill-node locked" onclick="buyUpgrade('xyz_exp')" style="display:none;">
-                    <span class="skill-icon" style="color:var(--mode-xyz); text-shadow:0 0 5px #fff;">✖️</span>
-                    <span id="lv-xyz_exp" class="lv-badge"></span>
-                    <div class="skill-tooltip" id="tip-xyz_exp"></div>
-                </div>
-                <div id="node-rank_revolution" class="skill-node locked" onclick="buyUpgrade('rank_revolution')" style="display:none;">
-                    <span class="skill-icon" style="color:#f1c40f;">💎</span>
-                    <span id="lv-rank_revolution" class="lv-badge"></span>
-                    <div class="skill-tooltip" id="tip-rank_revolution"></div>
-                </div>
-            </div>
 
 
-            <div class="tree-row" id="row-yaku-s4" style="gap: 15px; justify-content: flex-start; padding-left: 20px; display:none;">
-                <div style="width: 450px;"></div>
-                <div id="node-yaku_straight4" class="skill-node locked" onclick="buyUpgrade('yaku_straight4')"><span class="skill-icon">4️⃣</span><span id="lv-yaku_straight4" class="lv-badge"></span><div class="skill-tooltip" id="tip-yaku_straight4"></div></div>
-            </div>
+			<div class="tree-row yaku-series" style="gap: 15px;">
+			    <div style="display:flex; gap:15px; width: 480px; flex-shrink: 0;">
+			        <div id="node-ritual_unlock" class="skill-node locked" onclick="buyUpgrade('ritual_unlock')"><span class="skill-icon" id="icon-ritual_unlock">🔮</span><span id="lv-ritual_unlock" class="lv-badge"></span><div class="skill-tooltip" id="tip-ritual_unlock"></div></div>
+			        <div id="node-exp_speed" class="skill-node locked" onclick="buyUpgrade('exp_speed')"><span class="skill-icon" id="icon-exp_speed">⏩</span><span id="lv-exp_speed" class="lv-badge"></span><div class="skill-tooltip" id="tip-exp_speed"></div></div>
+			        <div id="node-exp_amount" class="skill-node locked" onclick="buyUpgrade('exp_amount')"><span class="skill-icon" id="icon-exp_amount">📦</span><span id="lv-exp_amount" class="lv-badge"></span><div class="skill-tooltip" id="tip-exp_amount"></div></div>
+			        <div id="node-digital_history" class="skill-node locked" onclick="buyUpgrade('digital_history')"><span class="skill-icon" id="icon-digital_history">📱</span><span id="lv-digital_history" class="lv-badge"></span><div class="skill-tooltip" id="tip-digital_history"></div></div>
+			        <div id="node-throw" class="skill-node locked" onclick="buyUpgrade('throw')"><span class="skill-icon" id="icon-throw">🎯</span><span id="lv-throw" class="lv-badge"></span><div class="skill-tooltip" id="tip-throw"></div></div>
+			    </div>
+			    <div id="node-yaku_normal" class="skill-node locked" onclick="buyUpgrade('yaku_normal')"><span class="skill-icon" id="icon-yaku_normal">⚂</span><span id="lv-yaku_normal" class="lv-badge"></span><div class="skill-tooltip" id="tip-yaku_normal"></div></div>
+			</div>
 
-            <div class="tree-row" id="row-yaku-a4" style="gap: 15px; justify-content: flex-start; padding-left: 20px; display:none;">
-                <div style="width: 450px;"></div>
-                <div id="node-yaku_arashi4" class="skill-node locked" onclick="buyUpgrade('yaku_arashi4')"><span class="skill-icon">🌪️</span><span id="lv-yaku_arashi4" class="lv-badge"></span><div class="skill-tooltip" id="tip-yaku_arashi4"></div></div>
-            </div>
+			<div class="tree-row yaku-series" style="gap: 15px;">
+			    <div style="display:flex; gap:15px; width: 480px; flex-shrink: 0;">
+			        <div id="node-ritual_amount" class="skill-node locked" onclick="buyUpgrade('ritual_amount')"><span class="skill-icon" id="icon-ritual_amount">🌑</span><span id="lv-ritual_amount" class="lv-badge"></span><div class="skill-tooltip" id="tip-ritual_amount"></div></div>
+			        <div id="node-simple_fusion" class="skill-node locked" onclick="buyUpgrade('simple_fusion')"><span class="skill-icon">🍜</span><span id="lv-simple_fusion" class="lv-badge"></span><div class="skill-tooltip" id="tip-simple_fusion"></div></div>
+			        <div id="node-urgent_tuning" class="skill-node locked" onclick="buyUpgrade('urgent_tuning')" style="display:none;"><span class="skill-icon" style="color:var(--mode-synchro);">⚡</span><span id="lv-urgent_tuning" class="lv-badge"></span><div class="skill-tooltip" id="tip-urgent_tuning"></div></div>
+			    </div>
+			    <div id="node-yaku_456" class="skill-node locked" onclick="buyUpgrade('yaku_456')"><span class="skill-icon" id="icon-yaku_456">✨</span><span id="lv-yaku_456" class="lv-badge"></span><div class="skill-tooltip" id="tip-yaku_456"></div></div>
+			</div>
 
-            <div class="tree-row" id="row-yaku-5" style="gap: 30px; justify-content: flex-start; padding-left: 20px; display:none;">
-                <div style="width: 420px;"></div>
-                <div id="node-yaku_straight5" class="skill-node locked" onclick="buyUpgrade('yaku_straight5')"><span class="skill-icon">5️⃣</span><span id="lv-yaku_straight5" class="lv-badge"></span><div class="skill-tooltip" id="tip-yaku_straight5"></div></div>
-                <div id="node-yaku_arashi5" class="skill-node locked" onclick="buyUpgrade('yaku_arashi5')"><span class="skill-icon">🌈</span><span id="lv-yaku_arashi5" class="lv-badge"></span><div class="skill-tooltip" id="tip-yaku_arashi5"></div></div>
-            </div>
+			<div class="tree-row yaku-series" style="gap: 15px;">
+			    <div style="display:flex; gap:15px; width: 480px; flex-shrink: 0;">
+			        <div id="node-fusion_exp" class="skill-node locked" onclick="buyUpgrade('fusion_exp')" style="display:none;"><span class="skill-icon" style="color:var(--mode-fusion)">🔥</span><span id="lv-fusion_exp" class="lv-badge"></span><div class="skill-tooltip" id="tip-fusion_exp"></div></div>
+			        <div id="node-fusion_exp_amount" class="skill-node locked" onclick="buyUpgrade('fusion_exp_amount')" style="display:none;"><span class="skill-icon" style="color:var(--mode-fusion)">📦</span><span id="lv-fusion_exp_amount" class="lv-badge"></span><div class="skill-tooltip" id="tip-fusion_exp_amount"></div></div>
+			    </div>
+			    <div id="node-yaku_arashi" class="skill-node locked" onclick="buyUpgrade('yaku_arashi')"><span class="skill-icon" id="icon-yaku_arashi">🌀</span><span id="lv-yaku_arashi" class="lv-badge"></span><div class="skill-tooltip" id="tip-yaku_arashi"></div></div>
+			</div>
+
+			<div class="tree-row yaku-series" style="gap: 15px;">
+			    <div style="display:flex; gap:15px; width: 480px; flex-shrink: 0;">
+			        <div id="node-synchro_exp" class="skill-node locked" onclick="buyUpgrade('synchro_exp')" style="display:none;"><span class="skill-icon" style="color:var(--mode-synchro)">⚛️</span><span id="lv-synchro_exp" class="lv-badge"></span><div class="skill-tooltip" id="tip-synchro_exp"></div></div>
+			        <div id="node-tuning" class="skill-node locked" onclick="buyUpgrade('tuning')" style="display:none;"><span class="skill-icon">🎻</span><span id="lv-tuning" class="lv-badge"></span><div class="skill-tooltip" id="tip-tuning"></div></div>
+			    </div>
+			    <div id="node-yaku_pin" class="skill-node locked" onclick="buyUpgrade('yaku_pin')"><span class="skill-icon" id="icon-yaku_pin">🔥</span><span id="lv-yaku_pin" class="lv-badge"></span><div class="skill-tooltip" id="tip-yaku_pin"></div></div>
+			</div>
+
+			<div class="tree-row yaku-series" style="gap: 15px;">
+			    <div style="display:flex; gap:15px; width: 480px; flex-shrink: 0;">
+			        <div id="node-xyz_exp" class="skill-node locked" onclick="buyUpgrade('xyz_exp')" style="display:none;"><span class="skill-icon" style="color:var(--mode-xyz); text-shadow:0 0 5px #fff;">✖️</span><span id="lv-xyz_exp" class="lv-badge"></span><div class="skill-tooltip" id="tip-xyz_exp"></div></div>
+			        <div id="node-rank_revolution" class="skill-node locked" onclick="buyUpgrade('rank_revolution')" style="display:none;"><span class="skill-icon" style="color:#f1c40f;">💎</span><span id="lv-rank_revolution" class="lv-badge"></span><div class="skill-tooltip" id="tip-rank_revolution"></div></div>
+			    </div>
+			</div>
+
+			<div class="tree-row yaku-series" id="row-yaku-s4" style="display:none;">
+			    <div class="yaku-indent"></div>
+			    <div id="node-yaku_straight4" class="skill-node locked" onclick="buyUpgrade('yaku_straight4')"><span class="skill-icon">4️⃣</span><span id="lv-yaku_straight4" class="lv-badge"></span><div class="skill-tooltip" id="tip-yaku_straight4"></div></div>
+			</div>
+
+			<div class="tree-row yaku-series" id="row-yaku-a4" style="display:none;">
+			    <div class="yaku-indent"></div>
+			    <div id="node-yaku_arashi4" class="skill-node locked" onclick="buyUpgrade('yaku_arashi4')"><span class="skill-icon">🌪️</span><span id="lv-yaku_arashi4" class="lv-badge"></span><div class="skill-tooltip" id="tip-yaku_arashi4"></div></div>
+			</div>
+
+			<div class="tree-row yaku-series" id="row-yaku-s5" style="display:none;">
+			    <div class="yaku-indent"></div>
+			    <div id="node-yaku_straight5" class="skill-node locked" onclick="buyUpgrade('yaku_straight5')"><span class="skill-icon">5️⃣</span><span id="lv-yaku_straight5" class="lv-badge"></span><div class="skill-tooltip" id="tip-yaku_straight5"></div></div>
+			</div>
+
+			<div class="tree-row yaku-series" id="row-yaku-a5" style="display:none;">
+			    <div class="yaku-indent"></div>
+			    <div id="node-yaku_arashi5" class="skill-node locked" onclick="buyUpgrade('yaku_arashi5')"><span class="skill-icon">🌈</span><span id="lv-yaku_arashi5" class="lv-badge"></span><div class="skill-tooltip" id="tip-yaku_arashi5"></div></div>
+			</div>
+
+
         </div>
 
         <button onclick="toggleModal(false)" style="margin-top:30px; width:100%; padding:12px; background:#333; border:none; color:white; border-radius:8px; cursor:pointer;">閉じる</button>
@@ -1104,8 +1098,7 @@
         yaku_straight4: { lv: 0, max: 50, costs: Array.from({length:50}, (_,i)=>100000 * Math.pow(4, i)), name: "ストレート4強化", icon: "4️⃣", desc: "ストレート4+400%", req: "yaku_pin", reincReq: "straight4" },
         yaku_arashi4: { lv: 0, max: 50, costs: Array.from({length:50}, (_,i)=>200000 * Math.pow(4, i)), name: "アラシ4強化", icon: "🌪️", desc: "アラシ4+400%", req: "yaku_straight4", reincReq: "arashi4" },
         yaku_straight5: { lv: 0, max: 50, costs: Array.from({length:50}, (_,i)=>1000000 * Math.pow(4, i)), name: "ストレート5強化", icon: "5️⃣", desc: "ストレート5+400%", req: "yaku_arashi4", reincReq: "straight5" },
-        yaku_arashi5: { lv: 0, max: 50, costs: Array.from({length:50}, (_,i)=>2000000 * Math.pow(4, i)), name: "アラシ5強化", icon: "🌈", desc: "アラシ5+400%", req: "yaku_arashi4", reincReq: "arashi5" },
-
+        yaku_arashi5: { lv: 0, max: 50, costs: Array.from({length:50}, (_,i)=>2000000 * Math.pow(4, i)), name: "アラシ5強化", icon: "🌈", desc: "アラシ5+400%", req: "yaku_straight5", reincReq: "arashi5" },
 		xyz_exp: { 
 		    lv: 0, max: 1, 
 		    costs: [1000000000000], 
@@ -3027,8 +3020,8 @@
             document.getElementById('rp-mult').textContent = formatMultiplier(reincMult);
         }
         
-        const oruPanel = document.getElementById('oru-display-panel');
         const hasXyzExp = upgState.xyz_exp.lv > 0;
+        const oruPanel = document.getElementById('oru-display-panel');
         if (overlayUnits > 0 || hasXyzExp) {
             oruPanel.style.display = 'block';
             document.getElementById('oru-val').textContent = formatScore(overlayUnits);
@@ -3078,7 +3071,6 @@
 
         const title = document.getElementById('exp-title');
         const costDisp = document.getElementById('exp-cost-display');
-        const btn = document.getElementById('exp-action-btn');
 
         if (expMode === 'normal') {
             expPanel.className = 'mode-normal'; title.textContent = "🧭 通常探索"; title.style.color = "var(--mode-normal)";
@@ -3097,7 +3089,35 @@
             costDisp.textContent = "コスト: " + formatScore(xyzNextCost) + " pts";
         }
 
-        // --- 5. プール統計とエクシーズ・アクティブスキルの更新 ---
+        // --- 5. 役強化の行（Row）と配当表の表示制御 ---
+        // ストレート4
+        const hasS4 = (reincData.upgrades.straight4 > 0);
+        const rowS4 = document.getElementById('row-yaku-s4');
+        if (rowS4) rowS4.style.display = hasS4 ? 'flex' : 'none';
+        const payS4 = document.getElementById('row-payout-s4');
+        if (payS4) payS4.style.display = hasS4 ? 'table-row' : 'none';
+
+        // アラシ4
+        const hasA4 = (reincData.upgrades.arashi4 > 0);
+        const rowA4 = document.getElementById('row-yaku-a4');
+        if (rowA4) rowA4.style.display = hasA4 ? 'flex' : 'none';
+        const payA4 = document.getElementById('row-payout-a4');
+        if (payA4) payA4.style.display = hasA4 ? 'table-row' : 'none';
+
+		// 5枚役の表示制御
+		const payS5 = document.getElementById('row-payout-s5');
+		if (payS5) payS5.style.display = (reincData.upgrades.straight5 > 0) ? 'table-row' : 'none';
+		const payA5 = document.getElementById('row-payout-a5');
+		if (payA5) payA5.style.display = (reincData.upgrades.arashi5 > 0) ? 'table-row' : 'none';
+
+		// 行自体の表示制御を個別に設定
+		const rowS5 = document.getElementById('row-yaku-s5');
+		if (rowS5) rowS5.style.display = (reincData.upgrades.straight5 > 0) ? 'flex' : 'none';
+		const rowA5 = document.getElementById('row-yaku-a5');
+		if (rowA5) rowA5.style.display = (reincData.upgrades.arashi5 > 0) ? 'flex' : 'none';
+
+
+        // --- 6. プール統計とエクシーズ・アクティブスキルの更新 ---
         const counts = {}; dicePool.forEach(d => { if (d && d.rarity) counts[d.rarity] = (counts[d.rarity] || 0) + 1; });
         document.getElementById('pool-stats').innerHTML = Object.entries(RARITIES).map(([k,v])=>`<span style="color:${v.color}">${v.name}: ${counts[k]||0}</span>`).join('<br>');
 
@@ -3107,22 +3127,18 @@
 
         if (hasXyzExp && (xyzUpgState.shift_unlock.lv > 0 || xyzUpgState.import_unlock.lv > 0)) {
             activePanel.style.display = 'flex';
-            
-			if (xyzUpgState.shift_unlock.lv > 0) {
-			    btnShift.style.display = 'block';
-			    document.getElementById('cost-xyz-shift').textContent = formatScore(10000 * Math.pow(2, activeUsage.shift)) + " ORU";
-			    
-			    const isBuff = activeTimers.shift > 0;
-			    const isPenalty = activeTimers.shiftPenalty > 0;
-			    btnShift.classList.toggle('active-buff', isBuff);
-			    btnShift.classList.toggle('active-penalty', isPenalty);
-
-			    const bar = document.getElementById('xyz-shift-bar');
-			    // ★修正：負の値を防止
-			    if (isBuff) bar.style.width = Math.max(0, (activeTimers.shift / 180000) * 100) + "%";
-			    else if (isPenalty) bar.style.width = Math.max(0, (activeTimers.shiftPenalty / 60000) * 100) + "%";
-			    else bar.style.width = "0%";
-			} else { btnShift.style.display = 'none'; }
+            if (xyzUpgState.shift_unlock.lv > 0) {
+                btnShift.style.display = 'block';
+                document.getElementById('cost-xyz-shift').textContent = formatScore(10000 * Math.pow(2, activeUsage.shift)) + " ORU";
+                const isBuff = activeTimers.shift > 0;
+                const isPenalty = activeTimers.shiftPenalty > 0;
+                btnShift.classList.toggle('active-buff', isBuff);
+                btnShift.classList.toggle('active-penalty', isPenalty);
+                const bar = document.getElementById('xyz-shift-bar');
+                if (isBuff) bar.style.width = Math.max(0, (activeTimers.shift / 180000) * 100) + "%";
+                else if (isPenalty) bar.style.width = Math.max(0, (activeTimers.shiftPenalty / 60000) * 100) + "%";
+                else bar.style.width = "0%";
+            } else { btnShift.style.display = 'none'; }
 
             if (xyzUpgState.import_unlock.lv > 0) {
                 btnImport.style.display = 'block';
@@ -3130,7 +3146,7 @@
             } else { btnImport.style.display = 'none'; }
         } else { activePanel.style.display = 'none'; }
 
-        // --- 6. 倍率計算への反映 (パッシブ + アクティブ) ---
+        // --- 7. 倍率計算への反映 (パッシブ + アクティブ) ---
         let xyzPassiveMult = 1 + (xyzUpgState.network.lv * 0.2);
         let activeBuff = 1;
         if (activeTimers.shift > 0) activeBuff = 3;
@@ -3138,13 +3154,18 @@
 
         document.getElementById('mult-val').textContent = formatMultiplier(multiplier * reincMult * xyzPassiveMult * activeBuff);
 
-        // --- 7. 通常スキルツリーのノード更新と説明文反映 ---
+        // --- 8. 通常スキルツリーのノード更新と説明文反映 ---
         let upgradeCount = 0;
         for(let k in upgState) {
             const u = upgState[k], n = document.getElementById('node-'+k);
             if (!n) continue;
-            if (u.reincReq && (reincData.upgrades[u.reincReq] || 0) <= 0) { n.style.display = 'none'; continue; } 
-            else { n.style.display = 'flex'; }
+            
+            // 転生条件のチェック
+            if (u.reincReq && (reincData.upgrades[u.reincReq] || 0) <= 0) { 
+                n.style.display = 'none'; continue; 
+            } else { 
+                n.style.display = 'flex'; 
+            }
 
             const reqs = Array.isArray(u.req) ? u.req : (u.req ? [u.req] : []);
             const open = reqs.length === 0 || reqs.every(r => upgState[r].lv > 0);
@@ -3154,7 +3175,6 @@
             n.className = `skill-node ${open?(u.lv>0?'unlocked':'available'):'locked'} ${u.lv>=u.max?'is-max':''} ${canBuy?'can-buy':''}`;
             document.getElementById('lv-'+k).textContent = `Lv ${u.lv}/${u.max}`;
 
-            // 説明文（ツールチップ）の更新ロジック
             let tooltipHTML = `<strong>${u.name}</strong><br>${u.desc}<br>コスト: ${u.lv>=u.max?'MAX':formatScore(u.costs[u.lv])} pts`;
             if (!open) {
                 const reqNames = reqs.map(r => upgState[r].name).join(', ');
@@ -3164,10 +3184,9 @@
             if(tipEl) tipEl.innerHTML = tooltipHTML;
         }
         
-        // --- 8. 補助UI要素の表示 ---
+        // --- 9. 補助UI要素の表示 ---
         const badge = document.getElementById('shop-badge');
         if (upgradeCount > 0) { badge.style.display = 'flex'; badge.textContent = upgradeCount; } else { badge.style.display = 'none'; }
-
         document.getElementById('xyz-trigger').style.display = hasXyzExp ? 'block' : 'none';
     }
 
@@ -3196,7 +3215,7 @@
                 ['yaku_none','yaku_normal'], ['yaku_normal','yaku_456'],
                 ['yaku_456','yaku_arashi'], ['yaku_arashi','yaku_pin'],
                 ['yaku_pin', 'yaku_straight4'], ['yaku_straight4', 'yaku_arashi4'],
-                ['yaku_arashi4', 'yaku_straight5'], ['yaku_arashi4', 'yaku_arashi5'],
+                ['yaku_arashi4', 'yaku_straight5'], ['yaku_straight5', 'yaku_arashi5'],
                 ['synchro_exp', 'xyz_exp'],['synchro_exp', 'tuning'],['xyz_exp', 'rank_revolution']
             ];
             
