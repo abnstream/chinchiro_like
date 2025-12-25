@@ -1035,9 +1035,33 @@
     
     let currentRewards = []; 
     let rewardSelectCount = 1; 
+    let reincTimer = null;
 
     let lastTickTime = Date.now();
+
+    let currentSPM = 0; // 現在の分間スコアを保持
     
+    function formatTimeEst(minutes) {
+        if (!isFinite(minutes) || minutes < 0) return "---";
+        if (minutes === 0) return "0秒";
+        
+        // 非常に長い場合
+        if (minutes > 525600) return "1年以上"; // 簡易キャップ
+
+        const seconds = Math.floor(minutes * 60);
+        if (seconds < 60) return seconds + "秒";
+        
+        const mins = Math.floor(minutes);
+        if (mins < 60) return mins + "分";
+        
+        const hours = Math.floor(mins / 60);
+        const remMins = mins % 60;
+        if (hours < 24) return `${hours}時間${remMins}分`;
+        
+        const days = Math.floor(hours / 24);
+        const remHours = hours % 24;
+        return `${days}日${remHours}時間`;
+    }
 
 	// エクシーズ・アップグレードの状態（転生でリセット）
 	let xyzUpgState = {
@@ -1462,51 +1486,48 @@
         return Math.pow(10, (rp + 30) / 5);
     }
 
-    function openReincarnationModal() {
+    // --- 修正: 転生情報の更新ループ用関数 (残り時間表示を追加) ---
+    function updateReincInfo() {
+        if (document.getElementById('reinc-modal').style.display === 'none') return;
+
         const potentialRP = calcRP(totalScore);
         const gain = Math.max(0, potentialRP - reincData.maxReachedRP);
-        
+
         document.getElementById('reinc-point-disp').textContent = reincData.points;
         document.getElementById('pending-rp').textContent = potentialRP;
         
-        // --- 変更: 次のポイントへの進捗計算 (最高記録ベース) ---
-        // 現在の獲得予定RP と 過去の最高到達RP のうち、大きい方を基準にする
         const currentMaxRP = Math.max(potentialRP, reincData.maxReachedRP);
-        const nextTargetRP = currentMaxRP + 1; // 目標とする次のRP
+        const nextTargetRP = currentMaxRP + 1; 
         
-        const currentLevelReq = calcReqScoreForRP(currentMaxRP);     // 基準RPに必要なスコア
-        const nextLevelReq = calcReqScoreForRP(nextTargetRP);        // 次のRPに必要なスコア
+        const currentLevelReq = calcReqScoreForRP(currentMaxRP);
+        const nextLevelReq = calcReqScoreForRP(nextTargetRP);
         
-        // 進捗率 (現在の区間内での割合)
         let progress = 0;
-        
         if (totalScore >= currentLevelReq) {
-            // 現在のスコアが基準を超えている場合（記録更新中）
             if (nextLevelReq > currentLevelReq) {
                 progress = (totalScore - currentLevelReq) / (nextLevelReq - currentLevelReq) * 100;
             }
-        } else {
-            // 現在のスコアが基準未満の場合（転生直後など）
-            // ゲージは0%だが、残りスコアは目標(nextTargetRP)までの差分を表示する
-            progress = 0;
         }
-        
-        progress = Math.min(100, Math.max(0, progress)); // 0-100に丸める
-
+        progress = Math.min(100, Math.max(0, progress));
         const remaining = nextLevelReq - totalScore;
 
         document.getElementById('rp-progress-bar').style.width = progress + '%';
-        // Remainingが巨大な数になるため formatScore を使用
-        // テキストに目標ポイント数(nextTargetRP)を明記
-        document.getElementById('rp-next-msg').textContent = `次のポイント(${nextTargetRP} Pt)まで: あと ${formatScore(remaining)} スコア (${Math.floor(progress)}%)`;
-        // ------------------------------------
+        
+        // --- 追加: 残り時間の計算と表示 ---
+        let timeText = "";
+        if (remaining > 0 && currentSPM > 0) {
+            const minsNeeded = remaining / currentSPM;
+            timeText = ` (あと約 ${formatTimeEst(minsNeeded)})`;
+        } else if (remaining > 0 && currentSPM <= 0) {
+            timeText = " (計測中...)";
+        }
 
-        document.getElementById('reinc-action-area').style.display = 'block';
-        document.getElementById('reinc-finish-area').style.display = 'none';
+        document.getElementById('rp-next-msg').textContent = 
+            `次のポイント(${nextTargetRP} Pt)まで: あと ${formatScore(remaining)} スコア (${Math.floor(progress)}%)${timeText}`;
+        // ----------------------------------
 
         const btn = document.getElementById('do-reinc-btn');
         const msg = document.getElementById('reinc-gain-msg');
-        const viewMsg = document.getElementById('reinc-view-mode-msg');
         
         if (totalScore >= REINC_THRESHOLD && gain > 0) {
             msg.textContent = `転生すると +${gain} Pt 獲得できます！`;
@@ -1523,22 +1544,42 @@
             btn.style.opacity = 0.5;
             btn.style.cursor = "not-allowed";
         }
+    }
 
+    function openReincarnationModal() {
+        // 表示エリアの初期化
+        document.getElementById('reinc-action-area').style.display = 'block';
+        document.getElementById('reinc-finish-area').style.display = 'none';
+
+        const viewMsg = document.getElementById('reinc-view-mode-msg');
         if (!isReincarnationPhase) {
             viewMsg.style.display = 'block';
         } else {
             viewMsg.style.display = 'none';
         }
         
-        updateReincUI();
+        updateReincUI(); // ツリー情報の更新
         toggleReincModal(true);
         setTimeout(drawReincLines, 50);
+
+        // ★リアルタイム更新の開始
+        updateReincInfo(); // 初回実行
+        if(reincTimer) clearInterval(reincTimer);
+        reincTimer = setInterval(updateReincInfo, 100); // 0.1秒ごとに更新
     }
 
     function toggleReincModal(show) {
         document.getElementById('reinc-modal').style.display = show ? 'flex' : 'none';
-        if (!show && isReincarnationPhase) {
-            finishReincarnation(); 
+        
+        if (!show) {
+            // ★モーダルを閉じる時にタイマーを停止
+            if(reincTimer) {
+                clearInterval(reincTimer);
+                reincTimer = null;
+            }
+            if (isReincarnationPhase) {
+                finishReincarnation(); 
+            }
         }
     }
 
@@ -1548,6 +1589,12 @@
         
         if (!confirm(`本当に転生しますか？\n+${gain} Pt を獲得し、スコア等はリセットされます。`)) return;
         
+        // ★実行時にタイマーを止める（スコアがリセットされるため）
+        if(reincTimer) {
+            clearInterval(reincTimer);
+            reincTimer = null;
+        }
+
         reincData.points += gain;
         reincData.maxReachedRP = potentialRP;
         
@@ -1584,8 +1631,6 @@
         addField(0);
         document.getElementById('panel-history').style.display = 'none';
         document.getElementById('btn-pool-detail').style.display = 'none';
-        
-        // document.getElementById('btn-mode-toggle').style.display = 'none'; // 旧ボタンは削除済み
         
         document.getElementById('expedition-panel').style.display = 'none';
         
@@ -1781,18 +1826,24 @@
 	            }
 	            
 	            // 家計簿が解放されている場合のみ計算・表示
-	            if (upgState.history.lv > 0 && spmSamples.length >= 2) {
-	                const latestScore = spmSamples[spmSamples.length - 1];
-	                const oldestScore = spmSamples[0];
-	                const diff = latestScore - oldestScore;
-	                
-	                // サンプル数に応じた経過時間（秒）
-	                const secondsElapsed = spmSamples.length - 1;
-	                // 1分間（60秒）あたりの獲得量に換算
-	                const spm = (diff / secondsElapsed) * 60;
-	                
-	                document.getElementById('spm-display').textContent = formatScore(spm);
-	            }
+	            if (spmSamples.length >= 2) {
+		            const latestScore = spmSamples[spmSamples.length - 1];
+		            const oldestScore = spmSamples[0];
+		            const diff = latestScore - oldestScore;
+		            
+		            // サンプル数に応じた経過時間（秒）
+		            const secondsElapsed = spmSamples.length - 1;
+		            
+		            if (secondsElapsed > 0) {
+		                // 1分間（60秒）あたりの獲得量に換算
+		                currentSPM = (diff / secondsElapsed) * 60;
+		            }
+
+		            // 家計簿が解放されている場合のみ画面左側に表示
+		            if (upgState.history.lv > 0) {
+		                document.getElementById('spm-display').textContent = formatScore(currentSPM);
+		            }
+		        }
 	        }
 
 	        // ★修正：0未満にならないように制限
