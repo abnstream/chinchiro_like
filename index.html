@@ -1659,21 +1659,27 @@
         const reqs = Array.isArray(upg.req) ? upg.req : (upg.req ? [upg.req] : []);
         
         const reqLevel = upg.reqLv || 1;
+        // 前提チェック修正
         const unlocked = reqs.every(r => (reincData.upgrades[r] || 0) >= reqLevel);
         
         if (!unlocked) return;
-        if (reincData.upgrades[type] >= upg.max) return;
+
+        // 現在レベル取得修正
+        const currentLv = reincData.upgrades[type] || 0;
+        if (currentLv >= upg.max) return;
 
         let cost = 0;
         if (upg.fixedCost) {
             cost = upg.costs[0];
         } else {
-            cost = upg.costs[reincData.upgrades[type]];
+            // インデックスに currentLv (0) を使うことで正しくコストを参照
+            cost = upg.costs[currentLv];
         }
 
         if (reincData.points >= cost) {
             reincData.points -= cost;
-            reincData.upgrades[type]++;
+            // レベルアップ処理修正
+            reincData.upgrades[type] = currentLv + 1;
             
             if(type.startsWith('rare_')) updateRarityDefinitions();
             
@@ -1685,7 +1691,6 @@
                 updateUI();
             }
             if (type === 'adv_exp') {
-                // 購入時に即座にコスト反映（リセット後なのでまだ何もしていないはずだが念のため）
                 if(score === 0 && totalScore === 0) expNextCost = 300000;
             }
             saveGame();
@@ -1700,20 +1705,26 @@
             const n = document.getElementById('rnode-'+k);
             if(!n) continue;
             
+            // 現在のレベルを取得（undefinedの場合は0として扱う）
+            const currentLv = reincData.upgrades[k] || 0;
+
             const reqs = Array.isArray(u.req) ? u.req : (u.req ? [u.req] : []);
             
-            // 修正: レベル条件 (reqLv) を考慮して判定
             const reqLevel = u.reqLv || 1;
+            // 前提条件チェックでも || 0 を使って安全に判定
             const open = reqs.length === 0 || reqs.every(r => (reincData.upgrades[r] || 0) >= reqLevel);
             
-            const isMax = reincData.upgrades[k] >= u.max;
+            const isMax = currentLv >= u.max;
             
-            let cost = u.fixedCost ? u.costs[0] : u.costs[reincData.upgrades[k]];
+            // コスト計算に currentLv を使用
+            let cost = u.fixedCost ? u.costs[0] : u.costs[currentLv];
             
             const canBuy = open && !isMax && reincData.points >= cost && isReincarnationPhase;
             
-            n.className = `skill-node reinc-node ${open?(reincData.upgrades[k]>0?'unlocked':'available'):'locked'} ${isMax?'is-max':''} ${canBuy?'can-buy':''}`;
-            document.getElementById('rlv-'+k).textContent = `Lv ${reincData.upgrades[k]}/${u.max}`;
+            n.className = `skill-node reinc-node ${open?(currentLv>0?'unlocked':'available'):'locked'} ${isMax?'is-max':''} ${canBuy?'can-buy':''}`;
+            
+            // ここで currentLv を使うことで "undefined" を回避
+            document.getElementById('rlv-'+k).textContent = `Lv ${currentLv}/${u.max}`;
             
             let tooltipHTML = `<strong>${u.name}</strong><br>${u.desc}<br>コスト: ${isMax?'MAX':cost + ' Pt'}`;
             if (!open) {
