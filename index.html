@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
+    <link rel="icon" href="data:,">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>チンチロ・クリッカー</title>
@@ -2166,11 +2167,16 @@
 	            const pairContainer = document.createElement('div');
 	            pairContainer.className = 'synchro-pair-container';
 	            pairContainer.onclick = () => selectSynchroPair(optionIdx);
-	            pair.forEach(poolIdx => {
-	                const currentIndex = currentRewards.length;
-	                currentRewards.push({ die: dicePool[poolIdx], poolIndex: poolIdx, selected: false, optionId: optionIdx });
-	                pairContainer.appendChild(createCard(dicePool[poolIdx], false, 'synchro'));
-	            });
+				pair.forEach((poolIdx, iInPair) => { // 第2引数に追加
+				    const currentIndex = currentRewards.length;
+				    currentRewards.push({ die: dicePool[poolIdx], poolIndex: poolIdx, selected: false, optionId: optionIdx });
+				    const card = createCard(dicePool[poolIdx], false, 'synchro');
+				    
+				    // 【重要】各カードに一意のIDを付与する
+				    card.id = `reward-card-${currentIndex}`; 
+				    
+				    pairContainer.appendChild(card);
+				});
 	            list.appendChild(pairContainer);
 	        });
 	        document.getElementById('synchro-action-area').style.display = 'block';
@@ -2196,11 +2202,16 @@
 	            const pairContainer = document.createElement('div');
 	            pairContainer.className = 'synchro-pair-container';
 	            pairContainer.onclick = () => selectXyzPair(optionIdx);
-	            pair.forEach(poolIdx => {
-	                const currentIndex = currentRewards.length;
-	                currentRewards.push({ die: dicePool[poolIdx], poolIndex: poolIdx, selected: false, optionId: optionIdx });
-	                pairContainer.appendChild(createCard(dicePool[poolIdx], false, 'xyz'));
-	            });
+				pair.forEach((poolIdx, iInPair) => {
+				    const currentIndex = currentRewards.length;
+				    currentRewards.push({ die: dicePool[poolIdx], poolIndex: poolIdx, selected: false, optionId: optionIdx });
+				    const card = createCard(dicePool[poolIdx], false, 'xyz');
+				    
+				    // 【重要】各カードに一意のIDを付与する
+				    card.id = `reward-card-${currentIndex}`; 
+				    
+				    pairContainer.appendChild(card);
+				});
 	            list.appendChild(pairContainer);
 	        });
 	        document.getElementById('xyz-action-area').style.display = 'block';
