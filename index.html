@@ -434,6 +434,12 @@
 		    justify-content: center;
 		}
 
+		.mode-xyz .synchro-pair-container.selected {
+		    border-color: #fff;
+		    box-shadow: 0 0 15px rgba(255, 255, 255, 0.5);
+		    background: rgba(255, 255, 255, 0.1);
+		}
+
 		.synchro-pair-container:hover {
 		    background: rgba(255, 255, 255, 0.1);
 		    border-color: #888;
@@ -708,10 +714,13 @@
         </div>
 
 		<div id="xyz-action-area" style="display:none; margin-top:20px;">
-		    <button id="btn-do-xyz" onclick="executeXyz()" disabled style="background:var(--mode-xyz); border:1px solid #fff; color:white; padding:10px 30px; border-radius:20px; font-weight:bold; font-size:1.1rem; cursor:not-allowed; opacity:0.5;">オーバーレイ！</button>
-		</div>
+            <button id="btn-do-xyz" onclick="executeXyz()" disabled style="background:var(--mode-xyz); border:1px solid #fff; color:white; padding:10px 30px; border-radius:20px; font-weight:bold; font-size:1.1rem; cursor:not-allowed; opacity:0.5;">オーバーレイ！</button>
+        </div>
 
-        <button id="reward-cancel-btn" onclick="discardRewards()" style="margin-top:20px; background:#444; border:none; color:white; padding:10px 20px; border-radius:5px; cursor:pointer;">終了</button>
+        <div id="reward-action-area" style="display:none; margin-top:20px;">
+            <button id="btn-confirm-reward" onclick="confirmRewards()" style="background:var(--accent); border:none; color:black; padding:10px 30px; border-radius:20px; font-weight:bold; font-size:1.1rem; cursor:pointer;">決定</button>
+        </div>
+        <button id="reward-cancel-btn" onclick="discardRewards()" style="margin-top:20px; background:#444; border:none; color:white; padding:10px 20px; border-radius:5px; cursor:pointer;">キャンセル</button>
     </div>
 </div>
 
@@ -824,12 +833,17 @@
 			</div>
 
 			<div class="tree-row" style="gap: 15px; justify-content: flex-start; padding-left: 20px;">
-			    <div id="node-xyz_exp" class="skill-node locked" onclick="buyUpgrade('xyz_exp')" style="display:none;">
-			        <span class="skill-icon" style="color:var(--mode-xyz); text-shadow:0 0 5px #fff;">✖️</span>
-			        <span id="lv-xyz_exp" class="lv-badge"></span>
-			        <div class="skill-tooltip" id="tip-xyz_exp"></div>
-			    </div>
-			</div>
+                <div id="node-xyz_exp" class="skill-node locked" onclick="buyUpgrade('xyz_exp')" style="display:none;">
+                    <span class="skill-icon" style="color:var(--mode-xyz); text-shadow:0 0 5px #fff;">✖️</span>
+                    <span id="lv-xyz_exp" class="lv-badge"></span>
+                    <div class="skill-tooltip" id="tip-xyz_exp"></div>
+                </div>
+                <div id="node-rank_revolution" class="skill-node locked" onclick="buyUpgrade('rank_revolution')" style="display:none;">
+                    <span class="skill-icon" style="color:#f1c40f;">💎</span>
+                    <span id="lv-rank_revolution" class="lv-badge"></span>
+                    <div class="skill-tooltip" id="tip-rank_revolution"></div>
+                </div>
+            </div>
 
 
             <div class="tree-row" id="row-yaku-s4" style="gap: 15px; justify-content: flex-start; padding-left: 20px; display:none;">
@@ -1099,7 +1113,17 @@
 		    desc: "同じレベルの出目でオーバーレイ・ネットワークを構築する", 
 		    req: "synchro_exp", 
 		    reincReq: "xyz_dim" 
-		}
+		},
+
+        rank_revolution: {
+            lv: 0, max: 3,
+            costs: [10000000000000, 100000000000000, 1000000000000000], // 10兆, 100兆, 1000兆
+            name: "ランク・レボリューション", 
+            icon: "💎", 
+            desc: "エクシーズ探索で提示される<br>選択肢ペア数 +1", 
+            req: "xyz_exp", 
+            reincReq: "xyz_dim" 
+        }
 
     };
     
@@ -1906,22 +1930,36 @@
         const list = document.getElementById('reward-list');
         list.innerHTML = '';
         currentRewards = [];
-        const fusionArea = document.getElementById('fusion-action-area');
-        fusionArea.style.display = 'none';
-        const synchroArea = document.getElementById('synchro-action-area');
-        synchroArea.style.display = 'none';
+
+        // 全てのアクションエリア（決定ボタンエリア）を一度非表示にする
+        document.getElementById('fusion-action-area').style.display = 'none';
+        document.getElementById('synchro-action-area').style.display = 'none';
+        document.getElementById('xyz-action-area').style.display = 'none';
+        
+        // 通常・儀式用の決定ボタンエリアを初期化
+        const rewardActionArea = document.getElementById('reward-action-area');
+        if (rewardActionArea) rewardActionArea.style.display = 'none';
 
         const title = document.getElementById('reward-title');
         const desc = document.getElementById('reward-desc');
         const cancelBtn = document.getElementById('reward-cancel-btn');
         const countMsg = document.getElementById('reward-count-msg');
 
+        // ボタンの文言を「キャンセル」に統一
+        if (cancelBtn) cancelBtn.textContent = "キャンセル";
+
+        // 通常または儀式モードの場合、決定ボタンエリアを表示して状態を更新
+        if (expMode === 'normal' || expMode === 'ritual') {
+            if (rewardActionArea) rewardActionArea.style.display = 'block';
+            updateConfirmButtonState();
+        }
+
         if (expMode === 'normal') {
             title.textContent = "探索から帰還！";
             title.style.color = "var(--accent)";
-            desc.innerHTML = "持ち帰る出目を選択してください。<br><span style='font-size:0.8rem; color:#aaa;'>※選択すると次回の探索コストが倍になります</span>";
-            cancelBtn.textContent = "終了";
+            desc.innerHTML = "持ち帰る出目を選択してください。<br><span style='font-size:0.8rem; color:#aaa;'>※決定すると次回の探索コストが2倍になります</span>";
             
+            // 選択可能数の設定（転生アップグレード反映）
             rewardSelectCount = 1 + (reincData.upgrades.greedy_exp || 0);
             const choiceNum = 2 + upgState.exp_amount.lv + (reincData.upgrades.greedy_exp || 0);
             
@@ -1930,16 +1968,16 @@
             currentRewards.forEach((item, i) => {
                 const card = createCard(item.die, false);
                 card.id = `reward-card-${i}`;
-                card.onclick = () => selectReward(i);
+                card.onclick = () => selectReward(i); // トグル選択式
                 list.appendChild(card);
             });
 
         } else if (expMode === 'ritual') {
             title.textContent = "儀式！";
             title.style.color = "#9b59b6";
-            desc.innerHTML = "消滅させる出目を選択してください。<br><span style='font-size:0.8rem; color:#aaa;'>※削除すると次回の儀式コストが倍になります</span>";
-            cancelBtn.textContent = "終了";
+            desc.innerHTML = "消滅させる出目を選択してください。<br><span style='font-size:0.8rem; color:#aaa;'>※決定すると次回の儀式コストが2倍になります</span>";
 
+            // 選択可能数の設定（転生アップグレード反映）
             rewardSelectCount = 1 + (reincData.upgrades.greedy_rit || 0);
             const count = 2 + upgState.ritual_amount.lv + (reincData.upgrades.greedy_rit || 0);
             const indices = [];
@@ -1958,184 +1996,167 @@
                 card.onclick = () => selectReward(i);
                 list.appendChild(card);
             });
+
         } else if (expMode === 'fusion') {
             title.textContent = "融合！";
             title.style.color = "var(--mode-fusion)";
             desc.innerHTML = "融合する出目を2つ選択してください。<br><span style='font-size:0.8rem; color:#aaa;'>※融合すると元の2つは消滅し、新たな1つが生まれます</span>";
-            cancelBtn.textContent = "中止";
             
             rewardSelectCount = 2;
             const count = 5 + upgState.fusion_exp_amount.lv;
-            
             const indices = [];
             while(indices.length < count && indices.length < dicePool.length) {
                 const r = Math.floor(Math.random() * dicePool.length);
                 if(!indices.includes(r)) indices.push(r);
             }
-            
             indices.forEach(idx => {
                 currentRewards.push({ die: dicePool[idx], poolIndex: idx, selected: false });
             });
-
             currentRewards.forEach((item, i) => {
-                const card = createCard(item.die, false, 'fusion'); 
+                const card = createCard(item.die, false, 'fusion');
                 card.id = `reward-card-${i}`;
                 card.onclick = () => selectFusionReward(i);
                 list.appendChild(card);
             });
-            
-            fusionArea.style.display = 'block';
-        } else if (expMode === 'synchro') {
-        title.textContent = "シンクロ！";
-        title.style.color = "var(--mode-synchro)";
-        desc.innerHTML = "シンクロさせるペアを選択してください。<br><span style='font-size:0.8rem; color:#aaa;'>※選択したペアのレベルが合算され、レアリティが高い方に統一されます</span>";
-        cancelBtn.textContent = "中止";
+            document.getElementById('fusion-action-area').style.display = 'block';
 
-        rewardSelectCount = 1; // 1つのペアを選ぶ
-        
-        // ペア生成ロジック
-        let groups = {};
-        dicePool.forEach((d, idx) => {
-            if(!d) return;
-            if(!groups[d.val]) groups[d.val] = [];
-            groups[d.val].push(idx);
-        });
-        
-        let allPairs = [];
-        for (let val in groups) {
-            let indices = groups[val];
-            if (indices.length < 2) continue;
-            for (let i = 0; i < indices.length - 1; i++) {
-                for (let j = i + 1; j < indices.length; j++) {
-                    allPairs.push([indices[i], indices[j]]);
+        } else if (expMode === 'synchro') {
+            title.textContent = "シンクロ！";
+            title.style.color = "var(--mode-synchro)";
+            desc.innerHTML = "シンクロさせるペアを選択してください。<br><span style='font-size:0.8rem; color:#aaa;'>※選択したペアのレベルが合算され、レアリティが高い方に統一されます</span>";
+
+            rewardSelectCount = 1;
+            let groups = {};
+            dicePool.forEach((d, idx) => {
+                if(!d) return;
+                if(!groups[d.val]) groups[d.val] = [];
+                groups[d.val].push(idx);
+            });
+            let allPairs = [];
+            for (let val in groups) {
+                let indices = groups[val];
+                if (indices.length < 2) continue;
+                for (let i = 0; i < indices.length - 1; i++) {
+                    for (let j = i + 1; j < indices.length; j++) {
+                        allPairs.push([indices[i], indices[j]]);
+                    }
                 }
             }
-        }
+            for (let i = allPairs.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [allPairs[i], allPairs[j]] = [allPairs[j], allPairs[i]];
+            }
+            const maxChoices = 2 + (upgState.tuning ? upgState.tuning.lv : 0);
+            let finalOptions = [];
+            let usedIndices = new Set();
+            for (let pair of allPairs) {
+                if (finalOptions.length >= maxChoices) break;
+                if (!usedIndices.has(pair[0]) && !usedIndices.has(pair[1])) {
+                    finalOptions.push(pair);
+                    usedIndices.add(pair[0]);
+                    usedIndices.add(pair[1]);
+                }
+            }
+            if (finalOptions.length > 0) {
+                finalOptions.forEach((pair, optionIdx) => {
+                    const pairContainer = document.createElement('div');
+                    pairContainer.className = 'synchro-pair-container';
+                    pairContainer.id = `synchro-pair-${optionIdx}`;
+                    pairContainer.onclick = () => selectSynchroPair(optionIdx);
 
-        // ペアをシャッフル
-        for (let i = allPairs.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [allPairs[i], allPairs[j]] = [allPairs[j], allPairs[i]];
-        }
+                    const label = document.createElement('div');
+                    label.className = 'synchro-pair-label';
+                    label.textContent = `Pair ${optionIdx + 1}`;
+                    pairContainer.appendChild(label);
 
-        // 表示数制限 (デフォルト2 + アップグレード分)
-        // ペアが足りない場合はあるだけ表示
-        const maxChoices = 2 + (upgState.tuning ? upgState.tuning.lv : 0);
-        
-        let finalOptions = [];
-        let usedIndices = new Set();
+                    pair.forEach(poolIdx => {
+                        const currentIndex = currentRewards.length;
+                        currentRewards.push({ die: dicePool[poolIdx], poolIndex: poolIdx, selected: false, optionId: optionIdx });
+                        const card = createCard(dicePool[poolIdx], false, 'synchro');
+                        card.id = `reward-card-${currentIndex}`;
+                        pairContainer.appendChild(card);
+                    });
+                    list.appendChild(pairContainer);
+                });
+                document.getElementById('synchro-action-area').style.display = 'block';
+            } else {
+                desc.textContent = "シンクロ可能なペアが見つかりませんでした...";
+            }
 
-        for (let pair of allPairs) {
-            if (finalOptions.length >= maxChoices) break;
-            if (!usedIndices.has(pair[0]) && !usedIndices.has(pair[1])) {
-                finalOptions.push(pair);
-                usedIndices.add(pair[0]);
-                usedIndices.add(pair[1]);
+        } else if (expMode === 'xyz') {
+            title.textContent = "エクシーズ！";
+            title.style.color = "var(--mode-xyz)";
+            title.style.textShadow = "0 0 5px #fff";
+            desc.innerHTML = "レベルが一致する2体の出目でオーバーレイを構築します。<br><span style='font-size:0.8rem; color:#aaa;'>※ペアを選択して「オーバーレイ！」を押してください</span>";
+
+            rewardSelectCount = 1; // 1ペア選択
+
+            let groups = {};
+            dicePool.forEach((d, idx) => {
+                if(!d) return;
+                const lvl = d.level || 1;
+                if(!groups[lvl]) groups[lvl] = [];
+                groups[lvl].push(idx);
+            });
+
+            let allPairs = [];
+            for (let lvl in groups) {
+                let indices = groups[lvl];
+                if (indices.length < 2) continue;
+                for (let i = 0; i < indices.length - 1; i++) {
+                    for (let j = i + 1; j < indices.length; j++) {
+                        allPairs.push([indices[i], indices[j]]);
+                    }
+                }
+            }
+
+            for (let i = allPairs.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [allPairs[i], allPairs[j]] = [allPairs[j], allPairs[i]];
+            }
+
+            const maxChoices = 2 + upgState.rank_revolution.lv;
+            let finalOptions = [];
+            let usedIndices = new Set();
+            for (let pair of allPairs) {
+                if (finalOptions.length >= maxChoices) break;
+                if (!usedIndices.has(pair[0]) && !usedIndices.has(pair[1])) {
+                    finalOptions.push(pair);
+                    usedIndices.add(pair[0]);
+                    usedIndices.add(pair[1]);
+                }
+            }
+
+            if (finalOptions.length > 0) {
+                finalOptions.forEach((pair, optionIdx) => {
+                    const pairContainer = document.createElement('div');
+                    pairContainer.className = 'synchro-pair-container'; 
+                    pairContainer.id = `xyz-pair-${optionIdx}`;
+                    pairContainer.onclick = () => selectXyzPair(optionIdx);
+
+                    const label = document.createElement('div');
+                    label.className = 'synchro-pair-label';
+                    label.style.background = 'var(--mode-xyz)';
+                    label.style.color = '#fff';
+                    label.textContent = `Pair ${optionIdx + 1}`;
+                    pairContainer.appendChild(label);
+
+                    pair.forEach(poolIdx => {
+                        const currentIndex = currentRewards.length;
+                        currentRewards.push({ die: dicePool[poolIdx], poolIndex: poolIdx, selected: false, optionId: optionIdx });
+                        const card = createCard(dicePool[poolIdx], false, 'xyz');
+                        card.id = `reward-card-${currentIndex}`;
+                        pairContainer.appendChild(card);
+                    });
+                    list.appendChild(pairContainer);
+                });
+                document.getElementById('xyz-action-area').style.display = 'block';
+                updateXyzButtonState();
+            } else {
+                desc.textContent = "オーバーレイ可能なペア（同レベル）が見つかりませんでした。";
             }
         }
-        
-        if (finalOptions.length > 0) {
-            // ★変更点: ペアごとのコンテナを作成して表示
-            finalOptions.forEach((pair, optionIdx) => {
-                // コンテナ作成
-                const pairContainer = document.createElement('div');
-                pairContainer.className = 'synchro-pair-container';
-                pairContainer.id = `synchro-pair-${optionIdx}`;
-                pairContainer.onclick = () => selectSynchroPair(optionIdx); // クリックでペア選択
 
-                // ラベル作成
-                const label = document.createElement('div');
-                label.className = 'synchro-pair-label';
-                label.textContent = `Pair ${optionIdx + 1}`;
-                pairContainer.appendChild(label);
-
-                // カード作成
-                pair.forEach(poolIdx => {
-                    const currentIndex = currentRewards.length; // 配列の現在のインデックス
-
-                    currentRewards.push({ 
-                        die: dicePool[poolIdx], 
-                        poolIndex: poolIdx, 
-                        selected: false,
-                        optionId: optionIdx 
-                    });
-
-                    // カードDOM生成
-                    const card = createCard(dicePool[poolIdx], false, 'synchro');
-                    card.id = `reward-card-${currentIndex}`;
-                    // カード自体のクリックイベントは停止（親のコンテナのクリックを優先）
-                    card.onclick = (e) => {
-                        e.stopPropagation();
-                        selectSynchroPair(optionIdx);
-                    };
-                    
-                    pairContainer.appendChild(card);
-                });
-
-                list.appendChild(pairContainer);
-            });
-            
-            synchroArea.style.display = 'block';
-        } else {
-            desc.textContent = "シンクロ可能なペアが見つかりませんでした...";
-        }
-    }else if (expMode === 'xyz') {
-		    const xyzArea = document.getElementById('xyz-action-area');
-		    
-		    title.textContent = "エクシーズ！";
-		    title.style.color = "var(--mode-xyz)";
-		    title.style.textShadow = "0 0 5px #fff";
-		    desc.innerHTML = "レベルが一致する2体の出目によるオーバーレイ・ネットワーク。<br><span style='font-size:0.8rem; color:#aaa;'>※オーバーレイすると出目は消滅し、倍率に応じオーバーレイユニットを獲得します</span>";
-		    cancelBtn.textContent = "中止";
-
-		    rewardSelectCount = 2;
-
-		    // 同じレベルのペアを探す
-		    let groups = {};
-		    dicePool.forEach((d, idx) => {
-		        if(!d) return;
-		        const lvl = d.level || 1;
-		        if(!groups[lvl]) groups[lvl] = [];
-		        groups[lvl].push(idx);
-		    });
-
-		    let validLvls = Object.keys(groups).filter(l => groups[l].length >= 2);
-
-		    if (validLvls.length > 0) {
-		        // ランダムにレベルを選ぶ
-		        let chosenLvl = validLvls[Math.floor(Math.random() * validLvls.length)];
-		        let indices = groups[chosenLvl];
-
-		        // その中からランダムに2つ選ぶ
-		        for(let i = indices.length - 1; i > 0; i--){
-		            const j = Math.floor(Math.random() * (i + 1));
-		            [indices[i], indices[j]] = [indices[j], indices[i]];
-		        }
-		        let pairIndices = [indices[0], indices[1]];
-
-		        pairIndices.forEach(idx => {
-		            currentRewards.push({ die: dicePool[idx], poolIndex: idx, selected: false });
-		        });
-
-		        currentRewards.forEach((item, i) => {
-		            // 第3引数 'xyz' を追加（createCard修正不要、クラス付与のみ行うならここで）
-		            const card = createCard(item.die, false, 'xyz'); 
-		            card.id = `reward-card-${i}`;
-		            card.onclick = () => selectXyzReward(i);
-		            list.appendChild(card);
-		        });
-
-		        xyzArea.style.display = 'block';
-		    } else {
-		        desc.textContent = "オーバーレイ可能なペアが見つかりませんでした...（エラー）";
-		    }
-		}
-
-		// updateRewardCountMsg に追加
-		if(expMode === 'fusion' || expMode === 'synchro' || expMode === 'xyz') {
-		    document.getElementById('reward-count-msg').textContent = `選択中: ${2 - rewardSelectCount} / 2`;
-		}
-        
         updateRewardCountMsg();
         document.getElementById('reward-modal').style.display = 'flex';
     }
@@ -2151,28 +2172,36 @@
         }
     }
 
-	function selectXyzReward(index) {
-	    const item = currentRewards[index];
-	    const el = document.getElementById(`reward-card-${index}`);
-	    
-	    if (item.selected) {
-	        item.selected = false;
-	        el.classList.remove('selected');
-	        rewardSelectCount++;
-	    } else {
-	        if (rewardSelectCount <= 0) return; 
-	        item.selected = true;
-	        el.classList.add('selected');
-	        rewardSelectCount--;
-	    }
-	    
-	    updateRewardCountMsg();
-	    
-	    const btn = document.getElementById('btn-do-xyz');
-	    btn.disabled = (rewardSelectCount !== 0);
-	    btn.style.opacity = (rewardSelectCount !== 0) ? 0.5 : 1;
-	    btn.style.cursor = (rewardSelectCount !== 0) ? 'not-allowed' : 'pointer';
-	}
+    function selectXyzPair(optionId) {
+        // 全ての選択状態をリセット
+        currentRewards.forEach(r => r.selected = false);
+        document.querySelectorAll('.synchro-pair-container').forEach(el => el.classList.remove('selected'));
+        document.querySelectorAll('.reward-card').forEach(el => el.classList.remove('selected'));
+
+        // 指定されたペアを選択
+        currentRewards.forEach((r, i) => {
+            if (r.optionId === optionId) {
+                r.selected = true;
+                const card = document.getElementById(`reward-card-${i}`);
+                if(card) card.classList.add('selected');
+            }
+        });
+
+        const container = document.getElementById(`xyz-pair-${optionId}`);
+        if(container) container.classList.add('selected');
+
+        updateXyzButtonState();
+    }
+
+    function updateXyzButtonState() {
+        const selectedCount = currentRewards.filter(r => r.selected).length;
+        const btn = document.getElementById('btn-do-xyz');
+        if(!btn) return;
+        
+        btn.disabled = (selectedCount !== 2);
+        btn.style.opacity = (selectedCount !== 2) ? 0.5 : 1;
+        btn.style.cursor = (selectedCount !== 2) ? 'not-allowed' : 'pointer';
+    }
 
 	function executeXyz() {
 	    const selected = currentRewards.filter(r => r.selected);
@@ -2257,28 +2286,72 @@
         return val;
     }
 
-    function selectReward(index) {
-        if (currentRewards[index].selected) return; 
-        if (rewardSelectCount <= 0) return;
+	function selectReward(index) {
+	    const item = currentRewards[index];
+	    const el = document.getElementById(`reward-card-${index}`);
 
-        currentRewards[index].selected = true;
-        document.getElementById(`reward-card-${index}`).classList.add('selected');
-        rewardSelectCount--;
-        updateRewardCountMsg();
+	    if (item.selected) {
+	        // すでに選択されている場合は解除
+	        item.selected = false;
+	        el.classList.remove('selected');
+	        rewardSelectCount++;
+	    } else {
+	        // 未選択の場合は選択（上限チェックあり）
+	        if (rewardSelectCount <= 0) return; 
+	        item.selected = true;
+	        el.classList.add('selected');
+	        rewardSelectCount--;
+	    }
 
-        if (expMode === 'normal') {
-            dicePool.push(currentRewards[index].die);
-            expNextCost *= 2; 
-        } else {
-            dicePool[currentRewards[index].poolIndex] = null; // null化
-            ritualNextCost *= 2;
-        }
+	    updateRewardCountMsg();
+	    updateConfirmButtonState(); // 決定ボタンの表示更新
+	}
 
-        if (rewardSelectCount <= 0) {
-            setTimeout(() => discardRewards(), 500);
-        }
-        saveGame();
-    }
+	function confirmRewards() {
+	    const selectedItems = currentRewards.filter(r => r.selected);
+	    if (selectedItems.length === 0) return;
+
+	    if (expMode === 'normal') {
+	        // 選択されたものをプールに追加
+	        selectedItems.forEach(item => {
+	            dicePool.push(item.die);
+	        });
+	        // いくつ選んでもコスト倍増は1回のみ
+	        expNextCost *= 2;
+	    } else if (expMode === 'ritual') {
+	        // 選択されたものをプールから削除
+	        selectedItems.forEach(item => {
+	            dicePool[item.poolIndex] = null;
+	        });
+	        dicePool = dicePool.filter(d => d !== null); // nullを掃除
+	        ritualNextCost *= 2;
+	    }
+
+	    closeExpeditionModal(true);
+	    saveGame();
+	}
+
+	function discardRewards() {
+	    // 儀式モードでのnull掃除をここで行わない（確定時のみ行うため）
+	    // 選択状態を無視して閉じる
+	    closeExpeditionModal(false);
+	}
+
+	// 決定ボタンの状態を制御する関数
+	function updateConfirmButtonState() {
+	    const btn = document.getElementById('btn-confirm-reward');
+	    const selectedCount = currentRewards.filter(r => r.selected).length;
+	    
+	    if (selectedCount > 0) {
+	        btn.disabled = false;
+	        btn.style.opacity = 1;
+	        btn.style.cursor = 'pointer';
+	    } else {
+	        btn.disabled = true;
+	        btn.style.opacity = 0.5;
+	        btn.style.cursor = 'not-allowed';
+	    }
+	}
     
     function selectFusionReward(index) {
         const item = currentRewards[index];
@@ -3124,7 +3197,7 @@
                 ['yaku_456','yaku_arashi'], ['yaku_arashi','yaku_pin'],
                 ['yaku_pin', 'yaku_straight4'], ['yaku_straight4', 'yaku_arashi4'],
                 ['yaku_arashi4', 'yaku_straight5'], ['yaku_arashi4', 'yaku_arashi5'],
-                ['synchro_exp', 'xyz_exp'],['synchro_exp', 'tuning']
+                ['synchro_exp', 'xyz_exp'],['synchro_exp', 'tuning'],['xyz_exp', 'rank_revolution']
             ];
             
             conn.forEach(([p,c])=>{
