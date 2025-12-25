@@ -834,6 +834,24 @@
 		            1分間、探索時間が <b>2倍</b> になる。
 		        </div>
 		    </button>
+
+            <button id="btn-xyz-gift" class="xyz-skill-card" onclick="useXyzActive('gift')">
+		        <span class="xyz-skill-name">🎁 エクシーズ・ギフト</span>
+		        <span id="cost-xyz-gift" class="xyz-skill-cost">--- ORU</span>
+		        <div class="xyz-timer-container">
+		            <div id="xyz-gift-bar" class="xyz-timer-bar"></div>
+		        </div>
+		        
+		        <div class="xyz-skill-tooltip">
+		            <strong>エクシーズ・ギフト</strong>
+		            オーバーレイユニットを消費して出目を操作する。<br>
+		            <span style="color:#2ecc71;">● 成功 (70%)</span><br>
+		            3分間、役判定時に出目の値を <b>+1</b> できる。<br>
+		            (揺れるマインドと重複時は <b>+2</b> まで可)<br>
+		            <span style="color:#e74c3c;">● 失敗 (30%)</span><br>
+		            1分間、役が一切成立しなくなる。
+		        </div>
+		    </button>
 		</div>
 
 
@@ -1144,9 +1162,6 @@
 			        <span id="xlv-force_unlock" class="lv-badge"></span>
 			        <div class="skill-tooltip" id="xtip-force_unlock"></div>
 			    </div>
-			</div>
-
-			<div class="tree-row">
 			    <div id="xnode-pack_super" class="skill-node locked" onclick="buyXyzUpgrade('pack_super')">
 			        <span class="skill-icon">🟡</span>
 			        <span id="xlv-pack_super" class="lv-badge"></span>
@@ -1154,7 +1169,16 @@
 			    </div>
 			</div>
 
+            
+
+			
+
 			<div class="tree-row">
+                <div id="xnode-gift_unlock" class="skill-node locked" onclick="buyXyzUpgrade('gift_unlock')">
+			        <span class="skill-icon">🎁</span>
+			        <span id="xlv-gift_unlock" class="lv-badge"></span>
+			        <div class="skill-tooltip" id="xtip-gift_unlock"></div>
+			    </div>
 			    <div id="xnode-pack_ultra" class="skill-node locked" onclick="buyXyzUpgrade('pack_ultra')">
 			        <span class="skill-icon">🟣</span>
 			        <span id="xlv-pack_ultra" class="lv-badge"></span>
@@ -1252,6 +1276,7 @@
 	    pack_uncommon: { lv: 0, max: 5, costs: [1000, 2500, 5000, 10000, 30000], name: "アンコモン・パック", icon: "🟢", desc: "探索でコモンが出にくくなる", req: "network", reqLv: 1 },
 	    import_unlock: { lv: 0, max: 1, baseCost: 200000, name: "エクシーズ・インポート", icon: "📥", desc: "アクティブスキルを解放", req: "shift_unlock", reqLv: 1 },
         force_unlock: { lv: 0, max: 1, baseCost: 5000000, name: "エクシーズ・フォース", icon: "⚔️", desc: "アクティブスキルを解放", req: "import_unlock", reqLv: 1 },
+        gift_unlock: { lv: 0, max: 1, baseCost: 100000000, name: "エクシーズ・ギフト", icon: "🎁", desc: "アクティブスキルを解放", req: "force_unlock", reqLv: 1 },
 	    pack_rare: { lv: 0, max: 5, costs: [10000, 25000, 50000, 100000, 300000], name: "レア・パック", icon: "🔵", desc: "探索でアンコモンが出にくくなる", req: "pack_uncommon", reqLv: 5 },
         		pack_super: { 
     	    lv: 0, max: 5, 
@@ -1650,11 +1675,13 @@
 	        }
 
 	        // デフォルト値を設定してNaNを防止
-	        activeUsage = saveObj.activeUsage || { shift: 0, import: 0 };
+	        activeUsage = saveObj.activeUsage || { shift: 0, import: 0, force: 0, gift: 0 }; // gift追加
             if (activeUsage.force === undefined) activeUsage.force = 0; // 既存セーブデータ互換用
+            if (activeUsage.gift === undefined) activeUsage.gift = 0;
 	        activeTimers = saveObj.activeTimers || { shift: 0, shiftPenalty: 0 };
             if (activeTimers.force === undefined) activeTimers.force = 0; // 既存セーブデータ互換用
             if (activeTimers.forcePenalty === undefined) activeTimers.forcePenalty = 0; // 既存セーブデータ互換用
+            if (activeTimers.giftPenalty === undefined) activeTimers.giftPenalty = 0;
 	        
 	        if (saveObj.reincData) {
 	            reincData = saveObj.reincData;
@@ -1904,8 +1931,8 @@
         overlayUnits = 0;
         xyzNextCost = 1000000000000;
         for (let k in xyzUpgState) xyzUpgState[k].lv = 0;
-        activeUsage = { shift: 0, import: 0, force: 0 }; // forceを追加
-        activeTimers = { shift: 0, shiftPenalty: 0, force: 0, forcePenalty: 0 }; // forceを追加        if (reincData.upgrades.adv_exp > 0) expNextCost = 300000;
+        activeUsage = { shift: 0, import: 0, force: 0, gift: 0 };
+        activeTimers = { shift: 0, shiftPenalty: 0, force: 0, forcePenalty: 0, gift: 0, giftPenalty: 0 };
 
         ritualNextCost = 500000;
         fusionNextCost = 10000000;
@@ -2229,6 +2256,8 @@
 	        if (activeTimers.shiftPenalty > 0) activeTimers.shiftPenalty = Math.max(0, activeTimers.shiftPenalty - dt);
             if (activeTimers.force > 0) activeTimers.force = Math.max(0, activeTimers.force - dt);
             if (activeTimers.forcePenalty > 0) activeTimers.forcePenalty = Math.max(0, activeTimers.forcePenalty - dt);
+            if (activeTimers.gift > 0) activeTimers.gift = Math.max(0, activeTimers.gift - dt);
+            if (activeTimers.giftPenalty > 0) activeTimers.giftPenalty = Math.max(0, activeTimers.giftPenalty - dt);
 	        
 	        const isOffline = dt > 5000;
 	        let offlineActionCount = 0;
@@ -3216,21 +3245,38 @@
     }
 
 	function processResult(dice, id, isSilent) {
-        // --- 修正: 「揺れるマインド」の実装 ---
+        // --- ペナルティチェック: ギフト失敗中は強制的に目なし(スコア0扱い) ---
+        if (activeTimers.giftPenalty > 0) {
+            if (!isSilent) {
+                // UI表示用: 全て未使用にしてメッセージ表示
+                for (let i = 0; i < dice.length; i++) {
+                    const dieEl = document.getElementById(`d-${id}-${i}`);
+                    if (dieEl) dieEl.classList.add('unused');
+                }
+                const msgEl = document.getElementById(`m-${id}`);
+                if (msgEl) {
+                    msgEl.textContent = "不成立 (ギフト効果)";
+                    msgEl.classList.remove('high-score-highlight');
+                }
+                updateUI();
+            }
+            return; // スコア加算せず終了
+        }
+        
+        // --- 修正: 「揺れるマインド」と「エクシーズ・ギフト」の実装 ---
         const hasSwayingMind = reincData && reincData.upgrades && reincData.upgrades.swaying_mind > 0;
+        const hasGift = activeTimers.gift > 0;
+
+        // 加算可能な最大値 (揺れるマインド:1 + ギフト:1 = 最大2)
+        const maxAdd = (hasSwayingMind ? 1 : 0) + (hasGift ? 1 : 0);
         
         // ヘルパー: 与えられたダイスセット(値のみ)から最高得点とその役情報を返す
         const getBestScoreFromValues = (valsWithInfo) => {
-            // valsWithInfo: [{val: 4, rarity:..., level:..., origIdx: 0}, ...]
-            // ここで役判定を行い、スコアを計算する
-            
             let localBest = { val: -1, yaku: "不成立", base: 0, b: 1 };
-            
             const rawVals = valsWithInfo.map(d => d.val);
             const [base, yaku, scoreVal] = calcScore(rawVals);
             
             if (yaku !== "不成立") {
-                // 目なし、不成立、ヒフミ以外は倍率適用
                 let rarityMult = 1;
                 let levelMult = 1;
 
@@ -3250,37 +3296,42 @@
             return localBest;
         };
 
-        // 「揺れるマインド」有効時の再帰的探索関数
-        // diceList: 対象となるダイスのリスト（3個～5個）
+        // 再帰を使って全パターン探索 (0～maxAdd の範囲で加算)
+        // diceList: 対象となるダイスのリスト
         const findOptimalScore = (diceList) => {
-            if (!hasSwayingMind) {
+            if (maxAdd === 0) {
                 return getBestScoreFromValues(diceList);
             }
 
-            // 全パターン探索 (2^n)
-            // nが最大5なので32通り。許容範囲。
-            const n = diceList.length;
-            const patterns = 1 << n; // 2^n
-            
-            let maxPatternScore = -1;
             let bestResult = { val: -1, yaku: "不成立", base: 0, b: 1 };
+            const n = diceList.length;
             
-            for (let i = 0; i < patterns; i++) {
-                // iのビットパターンに基づいて+1するか決定
-                const currentSet = diceList.map((d, idx) => {
-                    const shouldAdd = (i >> idx) & 1;
-                    return { ...d, val: d.val + shouldAdd }; // +1した新しいオブジェクト
-                });
-                
-                const res = getBestScoreFromValues(currentSet);
-                if (res.val > maxPatternScore) {
-                    maxPatternScore = res.val;
-                    bestResult = res;
+            // 再帰関数: index番目のダイスに加算値を決めていく
+            const search = (index, currentList) => {
+                if (index === n) {
+                    const res = getBestScoreFromValues(currentList);
+                    if (res.val > bestResult.val) {
+                        bestResult = res;
+                    }
+                    return;
                 }
-            }
+
+                // オリジナルの値
+                const d = diceList[index];
+                
+                // 0 から maxAdd まで加算して試行
+                for (let add = 0; add <= maxAdd; add++) {
+                    // 新しいダイスオブジェクトを生成（valだけ書き換え）
+                    const modDie = { ...d, val: d.val + add };
+                    currentList[index] = modDie;
+                    search(index + 1, currentList);
+                }
+            };
+
+            // 探索開始 (配列は使い回しせず安全に生成)
+            search(0, new Array(n));
             return bestResult;
         };
-        // ----------------------------------------
 
 	    let best = { val: -1, yaku: "目なし", base: 10, idx: [0, 1, 2], b: 1 };
 	    const diceWithIdx = dice.map((d, i) => ({ ...d, origIdx: i }));
@@ -3289,7 +3340,6 @@
 	    if (dice.length >= 5 && (reincData.upgrades.straight5 > 0 || reincData.upgrades.arashi5 > 0)) {
 	        const combos = getCombinations(diceWithIdx, 5);
 	        for (let c of combos) {
-                // 修正: findOptimalScore経由で計算
                 const res = findOptimalScore(c);
 	            if (res.yaku === "不成立") continue;
 
@@ -3313,21 +3363,20 @@
 	    }
 
 	    // 3枚役チェック
-	    const combos = getCombinations(diceWithIdx, 3);
-	    for (let c of combos) {
+	    const combos3 = getCombinations(diceWithIdx, 3);
+	    for (let c of combos3) {
             const res = findOptimalScore(c);
-	        
-            // ヒフミ(-1) も val判定で上書きされるので注意が必要だが、
+	        // ヒフミ(-1) も val判定で上書きされるので注意が必要だが、
             // 現状ロジックでは val: -1 なので正の点数が出れば上書きされる
 	        if (res.val > best.val) {
 	            best = { ...res, idx: c.map(d => d.origIdx) };
 	        }
 	    }
 
-        // 最終的な役が「目なし」の場合の救済（元のロジック維持）
+        // 最終的な役が「目なし」の場合の救済
 	    if (best.yaku === "目なし" || best.yaku === "不成立") {
 	        best.b = 1;
-            if (best.yaku === "不成立") best.yaku = "目なし"; // 安全策
+            if (best.yaku === "不成立") best.yaku = "目なし"; 
 	    }
 
 	    if (!isSilent) {
@@ -3353,9 +3402,8 @@
 	        bonusText = " (低下中)";
 	    }
         
-        // 揺れるマインド発動中の表記追加
-        if (hasSwayingMind) {
-             // 役名が長くなりすぎないようにシンプルに
+        // 揺れるマインド/ギフト発動中の表記追加（シンプルに）
+        if (hasSwayingMind || hasGift) {
              // bonusText += "💫"; 
         }
 
@@ -3672,14 +3720,14 @@
         const activePanel = document.getElementById('xyz-active-panel');
         const btnShift = document.getElementById('btn-xyz-shift');
         const btnImport = document.getElementById('btn-xyz-import');
-        // 追加: Forceボタン要素の取得
         const btnForce = document.getElementById('btn-xyz-force');
+        const btnGift = document.getElementById('btn-xyz-gift');
 
-        // 条件に force_unlock を追加
-        if (hasXyzExp && (xyzUpgState.shift_unlock.lv > 0 || xyzUpgState.import_unlock.lv > 0 || xyzUpgState.force_unlock.lv > 0)) {
+        // 条件に force_unlock, gift_unlock を追加
+        if (hasXyzExp && (xyzUpgState.shift_unlock.lv > 0 || xyzUpgState.import_unlock.lv > 0 || xyzUpgState.force_unlock.lv > 0 || xyzUpgState.gift_unlock.lv > 0)) {
             activePanel.style.display = 'flex';
             
-            // --- シフトの表示制御 ---
+            // --- シフト ---
             if (xyzUpgState.shift_unlock.lv > 0) {
                 btnShift.style.display = 'block';
                 document.getElementById('cost-xyz-shift').textContent = formatScore(10000 * Math.pow(2, activeUsage.shift)) + " ORU";
@@ -3693,13 +3741,13 @@
                 else bar.style.width = "0%";
             } else { btnShift.style.display = 'none'; }
 
-            // --- インポートの表示制御 ---
+            // --- インポート ---
             if (xyzUpgState.import_unlock.lv > 0) {
                 btnImport.style.display = 'block';
                 document.getElementById('cost-xyz-import').textContent = formatScore(200000 * Math.pow(2, activeUsage.import)) + " ORU";
             } else { btnImport.style.display = 'none'; }
 
-            // --- フォースの表示制御 (新規追加) ---
+            // --- フォース ---
             if (xyzUpgState.force_unlock.lv > 0) {
                 btnForce.style.display = 'block';
                 document.getElementById('cost-xyz-force').textContent = formatScore(5000000 * Math.pow(2, activeUsage.force)) + " ORU";
@@ -3716,6 +3764,25 @@
                 else bar.style.width = "0%";
             } else { 
                 btnForce.style.display = 'none'; 
+            }
+
+            // --- ギフト ---
+            if (xyzUpgState.gift_unlock.lv > 0) {
+                btnGift.style.display = 'block';
+                document.getElementById('cost-xyz-gift').textContent = formatScore(100000000 * Math.pow(2, activeUsage.gift)) + " ORU";
+                
+                const isBuff = activeTimers.gift > 0;
+                const isPenalty = activeTimers.giftPenalty > 0;
+                
+                btnGift.classList.toggle('active-buff', isBuff);
+                btnGift.classList.toggle('active-penalty', isPenalty);
+                
+                const bar = document.getElementById('xyz-gift-bar');
+                if (isBuff) bar.style.width = Math.max(0, (activeTimers.gift / 180000) * 100) + "%";
+                else if (isPenalty) bar.style.width = Math.max(0, (activeTimers.giftPenalty / 60000) * 100) + "%";
+                else bar.style.width = "0%";
+            } else { 
+                btnGift.style.display = 'none'; 
             }
 
         } else { activePanel.style.display = 'none'; }
@@ -3894,6 +3961,7 @@
 	        ['network','shift_unlock'], ['network','pack_uncommon'],
 	        ['shift_unlock','import_unlock'], ['pack_uncommon','pack_rare'],
             ['import_unlock', 'force_unlock'], 
+            ['force_unlock', 'gift_unlock'],
             ['pack_rare', 'pack_super'],
             ['pack_super', 'pack_ultra'],
             ['pack_ultra', 'pack_magic']
@@ -3920,8 +3988,9 @@
 	    } else if (type === 'import') {
 	        cost = 200000 * Math.pow(2, activeUsage.import);
 	    } else if (type === 'force') {
-            // コスト設定 (例: 500万スタート)
             cost = 5000000 * Math.pow(2, activeUsage.force);
+        } else if (type === 'gift') {
+            cost = 100000000 * Math.pow(2, activeUsage.gift);
         }
 
 	    if (overlayUnits < cost) return alert("オーバーレイユニットが足りません");
@@ -3934,9 +4003,25 @@
 	    const isSuccess = Math.random() > 0.3; // 70% 成功
 	    
 	    if (type === 'shift') {
-            // ... (既存処理)
+	        if (isSuccess) {
+	            alert("エクシーズ・シフト成功！\n3分間、最終倍率が3倍になります。");
+	            activeTimers.shift = 180 * 1000;
+	            activeTimers.shiftPenalty = 0;
+	        } else {
+	            alert("エクシーズ・シフト失敗！\n1分間、最終倍率が1/10になります。");
+	            activeTimers.shiftPenalty = 60 * 1000;
+	            activeTimers.shift = 0;
+	        }
 	    } else if (type === 'import') {
-            // ... (既存処理)
+	        if (isSuccess) {
+	            const gain = score * 0.3;
+	            alert(`エクシーズ・インポート成功！\n${formatScore(gain)} スコアを獲得しました。`);
+	            score += gain;
+	            totalScore += gain;
+	        } else {
+	            alert("エクシーズ・インポート失敗！\n所持スコアのほとんどを失いました。");
+	            score = Math.max(100, score * 0.01);
+	        }
 	    } else if (type === 'force') {
             if (isSuccess) {
                 alert("エクシーズ・フォース成功！\n3分間、探索時間が0秒になります。");
@@ -3946,6 +4031,16 @@
                 alert("エクシーズ・フォース失敗！\n1分間、探索時間が2倍になります。");
                 activeTimers.forcePenalty = 60 * 1000;
                 activeTimers.force = 0;
+            }
+        } else if (type === 'gift') {
+            if (isSuccess) {
+                alert("エクシーズ・ギフト成功！\n3分間、役判定時、出目の値を +1 (最大+2) して扱えます。");
+                activeTimers.gift = 180 * 1000;
+                activeTimers.giftPenalty = 0;
+            } else {
+                alert("エクシーズ・ギフト失敗！\n1分間、役が成立しません。");
+                activeTimers.giftPenalty = 60 * 1000;
+                activeTimers.gift = 0;
             }
         }
 	    saveGame();
