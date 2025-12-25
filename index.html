@@ -625,6 +625,10 @@
         <div class="panel" id="panel-history" style="display:none;">
             <h3>家計簿 (TOP5)</h3>
             <ul id="history-list"></ul>
+            <div id="spm-container" style="margin-top: 10px; border-top: 1px solid #333; padding-top: 8px; text-align: center;">
+                <div style="font-size: 0.65rem; color: #888;">分間平均獲得スコア</div>
+                <div id="spm-display" style="color: var(--total-color); font-weight: bold; font-size: 1.1rem;">0</div>
+            </div>
         </div>
         <div class="panel">
             <h3>プール情報</h3>
@@ -999,6 +1003,8 @@
     let fieldCount = 1;
     let fieldTimers = [];
     let scoreHistory = [];
+    let spmSamples = []; // 追加：1秒ごとのスコア記録用
+    let spmTimer = 0;    // 追加：1秒カウント用
     let dicePool = [];
     const AUTO_BASE_TIME = 6000;
     let isResetting = false;
@@ -1758,6 +1764,31 @@
 	        const now = Date.now();
 	        const dt = Math.max(0, now - lastTickTime);
 	        lastTickTime = now;
+
+        	spmTimer += dt;
+	        if (spmTimer >= 1000) { // 1秒ごとに実行
+	            spmTimer = 0;
+	            spmSamples.push(totalScore); // 現在の総獲得スコアを保存
+	            
+	            // 61サンプル（60秒間＋開始点）を超えたら古いものを削除
+	            if (spmSamples.length > 61) {
+	                spmSamples.shift();
+	            }
+	            
+	            // 家計簿が解放されている場合のみ計算・表示
+	            if (upgState.history.lv > 0 && spmSamples.length >= 2) {
+	                const latestScore = spmSamples[spmSamples.length - 1];
+	                const oldestScore = spmSamples[0];
+	                const diff = latestScore - oldestScore;
+	                
+	                // サンプル数に応じた経過時間（秒）
+	                const secondsElapsed = spmSamples.length - 1;
+	                // 1分間（60秒）あたりの獲得量に換算
+	                const spm = (diff / secondsElapsed) * 60;
+	                
+	                document.getElementById('spm-display').textContent = formatScore(spm);
+	            }
+	        }
 
 	        // ★修正：0未満にならないように制限
 	        if (activeTimers.shift > 0) activeTimers.shift = Math.max(0, activeTimers.shift - dt);
