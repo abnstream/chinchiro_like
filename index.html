@@ -852,6 +852,19 @@
 		            1分間、役が一切成立しなくなる。
 		        </div>
 		    </button>
+
+            <button id="btn-xyz-revenge" class="xyz-skill-card" onclick="useXyzActive('revenge')">
+		        <span class="xyz-skill-name">↩️ エクシーズ・リベンジ</span>
+		        <span id="cost-xyz-revenge" class="xyz-skill-cost">--- ORU</span>
+		        
+		        <div class="xyz-skill-tooltip">
+		            <strong>エクシーズ・リベンジ</strong>
+		            オーバーレイユニットを消費して運命を覆す。<br>
+		            <span style="color:#2ecc71;">● 効果</span><br>
+		            次に使用するアクティブスキルが<br>
+                    <b>100%の確率で成功</b>する。
+		        </div>
+		    </button>
 		</div>
 
 
@@ -1187,6 +1200,11 @@
 			</div>
 
 			<div class="tree-row">
+                <div id="xnode-revenge_unlock" class="skill-node locked" onclick="buyXyzUpgrade('revenge_unlock')">
+			        <span class="skill-icon">↩️</span>
+			        <span id="xlv-revenge_unlock" class="lv-badge"></span>
+			        <div class="skill-tooltip" id="xtip-revenge_unlock"></div>
+			    </div>
 			    <div id="xnode-pack_magic" class="skill-node locked" onclick="buyXyzUpgrade('pack_magic')">
 			        <span class="skill-icon" style="color:var(--rare-magic);">M</span>
 			        <span id="xlv-pack_magic" class="lv-badge"></span>
@@ -1237,6 +1255,7 @@
     let synchroNextCost = 100000000;
     let overlayUnits = 0;
     let xyzNextCost = 1000000000000;
+    let isRevengeActive = false;
     
     let currentRewards = []; 
     let rewardSelectCount = 1; 
@@ -1246,6 +1265,8 @@
 
     let currentSPM = 0; // 現在の分間スコアを保持
     let consecutiveNoTakeCount = 0;
+
+    
     
     function formatTimeEst(minutes) {
         if (!isFinite(minutes) || minutes < 0) return "---";
@@ -1277,6 +1298,7 @@
 	    import_unlock: { lv: 0, max: 1, baseCost: 200000, name: "エクシーズ・インポート", icon: "📥", desc: "アクティブスキルを解放", req: "shift_unlock", reqLv: 1 },
         force_unlock: { lv: 0, max: 1, baseCost: 5000000, name: "エクシーズ・フォース", icon: "⚔️", desc: "アクティブスキルを解放", req: "import_unlock", reqLv: 1 },
         gift_unlock: { lv: 0, max: 1, baseCost: 100000000, name: "エクシーズ・ギフト", icon: "🎁", desc: "アクティブスキルを解放", req: "force_unlock", reqLv: 1 },
+        revenge_unlock: { lv: 0, max: 1, baseCost: 2000000000, name: "エクシーズ・リベンジ", icon: "↩️", desc: "アクティブスキルを解放", req: "gift_unlock", reqLv: 1 },
 	    pack_rare: { lv: 0, max: 5, costs: [10000, 25000, 50000, 100000, 300000], name: "レア・パック", icon: "🔵", desc: "探索でアンコモンが出にくくなる", req: "pack_uncommon", reqLv: 5 },
         		pack_super: { 
     	    lv: 0, max: 5, 
@@ -1600,13 +1622,13 @@
 	        expNextCost, ritualNextCost, fusionNextCost, synchroNextCost,
 	        dicePool, upgLevels: {}, 
 	        reincData, scoreHistory,
-	        ver: 9.2,
+	        ver: 9.3, // バージョンを少し上げておく
 	        overlayUnits,
 	        xyzNextCost,
 	        xyzUpgLevels: Object.fromEntries(Object.entries(xyzUpgState).map(([k, v]) => [k, v.lv])),
 	        activeUsage,
-	        // --- 追加: タイマーの状態を保存 ---
 	        activeTimers, 
+            isRevengeActive,
 	        lastSaveTime: Date.now() 
 	    };
 	    for(let key in upgState) saveObj.upgLevels[key] = upgState[key].lv;
@@ -1673,6 +1695,9 @@
 	                }
 	            }
 	        }
+            if (saveObj.isRevengeActive !== undefined) isRevengeActive = saveObj.isRevengeActive;
+            activeUsage = saveObj.activeUsage || { shift: 0, import: 0, force: 0, gift: 0, revenge: 0 };
+            if (activeUsage.revenge === undefined) activeUsage.revenge = 0;
 
 	        // デフォルト値を設定してNaNを防止
 	        activeUsage = saveObj.activeUsage || { shift: 0, import: 0, force: 0, gift: 0 }; // gift追加
@@ -3722,9 +3747,10 @@
         const btnImport = document.getElementById('btn-xyz-import');
         const btnForce = document.getElementById('btn-xyz-force');
         const btnGift = document.getElementById('btn-xyz-gift');
+        const btnRevenge = document.getElementById('btn-xyz-revenge'); // 追加
 
-        // 条件に force_unlock, gift_unlock を追加
-        if (hasXyzExp && (xyzUpgState.shift_unlock.lv > 0 || xyzUpgState.import_unlock.lv > 0 || xyzUpgState.force_unlock.lv > 0 || xyzUpgState.gift_unlock.lv > 0)) {
+        // 条件に force_unlock, gift_unlock, revenge_unlock を追加
+        if (hasXyzExp && (xyzUpgState.shift_unlock.lv > 0 || xyzUpgState.import_unlock.lv > 0 || xyzUpgState.force_unlock.lv > 0 || xyzUpgState.gift_unlock.lv > 0 || xyzUpgState.revenge_unlock.lv > 0)) {
             activePanel.style.display = 'flex';
             
             // --- シフト ---
@@ -3783,6 +3809,22 @@
                 else bar.style.width = "0%";
             } else { 
                 btnGift.style.display = 'none'; 
+            }
+
+            // --- リベンジ ---
+            if (xyzUpgState.revenge_unlock.lv > 0) {
+                btnRevenge.style.display = 'block';
+                document.getElementById('cost-xyz-revenge').textContent = formatScore(500000000 * Math.pow(2, (activeUsage.revenge || 0))) + " ORU";
+                
+                if (isRevengeActive) {
+                    btnRevenge.classList.add('active-buff'); 
+                    btnRevenge.querySelector('.xyz-skill-name').textContent = "↩️ リベンジ待機中";
+                } else {
+                    btnRevenge.classList.remove('active-buff');
+                    btnRevenge.querySelector('.xyz-skill-name').textContent = "↩️ エクシーズ・リベンジ";
+                }
+            } else { 
+                btnRevenge.style.display = 'none'; 
             }
 
         } else { activePanel.style.display = 'none'; }
@@ -3962,6 +4004,7 @@
 	        ['shift_unlock','import_unlock'], ['pack_uncommon','pack_rare'],
             ['import_unlock', 'force_unlock'], 
             ['force_unlock', 'gift_unlock'],
+            ['gift_unlock', 'revenge_unlock'],
             ['pack_rare', 'pack_super'],
             ['pack_super', 'pack_ultra'],
             ['pack_ultra', 'pack_magic']
@@ -3991,16 +4034,37 @@
             cost = 5000000 * Math.pow(2, activeUsage.force);
         } else if (type === 'gift') {
             cost = 100000000 * Math.pow(2, activeUsage.gift);
+        } else if (type === 'revenge') {
+            // 【追加】リベンジのコスト計算 (初期5億, 毎回2倍)
+            cost = 500000000 * Math.pow(2, (activeUsage.revenge || 0));
         }
 
 	    if (overlayUnits < cost) return alert("オーバーレイユニットが足りません");
 	    
-	    if (!confirm(`コスト ${formatScore(cost)} ORU を消費して発動しますか？\n(30%の確率で失敗します)`)) return;
+        // リベンジ発動中は確認メッセージを変えるなどしても良いが、シンプルに
+	    if (!confirm(`コスト ${formatScore(cost)} ORU を消費して発動しますか？${type !== 'revenge' ? '\n(通常成功率: 70%)' : ''}`)) return;
 
 	    overlayUnits -= cost;
+        if (activeUsage[type] === undefined) activeUsage[type] = 0;
 	    activeUsage[type]++;
 	    
-	    const isSuccess = Math.random() > 0.3; // 70% 成功
+        // 【追加】リベンジの発動処理
+        if (type === 'revenge') {
+            isRevengeActive = true;
+            alert("エクシーズ・リベンジ発動！\n次に使用するアクティブスキルは必ず成功します。");
+            saveGame();
+            updateUI();
+            return;
+        }
+
+        // 【変更】成功判定ロジック
+        let isSuccess = Math.random() > 0.3; // 70% 成功
+
+        if (isRevengeActive) {
+            isSuccess = true;
+            isRevengeActive = false; // 消費
+            alert("リベンジ効果適用！ 確定成功！");
+        }
 	    
 	    if (type === 'shift') {
 	        if (isSuccess) {
