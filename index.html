@@ -687,16 +687,22 @@
 <body>
 
 <div class="container">
-    <div class="sidebar"><div class="panel">
-            <h3>設定</h3>
-            <div style="display:flex; flex-direction:column; gap:5px; align-items:center;">
-                <div style="display:flex; justify-content:space-between; width:100%; font-size:0.8rem;">
-                    <span>SE音量</span>
-                    <span id="vol-disp" style="color:var(--accent);">30%</span>
-                </div>
-                <input type="range" id="vol-slider" min="0" max="100" value="30" style="width:100%; cursor:pointer;" oninput="setVolume(this.value)">
-            </div>
-        </div>
+    <div class="sidebar">
+        <div class="panel">
+		    <h3>設定</h3>
+		    <div style="display:flex; flex-direction:column; gap:5px; align-items:center;">
+		        <div style="display:flex; justify-content:space-between; width:100%; font-size:0.8rem;">
+		            <span>SE音量</span>
+		            <span id="vol-disp" style="color:var(--accent);">30%</span>
+		        </div>
+		        <input type="range" id="vol-slider" min="0" max="100" value="30" style="width:100%; cursor:pointer;" oninput="setVolume(this.value)">
+		        
+		        <button id="btn-num-mode" onclick="toggleNumMode()" style="margin-top:10px; width:100%; padding:6px; background:#333; color:white; border:1px solid #555; border-radius:4px; cursor:pointer; font-size:0.8rem;">
+		            表記: 単位
+		        </button>
+		        </div>
+		</div>
+
         <button id="reinc-btn" onclick="openReincarnationModal()">✦ 転生メニュー</button>
 
         <div class="panel">
@@ -1224,6 +1230,7 @@
 
 <script>
     // --- データ定義 ---
+    let isSciMode = false
     let score = 0;
     let totalScore = 0;
     let multiplier = 1;
@@ -1266,6 +1273,17 @@
     let currentSPM = 0; // 現在の分間スコアを保持
     let consecutiveNoTakeCount = 0;
 
+	function toggleNumMode() {
+	    isSciMode = !isSciMode;
+	    const btn = document.getElementById('btn-num-mode');
+	    if(btn) {
+	        btn.textContent = isSciMode ? "表記: 指数" : "表記: 単位";
+	        // ボタンの色を変えてわかりやすくする（任意）
+	        btn.style.background = isSciMode ? "#2980b9" : "#333";
+	    }
+	    updateUI(); // 表示を即時更新
+	    if(typeof renderHistory === 'function') renderHistory(); // 履歴も更新
+	}
     
     
     function formatTimeEst(minutes) {
@@ -1559,6 +1577,14 @@
     }
 
     function formatScore(num) {
+        // 指数モードの場合
+        if (isSciMode) {
+            if (num === 0) return "0";
+            // 小数点2桁の指数表記 (例: 1.23e+10) プラス記号は見やすく消す
+            return num.toExponential(2).replace("+", "");
+        }
+
+        // --- 既存の単位表記ロジック ---
         if (num >= 1.0e+48) {
             return num.toExponential(2).replace("+", "");
         }
@@ -1578,12 +1604,16 @@
 
     // 倍率用のフォーマット関数（1万未満は小数表示、1万以上は単位表示）
     function formatMultiplier(num) {
+        // 指数モードの場合
+        if (isSciMode) {
+            if (num === 0) return "0";
+            return num.toExponential(2).replace("+", "");
+        }
+
+        // --- 既存の単位表記ロジック ---
         if (num < 10000) {
-            // 1万未満は小数第1位まで表示 (例: 1.5, 9999.9)
-            // parseFloatを使って "1.0" のような不要なゼロを消す
             return parseFloat(num.toFixed(1)).toLocaleString();
         }
-        // 1万以上はスコアと同じ単位処理（formatScore）を利用
         return formatScore(num);
     }
 
@@ -1629,6 +1659,7 @@
 	        activeUsage,
 	        activeTimers, 
             isRevengeActive,
+            isSciMode,
 	        lastSaveTime: Date.now() 
 	    };
 	    for(let key in upgState) saveObj.upgLevels[key] = upgState[key].lv;
@@ -1675,6 +1706,15 @@
 	        } else {
 	             initNewGame();
 	        }
+            if (saveObj.isSciMode !== undefined) {
+                isSciMode = saveObj.isSciMode;
+            }
+            const btn = document.getElementById('btn-num-mode');
+	        if(btn) {
+	            btn.textContent = isSciMode ? "表記: 指数" : "表記: 単位";
+	            btn.style.background = isSciMode ? "#2980b9" : "#333";
+	        }
+
 	        
 	        if (dicePool.length === 0) initNewGame();
 
