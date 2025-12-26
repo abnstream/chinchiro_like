@@ -3756,7 +3756,7 @@
             // --- シフト ---
             if (xyzUpgState.shift_unlock.lv > 0) {
                 btnShift.style.display = 'block';
-                document.getElementById('cost-xyz-shift').textContent = formatScore(10000 * Math.pow(2, activeUsage.shift)) + " ORU";
+                document.getElementById('cost-xyz-shift').textContent = formatScore(1000 * Math.pow(1.5, activeUsage.shift)) + " ORU";
                 const isBuff = activeTimers.shift > 0;
                 const isPenalty = activeTimers.shiftPenalty > 0;
                 btnShift.classList.toggle('active-buff', isBuff);
@@ -3770,13 +3770,13 @@
             // --- インポート ---
             if (xyzUpgState.import_unlock.lv > 0) {
                 btnImport.style.display = 'block';
-                document.getElementById('cost-xyz-import').textContent = formatScore(200000 * Math.pow(2, activeUsage.import)) + " ORU";
+                document.getElementById('cost-xyz-import').textContent = formatScore(3000 * Math.pow(1.5, activeUsage.import)) + " ORU";
             } else { btnImport.style.display = 'none'; }
 
             // --- フォース ---
             if (xyzUpgState.force_unlock.lv > 0) {
                 btnForce.style.display = 'block';
-                document.getElementById('cost-xyz-force').textContent = formatScore(5000000 * Math.pow(2, activeUsage.force)) + " ORU";
+                document.getElementById('cost-xyz-force').textContent = formatScore(5000 * Math.pow(1.5, activeUsage.force)) + " ORU";
                 
                 const isForceBuff = activeTimers.force > 0;
                 const isForcePenalty = activeTimers.forcePenalty > 0;
@@ -3795,7 +3795,7 @@
             // --- ギフト ---
             if (xyzUpgState.gift_unlock.lv > 0) {
                 btnGift.style.display = 'block';
-                document.getElementById('cost-xyz-gift').textContent = formatScore(100000000 * Math.pow(2, activeUsage.gift)) + " ORU";
+                document.getElementById('cost-xyz-gift').textContent = formatScore(10000 * Math.pow(1.5, activeUsage.gift)) + " ORU";
                 
                 const isBuff = activeTimers.gift > 0;
                 const isPenalty = activeTimers.giftPenalty > 0;
@@ -3814,7 +3814,7 @@
             // --- リベンジ ---
             if (xyzUpgState.revenge_unlock.lv > 0) {
                 btnRevenge.style.display = 'block';
-                document.getElementById('cost-xyz-revenge').textContent = formatScore(500000000 * Math.pow(2, (activeUsage.revenge || 0))) + " ORU";
+                document.getElementById('cost-xyz-revenge').textContent = formatScore(15000 * Math.pow(1.5, (activeUsage.revenge || 0))) + " ORU";
                 
                 if (isRevengeActive) {
                     btnRevenge.classList.add('active-buff'); 
