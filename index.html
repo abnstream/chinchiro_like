@@ -1580,11 +1580,17 @@
         // 指数モードの場合
         if (isSciMode) {
             if (num === 0) return "0";
-            // 小数点2桁の指数表記 (例: 1.23e+10) プラス記号は見やすく消す
+            
+            // ★修正: 8桁以下（1億未満）なら指数にせずそのまま表示
+            if (num < 100000000) {
+                return Math.floor(num).toLocaleString();
+            }
+            
+            // 1億以上は指数表記 (例: 1.23e+10)
             return num.toExponential(2).replace("+", "");
         }
 
-        // --- 既存の単位表記ロジック ---
+        // --- 既存の単位表記ロジック (変更なし) ---
         if (num >= 1.0e+48) {
             return num.toExponential(2).replace("+", "");
         }
@@ -1607,10 +1613,21 @@
         // 指数モードの場合
         if (isSciMode) {
             if (num === 0) return "0";
+
+            // ★修正: 8桁以下（1億未満）なら指数にせずそのまま表示
+            if (num < 100000000) {
+                // 1万未満は小数第1位まで表示 (例: 1.5, 9999.9)
+                if (num < 10000) {
+                    return parseFloat(num.toFixed(1)).toLocaleString();
+                }
+                // それ以外は整数表示
+                return Math.floor(num).toLocaleString();
+            }
+
             return num.toExponential(2).replace("+", "");
         }
 
-        // --- 既存の単位表記ロジック ---
+        // --- 既存の単位表記ロジック (変更なし) ---
         if (num < 10000) {
             return parseFloat(num.toFixed(1)).toLocaleString();
         }
