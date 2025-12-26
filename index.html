@@ -1293,30 +1293,30 @@
 	// エクシーズ・アップグレードの状態（転生でリセット）
 	let xyzUpgState = {
 	    network: { lv: 0, max: 100, baseCost: 10, name: "オーバーレイ・ネットワーク", icon: "🌐", desc: "最終スコア倍率 +20%", req: null },
-	    shift_unlock: { lv: 0, max: 1, baseCost: 10000, name: "エクシーズ・シフト", icon: "⏩", desc: "アクティブスキルを解放", req: "network", reqLv: 1 },
-	    pack_uncommon: { lv: 0, max: 5, costs: [1000, 2500, 5000, 10000, 30000], name: "アンコモン・パック", icon: "🟢", desc: "探索でコモンが出にくくなる", req: "network", reqLv: 1 },
-	    import_unlock: { lv: 0, max: 1, baseCost: 200000, name: "エクシーズ・インポート", icon: "📥", desc: "アクティブスキルを解放", req: "shift_unlock", reqLv: 1 },
-        force_unlock: { lv: 0, max: 1, baseCost: 5000000, name: "エクシーズ・フォース", icon: "⚔️", desc: "アクティブスキルを解放", req: "import_unlock", reqLv: 1 },
-        gift_unlock: { lv: 0, max: 1, baseCost: 100000000, name: "エクシーズ・ギフト", icon: "🎁", desc: "アクティブスキルを解放", req: "force_unlock", reqLv: 1 },
-        revenge_unlock: { lv: 0, max: 1, baseCost: 2000000000, name: "エクシーズ・リベンジ", icon: "↩️", desc: "アクティブスキルを解放", req: "gift_unlock", reqLv: 1 },
-	    pack_rare: { lv: 0, max: 5, costs: [10000, 25000, 50000, 100000, 300000], name: "レア・パック", icon: "🔵", desc: "探索でアンコモンが出にくくなる", req: "pack_uncommon", reqLv: 5 },
+	    shift_unlock: { lv: 0, max: 1, baseCost: 1000, name: "エクシーズ・シフト", icon: "⏩", desc: "アクティブスキルを解放", req: "network", reqLv: 1 },
+	    pack_uncommon: { lv: 0, max: 5, costs: [1000, 2000, 4000, 8000, 16000], name: "アンコモン・パック", icon: "🟢", desc: "探索でコモンが出にくくなる", req: "network", reqLv: 1 },
+	    import_unlock: { lv: 0, max: 1, baseCost: 3000, name: "エクシーズ・インポート", icon: "📥", desc: "アクティブスキルを解放", req: "shift_unlock", reqLv: 1 },
+        force_unlock: { lv: 0, max: 1, baseCost: 5000, name: "エクシーズ・フォース", icon: "⚔️", desc: "アクティブスキルを解放", req: "import_unlock", reqLv: 1 },
+        gift_unlock: { lv: 0, max: 1, baseCost: 10000, name: "エクシーズ・ギフト", icon: "🎁", desc: "アクティブスキルを解放", req: "force_unlock", reqLv: 1 },
+        revenge_unlock: { lv: 0, max: 1, baseCost: 15000, name: "エクシーズ・リベンジ", icon: "↩️", desc: "アクティブスキルを解放", req: "gift_unlock", reqLv: 1 },
+	    pack_rare: { lv: 0, max: 5, costs: [4000, 8000, 16000, 32000, 64000], name: "レア・パック", icon: "🔵", desc: "探索でアンコモンが出にくくなる", req: "pack_uncommon", reqLv: 5 },
         		pack_super: { 
     	    lv: 0, max: 5, 
-    	    costs: [1000000, 2500000, 5000000, 10000000, 25000000], 
+    	    costs: [16000, 32000, 64000, 128000, 256000], 
     	    name: "スーパーレア・パック", icon: "🟡", 
     	    desc: "探索でレアが出にくくなる", 
     	    req: "pack_rare", reqLv: 5 
     	},
     	pack_ultra: { 
     	    lv: 0, max: 5, 
-    	    costs: [50000000, 100000000, 250000000, 500000000, 1000000000], 
+    	    costs: [64000, 128000, 256000, 512000, 1024000], 
     	    name: "ウルトラレア・パック", icon: "🟣", 
     	    desc: "探索でスーパーレアが出にくくなる", 
     	    req: "pack_super", reqLv: 5 
     	},
     	pack_magic: { 
     	    lv: 0, max: 5, 
-    	    costs: [5000000000, 10000000000, 25000000000, 50000000000, 100000000000], 
+    	    costs: [256000, 512000, 1024000, 2048000, 4096000], 
     	    name: "マジック・パック", icon: "M", 
     	    desc: "探索でウルトラレアが出にくくなる", 
     	    req: "pack_ultra", reqLv: 5 
@@ -4026,17 +4026,19 @@
 
 	function useXyzActive(type) {
 	    let cost = 0;
+	    // 倍率を定義（ここを変えるだけで全体調整可能）
+	    const costMult = 1.5; 
+
 	    if (type === 'shift') {
-	        cost = 10000 * Math.pow(2, activeUsage.shift);
+	        cost = 1000 * Math.pow(costMult, activeUsage.shift);
 	    } else if (type === 'import') {
-	        cost = 200000 * Math.pow(2, activeUsage.import);
+	        cost = 3000 * Math.pow(costMult, activeUsage.import);
 	    } else if (type === 'force') {
-            cost = 5000000 * Math.pow(2, activeUsage.force);
-        } else if (type === 'gift') {
-            cost = 100000000 * Math.pow(2, activeUsage.gift);
-        } else if (type === 'revenge') {
-            // 【追加】リベンジのコスト計算 (初期5億, 毎回2倍)
-            cost = 500000000 * Math.pow(2, (activeUsage.revenge || 0));
+	        cost = 5000 * Math.pow(costMult, activeUsage.force);
+	    } else if (type === 'gift') {
+	        cost = 10000 * Math.pow(costMult, activeUsage.gift);
+	    } else if (type === 'revenge') {
+	        cost = 15000 * Math.pow(costMult, (activeUsage.revenge || 0));
         }
 
 	    if (overlayUnits < cost) return alert("オーバーレイユニットが足りません");
