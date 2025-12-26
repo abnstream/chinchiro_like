@@ -1204,22 +1204,35 @@
                 <div id="xnode-network" class="skill-node available" onclick="buyXyzUpgrade('network')"><span class="skill-icon">🌐</span><span id="xlv-network" class="lv-badge"></span><div class="skill-tooltip" id="xtip-network"></div></div>
             </div>
 
-            <div class="tree-row" style="gap: 80px;">
+            <div class="tree-row" style="gap: 50px;">
                 <div id="xnode-shift_unlock" class="skill-node locked" onclick="buyXyzUpgrade('shift_unlock')"><span class="skill-icon">⏩</span><span id="xlv-shift_unlock" class="lv-badge"></span><div class="skill-tooltip" id="xtip-shift_unlock"></div></div>
+                
+                <div id="xnode-draw" class="skill-node locked" onclick="buyXyzUpgrade('draw')"><span class="skill-icon">🃏</span><span id="xlv-draw" class="lv-badge"></span><div class="skill-tooltip" id="xtip-draw"></div></div>
+
                 <div id="xnode-pack_uncommon" class="skill-node locked" onclick="buyXyzUpgrade('pack_uncommon')"><span class="skill-icon">🟢</span><span id="xlv-pack_uncommon" class="lv-badge"></span><div class="skill-tooltip" id="xtip-pack_uncommon"></div></div>
             </div>
 
-            			<div class="tree-row" style="gap: 80px;">
+            <div class="tree-row" style="gap: 50px;">
 			    <div id="xnode-import_unlock" class="skill-node locked" onclick="buyXyzUpgrade('import_unlock')"><span class="skill-icon">📥</span><span id="xlv-import_unlock" class="lv-badge"></span><div class="skill-tooltip" id="xtip-import_unlock"></div></div>
-			    <div id="xnode-pack_rare" class="skill-node locked" onclick="buyXyzUpgrade('pack_rare')"><span class="skill-icon">🔵</span><span id="xlv-pack_rare" class="lv-badge"></span><div class="skill-tooltip" id="xtip-pack_rare"></div></div>
+			    
+                <div id="xnode-destiny_draw" class="skill-node locked" onclick="buyXyzUpgrade('destiny_draw')"><span class="skill-icon">🌠</span><span id="xlv-destiny_draw" class="lv-badge"></span><div class="skill-tooltip" id="xtip-destiny_draw"></div></div>
+
+                <div id="xnode-pack_rare" class="skill-node locked" onclick="buyXyzUpgrade('pack_rare')"><span class="skill-icon">🔵</span><span id="xlv-pack_rare" class="lv-badge"></span><div class="skill-tooltip" id="xtip-pack_rare"></div></div>
 			</div>
 
-            <div class="tree-row">
+            <div class="tree-row" style="gap: 50px;">
 			    <div id="xnode-force_unlock" class="skill-node locked" onclick="buyXyzUpgrade('force_unlock')">
 			        <span class="skill-icon">⚔️</span>
 			        <span id="xlv-force_unlock" class="lv-badge"></span>
 			        <div class="skill-tooltip" id="xtip-force_unlock"></div>
 			    </div>
+
+                <div id="xnode-shining_draw" class="skill-node locked" onclick="buyXyzUpgrade('shining_draw')">
+			        <span class="skill-icon">✨</span>
+			        <span id="xlv-shining_draw" class="lv-badge"></span>
+			        <div class="skill-tooltip" id="xtip-shining_draw"></div>
+			    </div>
+
 			    <div id="xnode-pack_super" class="skill-node locked" onclick="buyXyzUpgrade('pack_super')">
 			        <span class="skill-icon">🟡</span>
 			        <span id="xlv-pack_super" class="lv-badge"></span>
@@ -1227,16 +1240,19 @@
 			    </div>
 			</div>
 
-            
-
-			
-
-			<div class="tree-row">
+            <div class="tree-row" style="gap: 50px;">
                 <div id="xnode-gift_unlock" class="skill-node locked" onclick="buyXyzUpgrade('gift_unlock')">
 			        <span class="skill-icon">🎁</span>
 			        <span id="xlv-gift_unlock" class="lv-badge"></span>
 			        <div class="skill-tooltip" id="xtip-gift_unlock"></div>
 			    </div>
+
+                <div id="xnode-dark_draw" class="skill-node locked" onclick="buyXyzUpgrade('dark_draw')">
+			        <span class="skill-icon">🌑</span>
+			        <span id="xlv-dark_draw" class="lv-badge"></span>
+			        <div class="skill-tooltip" id="xtip-dark_draw"></div>
+			    </div>
+
 			    <div id="xnode-pack_ultra" class="skill-node locked" onclick="buyXyzUpgrade('pack_ultra')">
 			        <span class="skill-icon">🟣</span>
 			        <span id="xlv-pack_ultra" class="lv-badge"></span>
@@ -1244,12 +1260,19 @@
 			    </div>
 			</div>
 
-			<div class="tree-row">
+            <div class="tree-row" style="gap: 50px;">
                 <div id="xnode-revenge_unlock" class="skill-node locked" onclick="buyXyzUpgrade('revenge_unlock')">
 			        <span class="skill-icon">↩️</span>
 			        <span id="xlv-revenge_unlock" class="lv-badge"></span>
 			        <div class="skill-tooltip" id="xtip-revenge_unlock"></div>
 			    </div>
+
+                <div id="xnode-barians_chaos_draw" class="skill-node locked" onclick="buyXyzUpgrade('barians_chaos_draw')">
+			        <span class="skill-icon">🔴</span>
+			        <span id="xlv-barians_chaos_draw" class="lv-badge"></span>
+			        <div class="skill-tooltip" id="xtip-barians_chaos_draw"></div>
+			    </div>
+
 			    <div id="xnode-pack_magic" class="skill-node locked" onclick="buyXyzUpgrade('pack_magic')">
 			        <span class="skill-icon" style="color:var(--rare-magic);">M</span>
 			        <span id="xlv-pack_magic" class="lv-badge"></span>
@@ -1377,7 +1400,37 @@
     	    name: "マジック・パック", icon: "M", 
     	    desc: "探索でウルトラレアが出にくくなる", 
     	    req: "pack_ultra", reqLv: 5 
-    	}
+    	},
+        draw: { 
+            lv: 0, max: 1, baseCost: 16000, 
+            name: "ドロー", icon: "🃏", 
+            desc: "通常探索の出目の値 +1", 
+            req: "network", reqLv: 1 
+        },
+        destiny_draw: { 
+            lv: 0, max: 1, baseCost: 64000, 
+            name: "ディスティニードロー", icon: "🌠", 
+            desc: "通常探索の出目の値 +1", 
+            req: "draw", reqLv: 1 
+        },
+        shining_draw: { 
+            lv: 0, max: 1, baseCost: 256000, 
+            name: "シャイニングドロー", icon: "✨", 
+            desc: "通常探索の出目の値 +1", 
+            req: "destiny_draw", reqLv: 1 
+        },
+        dark_draw: { 
+            lv: 0, max: 1, baseCost: 1024000, 
+            name: "ダークドロー", icon: "🌑", 
+            desc: "通常探索の出目の値 +1", 
+            req: "shining_draw", reqLv: 1 
+        },
+        barians_chaos_draw: { 
+            lv: 0, max: 1, baseCost: 4096000, 
+            name: "バリアンズカオスドロー", icon: "🔴", 
+            desc: "通常探索の出目の値 +1", 
+            req: "dark_draw", reqLv: 1 
+        }
 	};
 
     
@@ -2579,9 +2632,20 @@
 	            bonusMsg = `<br><span style='color:var(--mode-synchro); font-weight:bold;'>アクセルシンクロ発動中！ (内部抽選試行 ${internalDrawMulti}倍)</span>`;
 	        }
             
-            // ハナテ表示
             if (hanateBonus > 0) {
                  bonusMsg += `<br><span style='color:#f1c40f; font-weight:bold;'>ハナテ発動中！ (選択可能数+2 / 提示数+2)</span>`;
+            }
+
+            // 【追加】ドロー系スキルの合計レベルを算出（表示用）
+            // 実際の数値加算は genDie 関数内で行われます
+            const drawBonus = (xyzUpgState.draw.lv || 0) 
+                            + (xyzUpgState.destiny_draw.lv || 0)
+                            + (xyzUpgState.shining_draw.lv || 0)
+                            + (xyzUpgState.dark_draw.lv || 0)
+                            + (xyzUpgState.barians_chaos_draw.lv || 0);
+
+            if (drawBonus > 0) {
+                bonusMsg += `<br><span style='color:var(--oru-color); font-weight:bold;'>ドロー強化適用中！ (出目の値 +${drawBonus})</span>`;
             }
 
 	        desc.innerHTML = `持ち帰る出目を選択してください。${bonusMsg}<br><span style='font-size:0.8rem; color:#aaa;'>※決定すると次回の探索コストが2倍になります</span>`;
@@ -2589,7 +2653,8 @@
 	        // 選択可能数にハナテ加算
 	        rewardSelectCount = 1 + (reincData.upgrades.greedy_exp || 0) + hanateBonus;
 	        
-	        // 提示数にハナテ加算
+	        // 提示数：基本2 + 通常強化 + 強欲な遠征 + ハナテ
+            // ※ドローボーナスはここでは加算せず、genDieでの値強化のみに寄与します
 	        const choiceNum = 2 + upgState.exp_amount.lv + (reincData.upgrades.greedy_exp || 0) + hanateBonus;
 	        
 	        let tempPool = [];
@@ -2613,7 +2678,6 @@
 	        updateConfirmButtonState();
 
 	    } else if (expMode === 'ritual') {
-            // (省略: 変更なし)
 	        title.textContent = "儀式！";
 	        title.style.color = "#9b59b6";
 	        if (rewardActionArea) rewardActionArea.style.display = 'block';
@@ -2637,7 +2701,6 @@
 	        });
 	        updateConfirmButtonState();
 	    } else if (expMode === 'fusion') {
-            // (省略: 変更なし)
 	        title.textContent = "融合！";
 	        title.style.color = "var(--mode-fusion)";
 	        desc.innerHTML = "融合する出目を2つ選択してください。";
@@ -2659,7 +2722,6 @@
 	        document.getElementById('fusion-action-area').style.display = 'block';
 
 	    } else if (expMode === 'synchro') {
-            // (省略: 変更なし)
 	        title.textContent = "シンクロ！";
 	        title.style.color = "var(--mode-synchro)";
 	        desc.innerHTML = "シンクロさせるペアを選択してください。";
@@ -2693,7 +2755,6 @@
 	        document.getElementById('synchro-action-area').style.display = 'block';
 
 	    } else if (expMode === 'xyz') {
-            // (省略: 変更なし)
 	        title.textContent = "エクシーズ！";
 	        title.style.color = "var(--mode-xyz)";
 	        rewardSelectCount = 1;
@@ -2729,7 +2790,7 @@
 	    updateRewardCountMsg();
 	    document.getElementById('reward-modal').style.display = 'flex';
 	}
-
+    
 	// --- 報酬決定時のリセット処理 ---
 	function confirmRewards() {
 	    const selectedItems = currentRewards.filter(r => r.selected);
@@ -3172,40 +3233,33 @@
     }
 
     function genDie() {
-        // --- 修正: 笑顔で人は強くなる（値7-12化） ---
+        // 笑顔で人は強くなる（値7-12化）
         const isSmiles = reincData && reincData.upgrades && reincData.upgrades.smiles > 0;
         let minVal = isSmiles ? 7 : 1;
         
         // 0-5の乱数 + 最小値
-        const v = Math.floor(Math.random() * 6) + minVal;
+        let v = Math.floor(Math.random() * 6) + minVal;
+
+        // --- 【追加】ドロー系スキルによる出目の値強化 ---
+        const drawBonus = (xyzUpgState.draw.lv || 0) 
+                        + (xyzUpgState.destiny_draw.lv || 0)
+                        + (xyzUpgState.shining_draw.lv || 0)
+                        + (xyzUpgState.dark_draw.lv || 0)
+                        + (xyzUpgState.barians_chaos_draw.lv || 0);
+        
+        v += drawBonus;
+        // ---------------------------------------------
         
 	    updateRarityDefinitions(); 
 	    
 	    let currentWeights = JSON.parse(JSON.stringify(RARITIES));
 	    
-	    if (xyzUpgState.pack_uncommon.lv > 0) {
-	        currentWeights.common.weight = Math.max(0, currentWeights.common.weight - (xyzUpgState.pack_uncommon.lv * 1000));
-	    }
-	    if (xyzUpgState.pack_rare.lv > 0) {
-	        currentWeights.uncommon.weight = Math.max(0, currentWeights.uncommon.weight - (xyzUpgState.pack_rare.lv * 700));
-	    }
-		if (xyzUpgState.pack_super && xyzUpgState.pack_super.lv > 0) {
-    	    if(currentWeights.rare) {
-    	        currentWeights.rare.weight = Math.max(0, currentWeights.rare.weight - (xyzUpgState.pack_super.lv * 200));
-    	    }
-    	}
-    	// スーパーレアの基本ウェイトは350。Lv5で-350(0)になるよう調整
-    	if (xyzUpgState.pack_ultra && xyzUpgState.pack_ultra.lv > 0) {
-    	    if(currentWeights.super) {
-    	        currentWeights.super.weight = Math.max(0, currentWeights.super.weight - (xyzUpgState.pack_ultra.lv * 70));
-    	    }
-    	}
-    	// ウルトラレアの基本ウェイトは150。Lv5で-150(0)になるよう調整
-    	if (xyzUpgState.pack_magic && xyzUpgState.pack_magic.lv > 0) {
-    	    if(currentWeights.ultra) {
-    	        currentWeights.ultra.weight = Math.max(0, currentWeights.ultra.weight - (xyzUpgState.pack_magic.lv * 30));
-    	    }
-    	}
+        // (パックによる確率操作ロジック...変更なし)
+	    if (xyzUpgState.pack_uncommon.lv > 0) currentWeights.common.weight = Math.max(0, currentWeights.common.weight - (xyzUpgState.pack_uncommon.lv * 1000));
+	    if (xyzUpgState.pack_rare.lv > 0) currentWeights.uncommon.weight = Math.max(0, currentWeights.uncommon.weight - (xyzUpgState.pack_rare.lv * 700));
+		if (xyzUpgState.pack_super && xyzUpgState.pack_super.lv > 0 && currentWeights.rare) currentWeights.rare.weight = Math.max(0, currentWeights.rare.weight - (xyzUpgState.pack_super.lv * 200));
+    	if (xyzUpgState.pack_ultra && xyzUpgState.pack_ultra.lv > 0 && currentWeights.super) currentWeights.super.weight = Math.max(0, currentWeights.super.weight - (xyzUpgState.pack_ultra.lv * 70));
+    	if (xyzUpgState.pack_magic && xyzUpgState.pack_magic.lv > 0 && currentWeights.ultra) currentWeights.ultra.weight = Math.max(0, currentWeights.ultra.weight - (xyzUpgState.pack_magic.lv * 30));
 
 	    const weightsArr = Object.entries(currentWeights);
 	    const totalWeight = weightsArr.reduce((a,b)=>a+b[1].weight, 0);
@@ -3223,18 +3277,13 @@
             let minLvl = 1;
             let maxLvl = 4;
             
-            if (reincData.upgrades.adv_adv_exp > 0) {
-                minLvl = 5;
-                maxLvl = 8;
-            } 
-            else if (reincData.upgrades.adv_exp > 0) {
-                maxLvl = 6;
-            }
+            if (reincData.upgrades.adv_adv_exp > 0) { minLvl = 5; maxLvl = 8; } 
+            else if (reincData.upgrades.adv_exp > 0) { maxLvl = 6; }
             
             lvl = Math.floor(Math.random() * (maxLvl - minLvl + 1)) + minLvl;
         }
 
-        // --- 修正: 輝いた未来（Lv+6） ---
+        // 輝いた未来（Lv+6）
         if (reincData && reincData.upgrades && reincData.upgrades.shining_future > 0) {
             lvl += 6;
         }
@@ -4164,7 +4213,11 @@
 	    svg.innerHTML = '';
 	    
 	    const conn = [
-	        ['network','shift_unlock'], ['network','pack_uncommon'],
+	        ['network','shift_unlock'], ['network','pack_uncommon'],['network', 'draw'],
+            ['draw', 'destiny_draw'],
+            ['destiny_draw', 'shining_draw'],
+            ['shining_draw', 'dark_draw'],
+            ['dark_draw', 'barians_chaos_draw'],
 	        ['shift_unlock','import_unlock'], ['pack_uncommon','pack_rare'],
             ['import_unlock', 'force_unlock'], 
             ['force_unlock', 'gift_unlock'],
