@@ -61,7 +61,7 @@
         .score-label { font-size: 0.9rem; color: #888; margin-bottom: -5px; }
         #total-score-display { font-size: 1.5rem; color: var(--total-color); font-weight: bold; margin: 0; }
         #score-board { font-size: 3.5rem; color: var(--accent); font-weight: bold; margin: 0; text-shadow: 0 0 10px rgba(241, 196, 15, 0.3); }
-        .multiplier-tag { background: var(--auto-color); color: #000; padding: 2px 12px; border-radius: 20px; font-weight: bold; font-size: 0.9rem; margin-bottom: 20px; }
+        .multiplier-tag { background: var(--auto-color); color: #000; padding: 2px 12px; border-radius: 20px; font-weight: bold; font-size: 0.9rem; margin-bottom: 20px;position: relative;cursor: help; }
         #game-fields { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 15px; width: 100%; }
         .field { background: var(--panel-bg); padding: 15px; border-radius: 15px; display: flex; flex-direction: column; align-items: center; position: relative; border: 1px solid #333; }
         .timer-container { position: absolute; top: 10px; right: 10px; width: 35px; height: 35px; }
@@ -70,6 +70,43 @@
         .timer-bg { fill: none; stroke: #333; stroke-width: 4; }
         .dice-row { display: flex; gap: 6px; margin: 10px 0; flex-wrap: wrap; justify-content: center; }
         
+		.mult-tooltip {
+		    visibility: hidden;
+		    width: 220px;
+		    background: rgba(0, 0, 0, 0.95);
+		    color: #fff;
+		    padding: 10px;
+		    position: absolute;
+		    bottom: 125%; /* 上に表示 */
+		    left: 50%;
+		    transform: translateX(-50%);
+		    border-radius: 8px;
+		    font-size: 0.75rem;
+		    opacity: 0;
+		    transition: 0.2s;
+		    z-index: 1000;
+		    border: 1px solid #444;
+		    pointer-events: none;
+		    text-align: left;
+		    line-height: 1.4;
+		    box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+		}
+
+		.multiplier-tag:hover .mult-tooltip {
+		    visibility: visible;
+		    opacity: 1;
+		}
+
+		/* ツールチップ内の行揃え用 */
+		.mult-row {
+		    display: flex;
+		    justify-content: space-between;
+		    border-bottom: 1px solid #333;
+		    padding: 2px 0;
+		}
+		.mult-row:last-child { border-bottom: none; }
+
+
         .die { 
             width: 45px; height: 45px; background: white; border-radius: 8px; 
             display: flex; justify-content: center; align-items: center; 
@@ -878,7 +915,10 @@
             <p class="score-label">所持スコア</p>
             <p id="score-board">0</p>
         </div>
-        <span class="multiplier-tag">倍率: x<span id="mult-val">1.0</span></span>
+        <span class="multiplier-tag">
+            倍率: x<span id="mult-val">1.0</span>
+            <div id="mult-tooltip" class="mult-tooltip"></div>
+        </span>
         <div id="game-fields"></div>
     </div>
 </div>
@@ -3784,15 +3824,15 @@
         const payA4 = document.getElementById('row-payout-a4');
         if (payA4) payA4.style.display = hasA4 ? 'table-row' : 'none';
 
-		const payS5 = document.getElementById('row-payout-s5');
-		if (payS5) payS5.style.display = (reincData.upgrades.straight5 > 0) ? 'table-row' : 'none';
-		const payA5 = document.getElementById('row-payout-a5');
-		if (payA5) payA5.style.display = (reincData.upgrades.arashi5 > 0) ? 'table-row' : 'none';
+        const payS5 = document.getElementById('row-payout-s5');
+        if (payS5) payS5.style.display = (reincData.upgrades.straight5 > 0) ? 'table-row' : 'none';
+        const payA5 = document.getElementById('row-payout-a5');
+        if (payA5) payA5.style.display = (reincData.upgrades.arashi5 > 0) ? 'table-row' : 'none';
 
-		const rowS5 = document.getElementById('row-yaku-s5');
-		if (rowS5) rowS5.style.display = (reincData.upgrades.straight5 > 0) ? 'flex' : 'none';
-		const rowA5 = document.getElementById('row-yaku-a5');
-		if (rowA5) rowA5.style.display = (reincData.upgrades.arashi5 > 0) ? 'flex' : 'none';
+        const rowS5 = document.getElementById('row-yaku-s5');
+        if (rowS5) rowS5.style.display = (reincData.upgrades.straight5 > 0) ? 'flex' : 'none';
+        const rowA5 = document.getElementById('row-yaku-a5');
+        if (rowA5) rowA5.style.display = (reincData.upgrades.arashi5 > 0) ? 'flex' : 'none';
 
 
         // --- 6. プール統計とエクシーズ・アクティブスキルの更新 ---
@@ -3804,9 +3844,8 @@
         const btnImport = document.getElementById('btn-xyz-import');
         const btnForce = document.getElementById('btn-xyz-force');
         const btnGift = document.getElementById('btn-xyz-gift');
-        const btnRevenge = document.getElementById('btn-xyz-revenge'); // 追加
+        const btnRevenge = document.getElementById('btn-xyz-revenge');
 
-        // 条件に force_unlock, gift_unlock, revenge_unlock を追加
         if (hasXyzExp && (xyzUpgState.shift_unlock.lv > 0 || xyzUpgState.import_unlock.lv > 0 || xyzUpgState.force_unlock.lv > 0 || xyzUpgState.gift_unlock.lv > 0 || xyzUpgState.revenge_unlock.lv > 0)) {
             activePanel.style.display = 'flex';
             
@@ -3886,13 +3925,72 @@
 
         } else { activePanel.style.display = 'none'; }
 
-        // --- 7. 倍率計算への反映 (パッシブ + アクティブ) ---
-        let xyzPassiveMult = 1 + (xyzUpgState.network.lv * 0.2);
+        // --- 7. 倍率計算への反映 (内訳表示機能付き) ---
+        
+        // 基礎倍率 (指など)
+        const baseM = multiplier;
+        
+        // XYZネットワーク (パッシブ)
+        const xyzPassiveMult = 1 + (xyzUpgState.network.lv * 0.2);
+        
+        // アクティブスキル補正
         let activeBuff = 1;
-        if (activeTimers.shift > 0) activeBuff = 3;
-        else if (activeTimers.shiftPenalty > 0) activeBuff = 0.1;
+        let activeName = "";
+        if (activeTimers.shift > 0) {
+            activeBuff = 3;
+            activeName = "XYZシフト(成功)";
+        } else if (activeTimers.shiftPenalty > 0) {
+            activeBuff = 0.1;
+            activeName = "XYZシフト(失敗)";
+        }
 
-        document.getElementById('mult-val').textContent = formatMultiplier(multiplier * reincMult * xyzPassiveMult * activeBuff);
+        // 合計倍率
+        const totalMult = baseM * reincMult * xyzPassiveMult * activeBuff;
+        document.getElementById('mult-val').textContent = formatMultiplier(totalMult);
+
+        // --- ツールチップ内訳の生成 ---
+        let tooltipHTML = `<strong style="color:var(--accent); display:block; margin-bottom:5px; text-align:center;">倍率内訳</strong>`;
+        
+        // 基礎
+        tooltipHTML += `
+            <div class="mult-row">
+                <span>基礎 (指):</span>
+                <span>x${formatMultiplier(baseM)}</span>
+            </div>`;
+        
+        // 転生 (1倍より大きい場合のみ表示)
+        if (reincMult > 1) {
+            tooltipHTML += `
+            <div class="mult-row" style="color:var(--reinc-color);">
+                <span>転生ボーナス:</span>
+                <span>x${formatMultiplier(reincMult)}</span>
+            </div>`;
+        }
+
+        // XYZ NW (1倍より大きい場合のみ表示)
+        if (xyzPassiveMult > 1) {
+            tooltipHTML += `
+            <div class="mult-row" style="color:#fff;">
+                <span>オーバーレイNW:</span>
+                <span>x${formatMultiplier(xyzPassiveMult)}</span>
+            </div>`;
+        }
+
+        // アクティブスキル (1倍以外の場合のみ表示)
+        if (activeBuff !== 1) {
+            const color = activeBuff > 1 ? '#2ecc71' : '#e74c3c';
+            tooltipHTML += `
+            <div class="mult-row" style="color:${color};">
+                <span>${activeName}:</span>
+                <span>x${activeBuff}</span>
+            </div>`;
+        }
+
+        // ツールチップ要素があれば更新（安全策）
+        const tooltipEl = document.getElementById('mult-tooltip');
+        if (tooltipEl) {
+            tooltipEl.innerHTML = tooltipHTML;
+        }
 
         // --- 8. 通常スキルツリーのノード更新と説明文反映 ---
         let upgradeCount = 0;
